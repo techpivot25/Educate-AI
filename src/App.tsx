@@ -68,7 +68,8 @@ const MainContent: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col font-sans transition-colors bg-[#F5F7FF] dark:bg-[#12131C] text-[#1F1F24] dark:text-[#F1F1F6]">
       <QuotaDefenseBanner />
-      <GlobalHeader />
+      {/* Student Panel features its own full-height dark navy sidebar and header matching the attached theme */}
+      {currentRole !== 'student' && <GlobalHeader />}
       <div className="flex-1">
         {ecosystemOverviewMode ? (
           <UnifiedEcosystemView />

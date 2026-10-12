@@ -478,7 +478,7 @@ export const AgileStudyRoadmap: React.FC = () => {
               setNewTaskDay(1);
               setIsNewTaskOpen(true);
             }}
-            className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold flex items-center gap-1 shadow-xs cursor-pointer transition-colors"
+            className="px-3.5 py-1.5 rounded-xl bg-[#FF6B00] hover:bg-[#E56000] text-white text-xs font-bold flex items-center gap-1.5 shadow-sm shadow-orange-500/20 cursor-pointer transition-colors"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Add Task</span>
