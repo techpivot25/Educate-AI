@@ -402,7 +402,7 @@ export const AgileStudyRoadmap: React.FC = () => {
       <div className="bg-white dark:bg-[#111827] rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
-            <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+            <h1 className="text-xl sm:text-2xl font-light text-slate-900 dark:text-white tracking-wide">
               Agile Study Roadmap
             </h1>
             <span className="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 flex items-center gap-1">
@@ -912,7 +912,7 @@ export const AgileStudyRoadmap: React.FC = () => {
           <div className="bg-white dark:bg-[#111827] rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-xs">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
               <div>
-                <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <h2 className="text-base font-light text-slate-900 dark:text-white flex items-center gap-2 tracking-wide">
                   <Calendar className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                   Sprint Week Schedule: {currentMonthName} (Days 8 to 14)
                 </h2>
@@ -1046,7 +1046,7 @@ export const AgileStudyRoadmap: React.FC = () => {
           <div className="bg-white dark:bg-[#111827] rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-xs">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <h2 className="text-base font-light text-slate-900 dark:text-white flex items-center gap-2 tracking-wide">
                   <Layers className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                   Agile Sprint Kanban Board ({currentMonthName})
                 </h2>
@@ -1264,7 +1264,7 @@ export const AgileStudyRoadmap: React.FC = () => {
                     Day {selectedTask.day} · {selectedTask.date}
                   </span>
                 </div>
-                <h3 className="text-lg font-black text-slate-900 dark:text-white mt-1.5">
+                <h3 className="text-lg font-light text-slate-900 dark:text-white mt-1.5 tracking-wide">
                   Update Task & Status
                 </h3>
               </div>
@@ -1491,7 +1491,7 @@ export const AgileStudyRoadmap: React.FC = () => {
           <div className="bg-white dark:bg-[#111827] rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-5 animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-start justify-between">
               <div>
-                <h3 className="text-lg font-black text-slate-900 dark:text-white">
+                <h3 className="text-lg font-light text-slate-900 dark:text-white tracking-wide">
                   Schedule New Study Task
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">

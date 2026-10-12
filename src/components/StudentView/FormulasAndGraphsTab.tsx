@@ -658,7 +658,7 @@ export const FormulasAndGraphsTab: React.FC<{
               <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
               <span>Dedicated Resource Hub &bull; Grades 6–12</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
+            <h1 className="text-2xl sm:text-3xl font-light tracking-wide text-white">
               Formulas, Graphs & Schematic Models
             </h1>
             <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
@@ -779,7 +779,7 @@ export const FormulasAndGraphsTab: React.FC<{
       {(activeViewMode === 'all' || activeViewMode === 'diagrams') && filteredDiagrams.length > 0 && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+            <h2 className="text-lg font-light text-slate-900 dark:text-white flex items-center gap-2 tracking-wide">
               <Compass className="w-5 h-5 text-[#4F46E5]" />
               <span>Board-Compliant Diagrams & Visual Models ({filteredDiagrams.length})</span>
             </h2>
@@ -801,7 +801,7 @@ export const FormulasAndGraphsTab: React.FC<{
                       </span>
                       <span className="text-[11px] text-slate-500 font-medium">{diag.topic}</span>
                     </div>
-                    <h3 className="font-extrabold text-base text-slate-900 dark:text-white mt-1">
+                    <h3 className="font-light text-base text-slate-900 dark:text-white mt-1">
                       {diag.title}
                     </h3>
                   </div>
@@ -852,7 +852,7 @@ export const FormulasAndGraphsTab: React.FC<{
       {(activeViewMode === 'all' || activeViewMode === 'formulas') && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+            <h2 className="text-lg font-light text-slate-900 dark:text-white flex items-center gap-2 tracking-wide">
               <Binary className="w-5 h-5 text-[#4F46E5]" />
               <span>{selectedSubject} Formulas & Equations ({filteredFormulas.length})</span>
             </h2>
@@ -862,7 +862,7 @@ export const FormulasAndGraphsTab: React.FC<{
           {filteredFormulas.length === 0 ? (
             <div className="bg-white dark:bg-[#111827] rounded-2xl p-12 text-center border border-slate-200/80 dark:border-slate-800">
               <Binary className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-              <h3 className="text-base font-bold text-slate-800 dark:text-slate-200">
+              <h3 className="text-base font-light text-slate-800 dark:text-slate-200">
                 No formulas match "{searchTerm}"
               </h3>
               <p className="text-xs text-slate-500 mt-1">
@@ -888,7 +888,7 @@ export const FormulasAndGraphsTab: React.FC<{
                             Grades {f.gradeLevels.join(', ')}
                           </span>
                         </div>
-                        <h3 className="font-extrabold text-base text-slate-900 dark:text-white mt-1">
+                        <h3 className="font-light text-base text-slate-900 dark:text-white mt-1">
                           {f.name}
                         </h3>
                       </div>
@@ -989,7 +989,7 @@ export const FormulasAndGraphsTab: React.FC<{
                 <span className="text-xs font-bold text-[#4F46E5] uppercase tracking-wider">
                   {selectedDiagramModal.category} &bull; {selectedDiagramModal.diagramType}
                 </span>
-                <h3 className="text-xl font-black text-slate-900 dark:text-white">
+                <h3 className="text-xl font-light text-slate-900 dark:text-white tracking-wide">
                   {selectedDiagramModal.title}
                 </h3>
               </div>

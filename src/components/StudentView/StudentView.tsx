@@ -312,7 +312,7 @@ export const StudentView: React.FC = () => {
                 <GraduationCap className="w-5 h-5 stroke-[2.3]" />
               </div>
               <div>
-                <h1 className="font-black text-white text-base tracking-tight leading-tight">
+                <h1 className="font-light text-white text-base tracking-wide leading-tight">
                   Educate AI
                 </h1>
                 <div className="flex items-center gap-1.5 text-[10px] text-orange-400 font-bold uppercase tracking-wider">
@@ -488,7 +488,7 @@ export const StudentView: React.FC = () => {
               </button>
 
               <div>
-                <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+                <h2 className="text-base sm:text-lg font-light text-slate-900 dark:text-white tracking-wide flex items-center gap-2">
                   <span>
                     {studentNav === 'dashboard' && 'Agile Study Roadmap & Daily Planner'}
                     {studentNav === 'formulas-graphs' && 'Master Formulas & Board Diagrams'}
@@ -598,7 +598,7 @@ export const StudentView: React.FC = () => {
               <div className="lg:col-span-4 space-y-6">
                 {/* CARD 1: GRADE & BOARD FILTERS */}
                 <div className="bg-white dark:bg-[#0E1A2D] rounded-2xl p-5 border border-slate-200/90 dark:border-slate-800/80 shadow-xs space-y-4">
-                  <h3 className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  <h3 className="text-xs font-light uppercase tracking-wider text-slate-500 dark:text-slate-400">
                     Grade & Board Filters
                   </h3>
 
@@ -693,7 +693,7 @@ export const StudentView: React.FC = () => {
                         <Sparkles className="w-4 h-4" />
                       </div>
                       <div>
-                        <h3 className="text-sm font-black text-slate-900 dark:text-white leading-tight">
+                        <h3 className="text-sm font-light text-slate-900 dark:text-white leading-tight">
                           Quick Doubts AI
                         </h3>
                         <p className="text-[11px] text-slate-500 dark:text-slate-400">
@@ -766,7 +766,7 @@ export const StudentView: React.FC = () => {
                 {/* CARD 3: STUDY SPRINT GOALS (Student Momentum) */}
                 <div className="bg-white dark:bg-[#0E1A2D] rounded-2xl p-5 border border-slate-200/90 dark:border-slate-800/80 shadow-xs space-y-3">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                    <h3 className="text-xs font-light uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
                       <Flame className="w-4 h-4 text-[#FF6B00]" />
                       <span>Study Momentum</span>
                     </h3>
@@ -806,7 +806,7 @@ export const StudentView: React.FC = () => {
             <div className="space-y-6">
               <div className="bg-white dark:bg-[#0E1A2D] rounded-2xl p-6 border border-slate-200/90 dark:border-slate-800/80 shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                  <h2 className="text-2xl font-black text-slate-900 dark:text-white">Skills Passport & Subject Units</h2>
+                  <h2 className="text-2xl font-light text-slate-900 dark:text-white tracking-wide">Skills Passport & Subject Units</h2>
                   <p className="text-xs sm:text-sm text-slate-500 mt-1">
                     Auto-aligned to Grade {studentGradeLevel} &bull; {currentBoard} Governing Curriculum
                   </p>
@@ -838,7 +838,7 @@ export const StudentView: React.FC = () => {
                       </div>
 
                       <div>
-                        <h3 className="font-extrabold text-base text-slate-900 dark:text-white">{sub.name}</h3>
+                        <h3 className="font-light text-base text-slate-900 dark:text-white">{sub.name}</h3>
                         <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{sub.description}</p>
                       </div>
 
@@ -879,7 +879,7 @@ export const StudentView: React.FC = () => {
           {studentNav === 'grades' && (
             <div className="space-y-6">
               <div className="bg-white dark:bg-[#0E1A2D] rounded-2xl p-6 border border-slate-200/90 dark:border-slate-800/80 shadow-xs">
-                <h2 className="text-2xl font-black text-slate-900 dark:text-white">Academic Performance & Mastery KPIs</h2>
+                <h2 className="text-2xl font-light text-slate-900 dark:text-white tracking-wide">Academic Performance & Mastery KPIs</h2>
                 <p className="text-xs sm:text-sm text-slate-500 mt-1">
                   Cumulative GPA: 3.82 / 4.0 &bull; Board Compliance: 98% &bull; Grade {studentGradeLevel}
                 </p>
@@ -931,7 +931,7 @@ export const StudentView: React.FC = () => {
             <div className="space-y-6">
               <div className="bg-white dark:bg-[#0E1A2D] rounded-2xl p-6 border border-slate-200/90 dark:border-slate-800/80 shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                  <h2 className="text-2xl font-black text-slate-900 dark:text-white">Interactive Practice Quizzes</h2>
+                  <h2 className="text-2xl font-light text-slate-900 dark:text-white tracking-wide">Interactive Practice Quizzes</h2>
                   <p className="text-xs sm:text-sm text-slate-500 mt-1">
                     Reinforce concepts with board-compliant MCQs & instant feedback
                   </p>
@@ -965,7 +965,7 @@ export const StudentView: React.FC = () => {
                         {quiz.questions?.length || 3} Questions
                       </span>
                     </div>
-                    <h3 className="font-extrabold text-slate-900 dark:text-white text-base">{quiz.title}</h3>
+                    <h3 className="font-light text-slate-900 dark:text-white text-base">{quiz.title}</h3>
                     <p className="text-xs text-slate-500 mt-1">{quiz.topic}</p>
                   </div>
                 ))}
@@ -975,7 +975,7 @@ export const StudentView: React.FC = () => {
               {activeQuiz && (
                 <div className="bg-white dark:bg-[#0E1A2D] rounded-2xl p-6 border border-slate-200/90 dark:border-slate-800/80 shadow-xs space-y-6">
                   <div className="border-b border-slate-100 dark:border-slate-800 pb-4">
-                    <h3 className="text-lg font-black text-slate-900 dark:text-white">{activeQuiz.title}</h3>
+                    <h3 className="text-lg font-light text-slate-900 dark:text-white">{activeQuiz.title}</h3>
                     <p className="text-xs text-slate-500">{activeQuiz.topic} &bull; Select the best answer for each question</p>
                   </div>
 
@@ -1059,7 +1059,7 @@ export const StudentView: React.FC = () => {
                     <Sparkles className="w-5 h-5" />
                   </div>
                   <div>
-                    <h2 className="font-extrabold text-slate-900 dark:text-white text-base">
+                    <h2 className="font-light text-slate-900 dark:text-white text-base">
                       Socratic AI Tutor
                     </h2>
                     <div className="flex items-center gap-2 text-xs text-slate-500">
@@ -1201,7 +1201,7 @@ export const StudentView: React.FC = () => {
             <div className="space-y-6">
               <div className="bg-white dark:bg-[#0E1A2D] rounded-2xl p-6 border border-slate-200/90 dark:border-slate-800/80 shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                  <h2 className="text-2xl font-black text-slate-900 dark:text-white">Digital Certificates & Badges</h2>
+                  <h2 className="text-2xl font-light text-slate-900 dark:text-white tracking-wide">Digital Certificates & Badges</h2>
                   <p className="text-xs sm:text-sm text-slate-500 mt-1">
                     Cryptographically verified credentials awarded for curriculum mastery
                   </p>
@@ -1224,7 +1224,7 @@ export const StudentView: React.FC = () => {
                     </div>
 
                     <div>
-                      <h3 className="font-black text-lg text-slate-900 dark:text-white">{cert.courseTitle}</h3>
+                      <h3 className="font-light text-lg text-slate-900 dark:text-white">{cert.courseTitle}</h3>
                       <p className="text-xs text-slate-500 mt-0.5">Recipient: {cert.studentName} &bull; Score: {cert.score}%</p>
                     </div>
 
@@ -1243,7 +1243,7 @@ export const StudentView: React.FC = () => {
             <div className="space-y-6">
               <div className="bg-white dark:bg-[#0E1A2D] rounded-2xl p-6 border border-slate-200/90 dark:border-slate-800/80 shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                  <h2 className="text-2xl font-black text-slate-900 dark:text-white">Community Doubt Forum</h2>
+                  <h2 className="text-2xl font-light text-slate-900 dark:text-white tracking-wide">Community Doubt Forum</h2>
                   <p className="text-xs sm:text-sm text-slate-500 mt-1">
                     Ask peers & verified teachers &bull; AI moderation active with zero-tolerance policy
                   </p>
@@ -1265,7 +1265,7 @@ export const StudentView: React.FC = () => {
                           <span>&bull;</span>
                           <span>{post.created_at}</span>
                         </div>
-                        <h3 className="text-base font-extrabold text-slate-900 dark:text-white mt-1">{post.title}</h3>
+                        <h3 className="text-base font-light text-slate-900 dark:text-white mt-1">{post.title}</h3>
                       </div>
 
                       <button
@@ -1299,7 +1299,7 @@ export const StudentView: React.FC = () => {
             <div className="space-y-6">
               <div className="bg-white dark:bg-[#0E1A2D] rounded-2xl p-6 border border-slate-200/90 dark:border-slate-800/80 shadow-xs flex items-center justify-between">
                 <div>
-                  <h2 className="text-2xl font-black text-slate-900 dark:text-white">Student Account & Preferences</h2>
+                  <h2 className="text-2xl font-light text-slate-900 dark:text-white tracking-wide">Student Account & Preferences</h2>
                   <p className="text-xs sm:text-sm text-slate-500 mt-1">
                     Manage profile, governing boards, language medium, and active subscription
                   </p>
@@ -1314,7 +1314,7 @@ export const StudentView: React.FC = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="bg-white dark:bg-[#0E1A2D] rounded-2xl p-5 border border-slate-200/90 dark:border-slate-800/80 shadow-xs space-y-3">
-                  <h3 className="font-extrabold text-base text-slate-900 dark:text-white">Active Plan & Free Trial</h3>
+                  <h3 className="font-light text-base text-slate-900 dark:text-white">Active Plan & Free Trial</h3>
                   <div className="p-4 rounded-xl bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-800/60 space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="font-extrabold text-sm text-[#FF6B00]">{subscriptionState.tier}</span>
@@ -1327,7 +1327,7 @@ export const StudentView: React.FC = () => {
                 </div>
 
                 <div className="bg-white dark:bg-[#0E1A2D] rounded-2xl p-5 border border-slate-200/90 dark:border-slate-800/80 shadow-xs space-y-3">
-                  <h3 className="font-extrabold text-base text-slate-900 dark:text-white">Institutional Mapping</h3>
+                  <h3 className="font-light text-base text-slate-900 dark:text-white">Institutional Mapping</h3>
                   <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800 space-y-1.5 text-xs">
                     <div className="font-bold text-slate-900 dark:text-white">
                       {currentUser?.school_name || 'D.A.V. Public School, Sector 8'}
@@ -1355,7 +1355,7 @@ export const StudentView: React.FC = () => {
                   <HelpCircle className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="font-extrabold text-sm">Quick Doubts AI</h3>
+                  <h3 className="font-light text-sm">Quick Doubts AI</h3>
                   <p className="text-[10px] text-slate-500">Autonomous Step-by-Step Solver</p>
                 </div>
               </div>
