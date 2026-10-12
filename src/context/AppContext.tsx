@@ -122,6 +122,7 @@ interface AppContextType {
   // Agile Study Planner
   dailyTasks: DailyStudyTask[];
   setDailyTasks: React.Dispatch<React.SetStateAction<DailyStudyTask[]>>;
+  updateStudyTask: (taskId: string, updates: Partial<DailyStudyTask>) => void;
   weeklySprints: WeeklySprintAllocation[];
   masterChapters: MasterChapterItem[];
   generateStudyPlan: (params?: any) => Promise<void>;
@@ -1148,24 +1149,46 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Agile Study Planner State
   const [dailyTasks, setDailyTasks] = useState<DailyStudyTask[]>([
-    { id: 'dt-1', day: 1, date: '2026-10-12', subject: 'Algebra I', topic: 'Lesson 3 Review: Linear Inequalities', duration_hrs: 1.5, is_core: true, status: 'Completed', color: '#4F46E5' },
-    { id: 'dt-3', day: 3, date: '2026-10-14', subject: 'Physics', topic: 'Lab Prep: Vector Dynamics & Net Force', duration_hrs: 2, is_core: false, status: 'In Progress', color: '#0284C7' },
-    { id: 'dt-4', day: 4, date: '2026-10-15', subject: 'History', topic: 'Reading: Global Dynasties (Ch 4)', duration_hrs: 1.5, is_core: false, status: 'In Progress', color: '#0EA5E9' },
-    { id: 'dt-5', day: 5, date: '2026-10-16', subject: 'History', topic: 'Reading: Primary Sources & Analysis', duration_hrs: 1.5, is_core: false, status: 'Completed', color: '#10B981' },
-    { id: 'dt-8', day: 8, date: '2026-10-19', subject: 'Algebra I', topic: 'Lesson 3 Review: Exponent Rules', duration_hrs: 1.5, is_core: true, status: 'Completed', color: '#4F46E5' },
-    { id: 'dt-10a', day: 10, date: '2026-10-21', subject: 'Physics', topic: 'Lab Prep: Friction Coefficients', duration_hrs: 1.5, is_core: false, status: 'In Progress', color: '#0284C7' },
-    { id: 'dt-10b', day: 10, date: '2026-10-21', subject: 'History', topic: 'Reading: Economic Networks', duration_hrs: 1, is_core: false, status: 'In Progress', color: '#0EA5E9' },
-    { id: 'dt-12', day: 12, date: '2026-10-23', subject: 'History', topic: 'Reading: Maritime Trade Maps', duration_hrs: 1.5, is_core: false, status: 'To Do', color: '#0EA5E9' },
-    { id: 'dt-15', day: 15, date: '2026-10-26', subject: 'Algebra I', topic: 'Lesson 3 Review: Factoring Trinomials', duration_hrs: 1.5, is_core: true, status: 'To Do', color: '#4F46E5' },
-    { id: 'dt-17', day: 17, date: '2026-10-28', subject: 'Physics', topic: 'Lab Prep: Momentum Collisions', duration_hrs: 2, is_core: false, status: 'To Do', color: '#0284C7' },
-    { id: 'dt-18', day: 18, date: '2026-10-29', subject: 'History', topic: 'Reading: Post-Classical Societies', duration_hrs: 1.5, is_core: false, status: 'To Do', color: '#0EA5E9' },
-    { id: 'dt-22', day: 22, date: '2026-11-02', subject: 'Algebra I', topic: 'Lesson 3 Review: Quadratic Formula Intro', duration_hrs: 1.5, is_core: true, status: 'To Do', color: '#4F46E5' },
-    { id: 'dt-23', day: 23, date: '2026-11-03', subject: 'Algebra I', topic: 'Lesson 3 Review: Parabola Symmetry', duration_hrs: 1.5, is_core: true, status: 'To Do', color: '#4F46E5' },
-    { id: 'dt-24', day: 24, date: '2026-11-04', subject: 'Algebra I', topic: 'Lesson 3 Review: Vertex Form Drills', duration_hrs: 1.5, is_core: true, status: 'To Do', color: '#4F46E5' },
-    { id: 'dt-29', day: 29, date: '2026-11-09', subject: 'History', topic: 'Reading: Diplomatic Treaties', duration_hrs: 1.5, is_core: false, status: 'To Do', color: '#0EA5E9' },
-    { id: 'dt-30', day: 30, date: '2026-11-10', subject: 'History', topic: 'Reading: Cultural Diffusion', duration_hrs: 1.5, is_core: false, status: 'To Do', color: '#0EA5E9' },
-    { id: 'dt-31', day: 31, date: '2026-11-11', subject: 'History', topic: 'Reading: Final Chapter Synthesis', duration_hrs: 1.5, is_core: false, status: 'To Do', color: '#0EA5E9' },
+    // October 2026 Tasks
+    { id: 'dt-oct-2', day: 2, date: '2026-10-02', subject: 'Algebra I', topic: 'Linear Equations & Variables', duration_hrs: 1.5, is_core: true, status: 'Completed', points: 25, color: '#4F46E5' },
+    { id: 'dt-oct-5', day: 5, date: '2026-10-05', subject: 'Physics', topic: 'Kinematics & Velocity Vectors', duration_hrs: 2, is_core: false, status: 'Completed', points: 30, color: '#0284C7' },
+    { id: 'dt-oct-8', day: 8, date: '2026-10-08', subject: 'Chemistry', topic: 'Atomic Structure & Bohr Model', duration_hrs: 1.5, is_core: false, status: 'Completed', points: 20, color: '#10B981' },
+    { id: 'dt-oct-12', day: 12, date: '2026-10-12', subject: 'Algebra I', topic: 'Lesson 3 Review: Linear Inequalities', duration_hrs: 1.5, is_core: true, status: 'Completed', points: 25, color: '#4F46E5' },
+    { id: 'dt-oct-14', day: 14, date: '2026-10-14', subject: 'Physics', topic: 'Lab Prep: Vector Dynamics & Net Force', duration_hrs: 2, is_core: false, status: 'In Progress', points: 30, color: '#0284C7' },
+    { id: 'dt-oct-15', day: 15, date: '2026-10-15', subject: 'History', topic: 'Reading: Global Dynasties (Ch 4)', duration_hrs: 1.5, is_core: false, status: 'In Progress', points: 20, color: '#0EA5E9' },
+    { id: 'dt-oct-16', day: 16, date: '2026-10-16', subject: 'Biology', topic: 'Cell Division: Mitosis vs Meiosis', duration_hrs: 1.5, is_core: false, status: 'On Hold', points: 20, color: '#059669' },
+    { id: 'dt-oct-19', day: 19, date: '2026-10-19', subject: 'Algebra I', topic: 'Lesson 3 Review: Exponent Rules', duration_hrs: 1.5, is_core: true, status: 'To Do', points: 25, color: '#4F46E5' },
+    { id: 'dt-oct-21a', day: 21, date: '2026-10-21', subject: 'Physics', topic: 'Lab Prep: Friction Coefficients', duration_hrs: 1.5, is_core: false, status: 'To Do', points: 25, color: '#0284C7' },
+    { id: 'dt-oct-21b', day: 21, date: '2026-10-21', subject: 'History', topic: 'Reading: Economic Networks', duration_hrs: 1, is_core: false, status: 'Revision', points: 15, color: '#F59E0B' },
+    { id: 'dt-oct-23', day: 23, date: '2026-10-23', subject: 'History', topic: 'Reading: Maritime Trade Maps', duration_hrs: 1.5, is_core: false, status: 'To Do', points: 20, color: '#0EA5E9' },
+    { id: 'dt-oct-26', day: 26, date: '2026-10-26', subject: 'Algebra I', topic: 'Lesson 3 Review: Factoring Trinomials', duration_hrs: 1.5, is_core: true, status: 'Revision', points: 30, color: '#8B5CF6' },
+    { id: 'dt-oct-28', day: 28, date: '2026-10-28', subject: 'Physics', topic: 'Lab Prep: Momentum Collisions', duration_hrs: 2, is_core: false, status: 'To Do', points: 35, color: '#0284C7' },
+    { id: 'dt-oct-29', day: 29, date: '2026-10-29', subject: 'History', topic: 'Reading: Post-Classical Societies', duration_hrs: 1.5, is_core: false, status: 'To Do', points: 20, color: '#0EA5E9' },
+
+    // November 2026 Tasks
+    { id: 'dt-nov-2', day: 2, date: '2026-11-02', subject: 'Algebra I', topic: 'Quadratic Formula Intro & Roots', duration_hrs: 1.5, is_core: true, status: 'Completed', points: 25, color: '#4F46E5' },
+    { id: 'dt-nov-3', day: 3, date: '2026-11-03', subject: 'Algebra I', topic: 'Parabola Symmetry & Vertex Form', duration_hrs: 1.5, is_core: true, status: 'In Progress', points: 25, color: '#4F46E5' },
+    { id: 'dt-nov-4', day: 4, date: '2026-11-04', subject: 'Physics', topic: 'Centripetal Force & Orbit Mechanics', duration_hrs: 2, is_core: false, status: 'In Progress', points: 30, color: '#0284C7' },
+    { id: 'dt-nov-6', day: 6, date: '2026-11-06', subject: 'Chemistry', topic: 'Chemical Equilibrium & Le Chatelier', duration_hrs: 1.5, is_core: false, status: 'To Do', points: 25, color: '#10B981' },
+    { id: 'dt-nov-9', day: 9, date: '2026-11-09', subject: 'History', topic: 'Reading: Diplomatic Treaties & Alliances', duration_hrs: 1.5, is_core: false, status: 'To Do', points: 20, color: '#0EA5E9' },
+    { id: 'dt-nov-10', day: 10, date: '2026-11-10', subject: 'History', topic: 'Reading: Cultural Diffusion & Trade routes', duration_hrs: 1.5, is_core: false, status: 'On Hold', points: 20, color: '#0EA5E9' },
+    { id: 'dt-nov-12', day: 12, date: '2026-11-12', subject: 'Algebra I', topic: 'Complex Numbers & Imaginary Roots', duration_hrs: 1.5, is_core: true, status: 'To Do', points: 25, color: '#4F46E5' },
+    { id: 'dt-nov-16', day: 16, date: '2026-11-16', subject: 'Physics', topic: 'Work, Energy & Power Review', duration_hrs: 2, is_core: false, status: 'Completed', points: 30, color: '#0284C7' },
+    { id: 'dt-nov-19', day: 19, date: '2026-11-19', subject: 'Chemistry', topic: 'Acid-Base Titration Curves & pH', duration_hrs: 1.5, is_core: false, status: 'Revision', points: 25, color: '#10B981' },
+    { id: 'dt-nov-24', day: 24, date: '2026-11-24', subject: 'Algebra I', topic: 'Polynomial Functions & Graph Analysis', duration_hrs: 1.5, is_core: true, status: 'To Do', points: 25, color: '#4F46E5' },
+    { id: 'dt-nov-27', day: 27, date: '2026-11-27', subject: 'History', topic: 'Modern Economic Revolutions', duration_hrs: 1.5, is_core: false, status: 'To Do', points: 20, color: '#0EA5E9' },
   ]);
+
+  const updateStudyTask = (taskId: string, updates: Partial<DailyStudyTask>) => {
+    setDailyTasks((prev) =>
+      prev.map((t) => {
+        if (t.id === taskId) {
+          return { ...t, ...updates };
+        }
+        return t;
+      })
+    );
+  };
 
   const [weeklySprints] = useState<WeeklySprintAllocation[]>([
     { week: 1, weekLabel: 'Week 1: Core Algebra & Kinematics', coreSubjectHours: 10.5, rotatingSubjectHours: { Physics: 8, History: 6, Chemistry: 4 }, totalHours: 28.5 },
@@ -2295,6 +2318,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         // Agile Study Planner
         dailyTasks,
         setDailyTasks,
+        updateStudyTask,
         weeklySprints,
         masterChapters,
         generateStudyPlan,

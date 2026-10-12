@@ -269,6 +269,7 @@ export type StudentNavTab =
   | 'dashboard'
   | 'my-courses'
   | 'grades'
+  | 'formulas-graphs'
   | 'ai-tutor'
   | 'resources'
   | 'community'
@@ -334,6 +335,8 @@ export interface CommunityPost {
   status: 'ACTIVE' | 'FLAGGED_BLOCKED';
 }
 
+export type StudyTaskStatus = 'To Do' | 'In Progress' | 'On Hold' | 'Completed' | 'Revision';
+
 export interface DailyStudyTask {
   id: string;
   day: number;
@@ -342,7 +345,9 @@ export interface DailyStudyTask {
   topic: string;
   duration_hrs: number;
   is_core: boolean; // e.g. Mathematics daily 1.5 hrs
-  status: 'To Do' | 'In Progress' | 'Completed';
+  status: StudyTaskStatus;
+  points?: number; // Story points / XP reward
+  notes?: string;
   color: string;
 }
 
