@@ -1,0 +1,6 @@
+{
+  "name": "Educate AI Agent Platform",
+  "description": "All-in-one AI-driven educational ecosystem with conversational AI tutor, teacher curriculum studio, real-time proctoring anomaly detection, and verifiable certificates.",
+  "requestFramePermissions": ["camera", "microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
