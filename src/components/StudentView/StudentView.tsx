@@ -3,6 +3,7 @@ import { useApp } from '../../context/AppContext';
 import { useTheme } from '../../context/ThemeContext';
 import { FormulasAndGraphsTab } from './FormulasAndGraphsTab';
 import { AgileStudyRoadmap } from './AgileStudyRoadmap';
+import { CourseProgressTracker } from './CourseProgressTracker';
 import { PivotIQLogo } from '../common/PivotIQLogo';
 import {
   GraduationCap,
@@ -642,8 +643,9 @@ export const StudentView: React.FC = () => {
           {/* TAB 1: MAIN DASHBOARD VIEW (Roadmap + Filters + Doubts + Momentum) */}
           {studentNav === 'dashboard' && (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-              {/* Center / Left: Agile Study Roadmap */}
+              {/* Center / Left: Visual Progress Tracking Bar + Agile Study Roadmap */}
               <div className="lg:col-span-8 space-y-6">
+                <CourseProgressTracker />
                 <AgileStudyRoadmap />
               </div>
 
