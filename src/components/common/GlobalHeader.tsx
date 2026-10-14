@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useTheme } from '../../context/ThemeContext';
+import { PivotIQLogo } from './PivotIQLogo';
 import {
   GraduationCap,
   Briefcase,
@@ -75,13 +76,11 @@ export const GlobalHeader: React.FC = () => {
 
           {/* Brand Logo */}
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-[#4B49AC] flex items-center justify-center text-white shadow-md shadow-[#4B49AC]/20 shrink-0">
-              <GraduationCap className="w-5 h-5" />
-            </div>
+            <PivotIQLogo size={36} />
             <div className="hidden sm:block">
               <div className="flex items-center gap-2">
                 <span className="font-extrabold text-[#1F1F24] dark:text-[#F1F1F6] text-base tracking-tight">
-                  Educate AI Agent
+                  PivotIQ
                 </span>
                 <span className="hidden md:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#98BDFF]/20 text-[#4B49AC] dark:text-[#98BDFF] border border-[#98BDFF]/40">
                   <Radio className="w-2.5 h-2.5 animate-pulse text-[#4B49AC] dark:text-[#7DA0FA]" />

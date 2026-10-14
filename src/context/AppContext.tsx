@@ -35,6 +35,14 @@ import {
   SAMPLE_STUDENT_ACADEMIC_GROWTH,
 } from '../data/curriculumData';
 
+export interface BroadcastedQuizInfo {
+  quiz: Quiz;
+  targetClass: string;
+  broadcastAt: string;
+  timeLimit?: string;
+  proctoringEnabled?: boolean;
+}
+
 interface AppContextType {
   // Theme State
   theme: 'light' | 'dark';
@@ -173,7 +181,9 @@ interface AppContextType {
   isDraftingQuiz: boolean;
   draftLessonPlan: (topic: string, grade: string, style: string) => Promise<LessonPlan | null>;
   draftQuiz: (prompt: string) => Promise<Quiz | null>;
-  publishQuiz: (quiz: Quiz) => void;
+  activeBroadcastQuiz: BroadcastedQuizInfo | null;
+  setActiveBroadcastQuiz: (info: BroadcastedQuizInfo | null) => void;
+  publishQuiz: (quiz: Quiz, targetClass?: string) => void;
   dismissSuggestion: (id: string) => void;
 
   // Admin & Proctoring State
@@ -713,6 +723,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   });
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isProfileOpen, setIsProfileOpen] = useState<boolean>(false);
+  const [activeBroadcastQuiz, setActiveBroadcastQuiz] = useState<BroadcastedQuizInfo | null>(null);
 
   const [currentRole, setCurrentRoleState] = useState<UserRole>('student');
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
@@ -1247,7 +1258,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', `EducateAI_Agile_Study_Planner_${currentUser?.name?.replace(/\s+/g, '_') || 'Student'}.csv`);
+    link.setAttribute('download', `PivotIQ_Agile_Study_Planner_${currentUser?.name?.replace(/\s+/g, '_') || 'Student'}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -1872,12 +1883,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [certificates, setCertificates] = useState<DigitalCertificate[]>([
     {
       id: 'cert-1',
-      certificateNumber: 'EDU-AI-2026-98124',
+      certificateNumber: 'PIVOTIQ-2026-98124',
       studentName: 'Sarah Connor',
       courseTitle: "Classical Mechanics & Newton's Laws",
       gradeLevel: 'Grade 8 Honors',
       issueDate: 'October 8, 2026',
-      instructorName: 'Dr. David Vance & Educate AI Agent',
+      instructorName: 'Dr. David Vance & PivotIQ',
       verificationHash: '0x9e8a71b4c321d0a5e8211b43aa992f1406e123bc',
       status: 'Verified',
       skillsAcquired: [
@@ -2121,12 +2132,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // Teacher publishes quiz to students (cross-panel event)
-  const publishQuiz = (quiz: Quiz) => {
+  const publishQuiz = (quiz: Quiz, targetClass: string = 'Class 7B - Science') => {
+    const info: BroadcastedQuizInfo = {
+      quiz,
+      targetClass,
+      broadcastAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      timeLimit: '15 Minutes',
+      proctoringEnabled: true,
+    };
+    setActiveBroadcastQuiz(info);
     addNotification(
       'New Assessment Published!',
-      `Teacher published "${quiz.title}" to student portal. Now accessible in Student Practice tab!`,
+      `Teacher published "${quiz.title}" for ${targetClass}. Accessible in Student Practice tab!`,
       'success',
       'teacher'
+    );
+    addNotification(
+      '⚡ Live Assessment Broadcasted!',
+      `Your instructor broadcasted "${quiz.title}" for ${targetClass}. Tap to start practice now!`,
+      'info',
+      'student'
     );
   };
 
@@ -2192,7 +2217,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       courseTitle,
       gradeLevel: 'Grade 8 Mastery',
       issueDate: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
-      instructorName: 'Educate AI Agent Academic Board',
+      instructorName: 'PivotIQ Academic Board',
       verificationHash: hash,
       status: 'Verified',
       skillsAcquired: [
@@ -2280,6 +2305,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         isDraftingQuiz,
         draftLessonPlan,
         draftQuiz,
+        activeBroadcastQuiz,
+        setActiveBroadcastQuiz,
         publishQuiz,
         dismissSuggestion,
         proctorFeeds,

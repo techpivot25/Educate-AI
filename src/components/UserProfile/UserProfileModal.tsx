@@ -68,15 +68,13 @@ export const UserProfileModal: React.FC = () => {
     setCurrentBoard,
   } = useApp();
 
-  if (!isProfileOpen || !currentUser) return null;
+  const role = currentUser?.role || 'student';
 
-  const role = currentUser.role;
-
-  // Form states
-  const [name, setName] = useState(currentUser.name);
-  const [email, setEmail] = useState(currentUser.email);
-  const [status, setStatus] = useState(currentUser.status);
-  const [avatarSeed, setAvatarSeed] = useState(currentUser.avatar || '');
+  // Form states - declared unconditionally at the top of the component
+  const [name, setName] = useState(currentUser?.name || '');
+  const [email, setEmail] = useState(currentUser?.email || '');
+  const [status, setStatus] = useState(currentUser?.status || 'Active');
+  const [avatarSeed, setAvatarSeed] = useState(currentUser?.avatar || '');
   const [showPasswordSection, setShowPasswordSection] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -86,16 +84,16 @@ export const UserProfileModal: React.FC = () => {
 
   // Student specific editable states
   const [gradeLevel, setGradeLevel] = useState<number>(
-    typeof currentUser.grade_level === 'number'
+    typeof currentUser?.grade_level === 'number'
       ? currentUser.grade_level
-      : parseInt(String(currentUser.grade || '8').replace(/\D/g, '')) || 8
+      : parseInt(String(currentUser?.grade || '8').replace(/\D/g, '')) || 8
   );
   const [stream, setStream] = useState<string>('Science (PCM/PCB)');
   const [educationBoard, setEducationBoard] = useState<EducationBoard>(
-    (currentUser.education_board as EducationBoard) || 'CBSE'
+    (currentUser?.education_board as EducationBoard) || 'CBSE'
   );
   const [languageMedium, setLanguageMedium] = useState<LanguageMedium>(
-    (currentUser.preferred_language as LanguageMedium) || 'en'
+    (currentUser?.preferred_language as LanguageMedium) || 'en'
   );
   const [schoolData, setSchoolData] = useState<{
     id?: string;
@@ -104,16 +102,21 @@ export const UserProfileModal: React.FC = () => {
     lat: number;
     lng: number;
   }>({
-    id: currentUser.school_id,
-    name: currentUser.school_name || 'D.A.V. Public School, Sector 8',
-    address: currentUser.school_address || 'Sector 8-C, Chandigarh, Punjab & Haryana, India',
-    lat: currentUser.school_lat || 30.7398,
-    lng: currentUser.school_lng || 76.7827,
+    id: currentUser?.school_id,
+    name: currentUser?.school_name || 'D.A.V. Public School, Sector 8',
+    address: currentUser?.school_address || 'Sector 8-C, Chandigarh, Punjab & Haryana, India',
+    lat: currentUser?.school_lat || 30.7398,
+    lng: currentUser?.school_lng || 76.7827,
   });
-  const [mobileNumber, setMobileNumber] = useState(currentUser.mobile_number || '+91 98765 43210');
-  const [guardianName, setGuardianName] = useState(currentUser.guardian_name || 'David Connor');
-  const [guardianPhone, setGuardianPhone] = useState(currentUser.guardian_phone || '+91 98765 11223');
-  const [guardianEmail, setGuardianEmail] = useState(currentUser.guardian_email || 'david.c@guardian.org');
+  const [mobileNumber, setMobileNumber] = useState(currentUser?.mobile_number || '+91 98765 43210');
+  const [guardianName, setGuardianName] = useState(currentUser?.guardian_name || 'David Connor');
+  const [guardianPhone, setGuardianPhone] = useState(currentUser?.guardian_phone || '+91 98765 11223');
+  const [guardianEmail, setGuardianEmail] = useState(currentUser?.guardian_email || 'david.c@guardian.org');
+
+  // Teacher specific editable states
+  const [teacherDepartment, setTeacherDepartment] = useState(currentUser?.department || 'Life Sciences & Biology');
+  const [teacherCabin, setTeacherCabin] = useState(currentUser?.cabin || 'Lab 3B - Science Wing');
+  const [teacherAssignedClass, setTeacherAssignedClass] = useState(currentUser?.assignedCohorts?.[0] || 'Class 7B - Science');
 
   // Sync state whenever modal opens or currentUser updates
   useEffect(() => {
@@ -142,6 +145,9 @@ export const UserProfileModal: React.FC = () => {
       if (currentUser.guardian_name) setGuardianName(currentUser.guardian_name);
       if (currentUser.guardian_phone) setGuardianPhone(currentUser.guardian_phone);
       if (currentUser.guardian_email) setGuardianEmail(currentUser.guardian_email);
+      if (currentUser.department) setTeacherDepartment(currentUser.department);
+      if (currentUser.cabin) setTeacherCabin(currentUser.cabin);
+      if (currentUser.assignedCohorts?.[0]) setTeacherAssignedClass(currentUser.assignedCohorts[0]);
     }
   }, [currentUser, isProfileOpen]);
 
@@ -149,20 +155,20 @@ export const UserProfileModal: React.FC = () => {
   const getThemeStyles = () => {
     if (role === 'student') {
       return {
-        accentBg: 'bg-indigo-600',
-        badge: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800',
-        border: 'border-indigo-500',
-        btn: 'bg-indigo-600 hover:bg-indigo-700 text-white',
-        highlight: 'text-indigo-600 dark:text-indigo-400',
+        accentBg: 'bg-gradient-to-r from-[#0D1B3E] via-[#0B1E38] to-[#00A896]',
+        badge: 'bg-[#00A896]/15 text-[#00A896] dark:bg-[#00A896]/25 dark:text-[#00A896] border border-[#00A896]/30',
+        border: 'border-[#00A896]',
+        btn: 'bg-[#00A896] hover:bg-[#009282] text-white shadow-md shadow-[#00A896]/20',
+        highlight: 'text-[#00A896] dark:text-[#00A896]',
       };
     }
     if (role === 'teacher') {
       return {
-        accentBg: 'bg-amber-600',
-        badge: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300 border-amber-200 dark:border-amber-800',
-        border: 'border-amber-500',
-        btn: 'bg-amber-600 hover:bg-amber-700 text-white',
-        highlight: 'text-amber-600 dark:text-amber-400',
+        accentBg: 'bg-gradient-to-r from-[#0D1B3E] via-[#0B1E38] to-[#00A896]',
+        badge: 'bg-[#00A896]/15 text-[#00A896] dark:bg-[#00A896]/25 dark:text-[#00A896] border border-[#00A896]/30',
+        border: 'border-[#00A896]',
+        btn: 'bg-[#00A896] hover:bg-[#009282] text-white shadow-md shadow-[#00A896]/20',
+        highlight: 'text-[#00A896] dark:text-[#00A896]',
       };
     }
     return {
@@ -183,6 +189,9 @@ export const UserProfileModal: React.FC = () => {
       email,
       status,
       avatar: avatarSeed,
+      department: teacherDepartment,
+      cabin: teacherCabin,
+      assignedCohorts: [teacherAssignedClass, 'Class 8C - Advanced Biology', 'Class 9A - Laboratory Mentorship'],
       grade: `Grade ${gradeLevel}`,
       grade_level: gradeLevel,
       education_board: educationBoard,
@@ -237,6 +246,10 @@ export const UserProfileModal: React.FC = () => {
     }
   };
 
+  if (!isProfileOpen || !currentUser) {
+    return null;
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs overflow-y-auto">
       <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-2xl w-full border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden my-8 transition-colors">
@@ -250,9 +263,9 @@ export const UserProfileModal: React.FC = () => {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-xl font-bold">{currentUser.name}</h2>
+                <h2 className="text-xl font-bold">{currentUser?.name || 'User'}</h2>
                 <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-white/20 uppercase tracking-wider">
-                  {currentUser.role}
+                  {currentUser?.role || role}
                 </span>
               </div>
               <p className="text-xs text-white/80">Account Profile & Workspace Settings</p>
@@ -538,6 +551,64 @@ export const UserProfileModal: React.FC = () => {
               </div>
             )}
 
+            {/* TEACHER FACULTY & DEPARTMENT CONFIGURATION (Editable) */}
+            {role === 'teacher' && (
+              <div className="space-y-4 pt-3 border-t border-slate-100 dark:border-slate-800">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-normal uppercase tracking-wider text-[#00A896] flex items-center gap-1.5">
+                    <Briefcase className="w-4 h-4" />
+                    <span>Faculty & Teaching Assignment</span>
+                  </h4>
+                  <span className="text-[10px] bg-[#00A896]/15 text-[#00A896] dark:bg-[#00A896]/20 dark:text-[#00A896] px-2 py-0.5 rounded-full font-normal border border-[#00A896]/30">
+                    Live Sync with Classes
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-normal text-slate-700 dark:text-slate-300 mb-1">
+                      Department Specialization (Editable)
+                    </label>
+                    <input
+                      type="text"
+                      value={teacherDepartment}
+                      onChange={(e) => setTeacherDepartment(e.target.value)}
+                      placeholder="e.g. Life Sciences & Biology"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#0D1B3E] text-xs font-normal text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#00A896]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-normal text-slate-700 dark:text-slate-300 mb-1">
+                      Primary Assigned Cohort / Class
+                    </label>
+                    <select
+                      value={teacherAssignedClass}
+                      onChange={(e) => setTeacherAssignedClass(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#0D1B3E] text-xs font-normal text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#00A896] cursor-pointer"
+                    >
+                      <option value="Class 7B - Science">Class 7B - Science</option>
+                      <option value="Class 8A - Physics">Class 8A - Physics</option>
+                      <option value="Class 8C - Adv Biology">Class 8C - Adv Biology</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-normal text-slate-700 dark:text-slate-300 mb-1">
+                    Faculty Office / Lab Cabin
+                  </label>
+                  <input
+                    type="text"
+                    value={teacherCabin}
+                    onChange={(e) => setTeacherCabin(e.target.value)}
+                    placeholder="e.g. Lab 3B - Science Wing"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#0D1B3E] text-xs font-normal text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#00A896]"
+                  />
+                </div>
+              </div>
+            )}
+
             <div className="flex items-center justify-between pt-2">
               <button
                 type="button"
@@ -635,7 +706,7 @@ export const UserProfileModal: React.FC = () => {
                   <span>Student Academic Overview</span>
                 </h4>
                 <span className="text-xs text-slate-500 dark:text-slate-400">
-                  Enrolled: {currentUser.enrollmentDate || 'Sep 1, 2025'}
+                  Enrolled: {currentUser?.enrollmentDate || 'Sep 1, 2025'}
                 </span>
               </div>
 
@@ -643,25 +714,25 @@ export const UserProfileModal: React.FC = () => {
                 <div className="p-3 rounded-2xl bg-indigo-50/60 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/60 text-center">
                   <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-semibold">Class Grade</span>
                   <span className="text-sm font-extrabold text-indigo-600 dark:text-indigo-400">
-                    {currentUser.grade || '8th Grade'}
+                    {currentUser?.grade || '8th Grade'}
                   </span>
                 </div>
                 <div className="p-3 rounded-2xl bg-emerald-50/60 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-900/60 text-center">
                   <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-semibold">Cumulative GPA</span>
                   <span className="text-sm font-extrabold text-emerald-600 dark:text-emerald-400">
-                    {currentUser.gpa || 3.85}
+                    {currentUser?.gpa || 3.85}
                   </span>
                 </div>
                 <div className="p-3 rounded-2xl bg-purple-50/60 dark:bg-purple-950/40 border border-purple-100 dark:border-purple-900/60 text-center">
                   <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-semibold">Attendance</span>
                   <span className="text-sm font-extrabold text-purple-600 dark:text-purple-400">
-                    {currentUser.attendance || 98}%
+                    {currentUser?.attendance || 98}%
                   </span>
                 </div>
                 <div className="p-3 rounded-2xl bg-blue-50/60 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900/60 text-center">
                   <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-semibold">Overall Mastery</span>
                   <span className="text-sm font-extrabold text-blue-600 dark:text-blue-400">
-                    {currentUser.overallProgress || 84}%
+                    {currentUser?.overallProgress || 84}%
                   </span>
                 </div>
               </div>
@@ -676,36 +747,36 @@ export const UserProfileModal: React.FC = () => {
                   <div>
                     <div className="flex justify-between text-[11px] font-semibold text-slate-600 dark:text-slate-300 mb-1">
                       <span>Physics (Newton's Laws)</span>
-                      <span>{currentUser.physicsProgress || 75}%</span>
+                      <span>{currentUser?.physicsProgress || 75}%</span>
                     </div>
                     <div className="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
                       <div
                         className="bg-indigo-600 h-full rounded-full transition-all duration-500"
-                        style={{ width: `${currentUser.physicsProgress || 75}%` }}
+                        style={{ width: `${currentUser?.physicsProgress || 75}%` }}
                       />
                     </div>
                   </div>
                   <div>
                     <div className="flex justify-between text-[11px] font-semibold text-slate-600 dark:text-slate-300 mb-1">
                       <span>Biology & Cell Energy</span>
-                      <span>{currentUser.biologyProgress || 88}%</span>
+                      <span>{currentUser?.biologyProgress || 88}%</span>
                     </div>
                     <div className="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
                       <div
                         className="bg-emerald-500 h-full rounded-full transition-all duration-500"
-                        style={{ width: `${currentUser.biologyProgress || 88}%` }}
+                        style={{ width: `${currentUser?.biologyProgress || 88}%` }}
                       />
                     </div>
                   </div>
                   <div>
                     <div className="flex justify-between text-[11px] font-semibold text-slate-600 dark:text-slate-300 mb-1">
                       <span>Mathematics & Algebra</span>
-                      <span>{currentUser.mathProgress || 92}%</span>
+                      <span>{currentUser?.mathProgress || 92}%</span>
                     </div>
                     <div className="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
                       <div
                         className="bg-amber-500 h-full rounded-full transition-all duration-500"
-                        style={{ width: `${currentUser.mathProgress || 92}%` }}
+                        style={{ width: `${currentUser?.mathProgress || 92}%` }}
                       />
                     </div>
                   </div>
@@ -719,7 +790,7 @@ export const UserProfileModal: React.FC = () => {
                 </h5>
                 <div className="flex flex-wrap gap-2">
                   {(
-                    currentUser.enrolledCourses || [
+                    currentUser?.enrolledCourses || [
                       'Physics (PHY-101)',
                       'Biology (BIO-201)',
                       'Mathematics (MTH-102)',
@@ -741,47 +812,47 @@ export const UserProfileModal: React.FC = () => {
           {/* 2. TEACHER PROFILE ADDITIONS */}
           {role === 'teacher' && (
             <div className="space-y-4 pt-3 border-t border-slate-100 dark:border-slate-800">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
+              <h4 className="text-xs font-normal uppercase tracking-wider text-[#00A896] dark:text-[#00A896] flex items-center gap-1.5">
                 <Briefcase className="w-4 h-4" />
-                <span>Educator Faculty Details</span>
+                <span>Educator Faculty Overview</span>
               </h4>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="p-3.5 rounded-2xl bg-amber-50/60 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-900/60 space-y-1">
-                  <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 block">
+                <div className="p-3.5 rounded-2xl bg-[#00A896]/10 dark:bg-[#00A896]/15 border border-[#00A896]/30 space-y-1">
+                  <span className="text-[11px] font-normal text-slate-500 dark:text-slate-400 block">
                     Department Specialization
                   </span>
-                  <span className="text-sm font-bold text-slate-900 dark:text-white">
-                    {currentUser.department || 'Life Sciences & Biology'}
+                  <span className="text-sm font-normal text-slate-900 dark:text-white">
+                    {currentUser?.department || teacherDepartment}
                   </span>
                 </div>
 
-                <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 space-y-1">
-                  <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 block">
+                <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-[#0D1B3E] border border-slate-200 dark:border-slate-700 space-y-1">
+                  <span className="text-[11px] font-normal text-slate-500 dark:text-slate-400 block">
                     Active Student Cohorts
                   </span>
-                  <span className="text-sm font-bold text-slate-900 dark:text-white">
-                    {currentUser.activeStudentsCount || 58} Students Assigned
+                  <span className="text-sm font-normal text-slate-900 dark:text-white">
+                    {currentUser?.activeStudentsCount || 58} Students Assigned
                   </span>
                 </div>
               </div>
 
               {/* Assigned Cohorts */}
               <div>
-                <h5 className="text-xs font-bold text-slate-800 dark:text-slate-200 mb-2">
+                <h5 className="text-xs font-normal text-slate-800 dark:text-slate-200 mb-2">
                   Assigned Classes & Cohorts:
                 </h5>
                 <div className="flex flex-wrap gap-2">
                   {(
-                    currentUser.assignedCohorts || [
-                      'Class 7B - Science',
+                    currentUser?.assignedCohorts || [
+                      teacherAssignedClass,
                       'Class 8C - Advanced Biology',
                       'Class 9A - Laboratory Mentorship',
                     ]
                   ).map((cohort, idx) => (
                     <span
                       key={idx}
-                      className="px-2.5 py-1 rounded-xl text-xs font-medium bg-amber-100/70 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800"
+                      className="px-2.5 py-1 rounded-xl text-xs font-normal bg-[#00A896]/15 dark:bg-[#00A896]/20 text-[#00A896] dark:text-[#00A896] border border-[#00A896]/30"
                     >
                       🏫 {cohort}
                     </span>
@@ -790,10 +861,10 @@ export const UserProfileModal: React.FC = () => {
               </div>
 
               {/* Created Lesson Plans list */}
-              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 space-y-2">
-                <div className="flex items-center justify-between text-xs font-bold text-slate-800 dark:text-slate-200">
+              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-[#0D1B3E] border border-slate-200 dark:border-slate-700 space-y-2">
+                <div className="flex items-center justify-between text-xs font-normal text-slate-800 dark:text-slate-200">
                   <span>Created Lesson Plans ({lessonPlans.length})</span>
-                  <span className="text-amber-600 text-[11px]">AI Curriculum Studio</span>
+                  <span className="text-[#00A896] text-[11px]">AI Curriculum Studio</span>
                 </div>
                 <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
                   {lessonPlans.slice(0, 3).map((plan) => (
@@ -828,7 +899,7 @@ export const UserProfileModal: React.FC = () => {
                   <span>Administrative Security Credentials</span>
                 </h4>
                 <span className="text-xs font-extrabold px-2.5 py-0.5 rounded-full bg-cyan-100 text-cyan-800 dark:bg-cyan-950 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-800">
-                  {currentUser.permissionLevel || 'Super Admin'}
+                  {currentUser?.permissionLevel || 'Super Admin'}
                 </span>
               </div>
 
@@ -849,7 +920,7 @@ export const UserProfileModal: React.FC = () => {
                 </h5>
                 <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
                   {(
-                    currentUser.activityLogs || [
+                    currentUser?.activityLogs || [
                       { id: '1', timestamp: 'Today, 09:15 AM', action: 'System health check completed. All microservices operational.' },
                       { id: '2', timestamp: 'Today, 09:02 AM', action: 'Proctoring engine flagged anomaly for Feed 2 and Feed 6.' },
                       { id: '3', timestamp: 'Yesterday, 04:30 PM', action: 'Issued digital certificate EDU-AI-2026-98124 for Sarah Connor.' },

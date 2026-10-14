@@ -3,6 +3,7 @@ import { useApp } from '../../context/AppContext';
 import { UserRole, EducationBoard, LanguageMedium } from '../../types';
 import { SchoolAutocomplete } from '../common/SchoolAutocomplete';
 import { SchoolLocationMap } from '../common/SchoolLocationMap';
+import { PivotIQLogo } from '../common/PivotIQLogo';
 import {
   GraduationCap,
   Briefcase,
@@ -203,44 +204,22 @@ export const UnifiedLogin: React.FC = () => {
   };
 
   const getThemeAccents = () => {
-    if (selectedRole === 'student') {
-      return {
-        bgGlow: 'bg-indigo-500/10 dark:bg-indigo-500/5',
-        primaryBtn: 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-500/25 focus:ring-indigo-500',
-        activeBadge: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950/70 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800',
-        ringColor: 'ring-indigo-500/40 border-indigo-500 shadow-lg shadow-indigo-500/15',
-        cardHighlight: 'border-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/30',
-        titleColor: 'text-indigo-600 dark:text-indigo-400',
-        tagline: 'Student Portal Access Only',
-      };
-    }
-    if (selectedRole === 'teacher') {
-      return {
-        bgGlow: 'bg-amber-500/10 dark:bg-amber-500/5',
-        primaryBtn: 'bg-amber-600 hover:bg-amber-700 text-white shadow-amber-500/25 focus:ring-amber-500',
-        activeBadge: 'bg-amber-100 text-amber-700 dark:bg-amber-950/70 dark:text-amber-300 border-amber-200 dark:border-amber-800',
-        ringColor: 'ring-amber-500/40 border-amber-500 shadow-lg shadow-amber-500/15',
-        cardHighlight: 'border-amber-500 bg-amber-50/50 dark:bg-amber-950/30',
-        titleColor: 'text-amber-600 dark:text-amber-400',
-        tagline: 'Teacher Panel Access Only',
-      };
-    }
     return {
-      bgGlow: 'bg-cyan-500/10 dark:bg-cyan-500/5',
-      primaryBtn: 'bg-cyan-600 hover:bg-cyan-700 text-white shadow-cyan-500/25 focus:ring-cyan-500',
-      activeBadge: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-950/70 dark:text-cyan-300 border-cyan-200 dark:border-cyan-800',
-      ringColor: 'ring-cyan-500/40 border-cyan-500 shadow-lg shadow-cyan-500/15',
-      cardHighlight: 'border-cyan-500 bg-cyan-50/50 dark:bg-cyan-950/30',
-      titleColor: 'text-cyan-600 dark:text-cyan-400',
-      tagline: 'Full Ecosystem & Panel-Switching Access',
+      bgGlow: 'bg-[#00A896]/10 dark:bg-[#00A896]/5',
+      primaryBtn: 'bg-[#00A896] hover:bg-[#009282] text-white shadow-[#00A896]/25 focus:ring-[#00A896]',
+      activeBadge: 'bg-[#00A896]/15 text-[#00A896] dark:bg-[#00A896]/20 dark:text-[#00A896] border-[#00A896]/30',
+      ringColor: 'ring-[#00A896]/40 border-[#00A896] shadow-lg shadow-[#00A896]/15',
+      cardHighlight: 'border-[#00A896] bg-[#00A896]/5 dark:bg-[#00A896]/10',
+      titleColor: 'text-[#00A896]',
+      tagline: selectedRole === 'student' ? 'Student Portal' : selectedRole === 'teacher' ? "Teacher's Desktop" : 'Institutional Control',
     };
   };
 
   const accents = getThemeAccents();
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#0b0f19] text-slate-800 dark:text-slate-100 flex flex-col font-sans transition-colors relative overflow-hidden">
-      {/* Background ambient decorative shapes */}
+    <div className="min-h-screen bg-slate-50 dark:bg-[#0D1B3E] text-slate-800 dark:text-slate-100 flex flex-col font-sans transition-colors relative overflow-hidden font-normal">
+      {/* Background ambient decorative shapes matching #00A896 and #0D1B3E */}
       <div
         className={`absolute -top-40 -left-40 w-96 h-96 rounded-full blur-3xl transition-all duration-700 pointer-events-none ${accents.bgGlow}`}
       />
@@ -249,43 +228,41 @@ export const UnifiedLogin: React.FC = () => {
       />
 
       {/* Top Navigation Bar */}
-      <header className="w-full border-b border-slate-200/80 dark:border-slate-800/80 backdrop-blur-md bg-white/70 dark:bg-slate-900/70 px-4 sm:px-8 py-3.5 flex items-center justify-between z-10">
+      <header className="w-full border-b border-slate-200/80 dark:border-slate-800/80 backdrop-blur-md bg-white/70 dark:bg-[#0D1B3E]/80 px-4 sm:px-8 py-3.5 flex items-center justify-between z-10">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 via-blue-600 to-cyan-400 flex items-center justify-center text-white shadow-md shadow-indigo-500/20">
-            <GraduationCap className="w-5 h-5" />
-          </div>
+          <PivotIQLogo size={36} />
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-extrabold text-slate-900 dark:text-white text-base tracking-tight">
-                Educate AI Agent
+              <span className="font-normal text-slate-900 dark:text-white text-base tracking-tight">
+                PivotIQ
               </span>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800">
-                <Radio className="w-2.5 h-2.5 animate-pulse text-emerald-600 dark:text-emerald-400" />
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-normal bg-[#00A896]/15 text-[#00A896] dark:bg-[#00A896]/20 dark:text-[#00A896] border border-[#00A896]/30">
+                <Radio className="w-2.5 h-2.5 animate-pulse text-[#00A896]" />
                 Live Sync Ready
               </span>
             </div>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 hidden sm:block">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 hidden sm:block font-light">
               Unified Role-Based Authentication Gateway & Institutional Onboarding
             </p>
           </div>
         </div>
 
-        {/* Right Header Tools: Theme Toggle & Quick Demo Pill */}
+        {/* Right Header Tools: Theme Toggle */}
         <div className="flex items-center gap-3">
           <button
             onClick={toggleTheme}
             aria-label="Toggle Light and Dark Mode"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors shadow-xs cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-normal bg-white dark:bg-[#12234e] text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors shadow-xs cursor-pointer"
           >
             {theme === 'dark' ? (
               <>
                 <Sun className="w-3.5 h-3.5 text-amber-400" />
-                <span className="hidden sm:inline">Light Mode</span>
+                <span className="hidden sm:inline font-normal">Light Mode</span>
               </>
             ) : (
               <>
-                <Moon className="w-3.5 h-3.5 text-indigo-500" />
-                <span className="hidden sm:inline">Dark Mode</span>
+                <Moon className="w-3.5 h-3.5 text-[#00A896]" />
+                <span className="hidden sm:inline font-normal">Dark Mode</span>
               </>
             )}
           </button>
@@ -295,12 +272,12 @@ export const UnifiedLogin: React.FC = () => {
       {/* Main Container */}
       <main className="flex-1 flex flex-col items-center justify-center px-4 py-8 sm:py-12 z-10 max-w-4xl mx-auto w-full">
         {/* Auth Mode Toggle Tabs (Sign In vs Sign Up) */}
-        <div className="flex items-center p-1 bg-slate-200/80 dark:bg-slate-800 rounded-2xl mb-6 shadow-inner">
+        <div className="flex items-center p-1 bg-slate-200/80 dark:bg-[#12234e] rounded-2xl mb-6 shadow-inner">
           <button
             onClick={() => setAuthMode('signin')}
-            className={`px-6 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            className={`px-6 py-2 rounded-xl text-xs font-normal transition-all cursor-pointer ${
               authMode === 'signin'
-                ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm'
+                ? 'bg-white dark:bg-[#0D1B3E] text-slate-900 dark:text-white shadow-sm'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
@@ -308,14 +285,14 @@ export const UnifiedLogin: React.FC = () => {
           </button>
           <button
             onClick={() => setAuthMode('signup')}
-            className={`px-6 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+            className={`px-6 py-2 rounded-xl text-xs font-normal flex items-center gap-1.5 transition-all cursor-pointer ${
               authMode === 'signup'
-                ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm'
+                ? 'bg-white dark:bg-[#0D1B3E] text-slate-900 dark:text-white shadow-sm'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
             <span>Student Onboarding & Sign Up</span>
-            <span className="px-1.5 py-0.5 rounded-md text-[9px] font-extrabold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-400">
+            <span className="px-1.5 py-0.5 rounded-md text-[9px] font-normal bg-[#00A896]/20 text-[#00A896] dark:bg-[#00A896]/30 dark:text-teal-300">
               7-Day Free Trial
             </span>
           </button>
@@ -324,10 +301,10 @@ export const UnifiedLogin: React.FC = () => {
         {/* Portal Selection Cards */}
         <div className="w-full mb-6">
           <div className="text-center mb-4">
-            <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+            <h1 className="text-xl sm:text-2xl font-light text-slate-900 dark:text-white tracking-tight">
               {authMode === 'signin' ? 'Sign In to Your Workspace' : 'Begin Your Personalized Learning Journey'}
             </h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-light">
               Select your educational role to enter your dedicated AI-assisted environment.
             </p>
           </div>
@@ -337,22 +314,26 @@ export const UnifiedLogin: React.FC = () => {
             <button
               type="button"
               onClick={() => setSelectedRole('student')}
-              className={`p-3.5 rounded-2xl text-left border transition-all cursor-pointer relative bg-white dark:bg-slate-900 ${
+              className={`p-3.5 rounded-2xl text-left border transition-all cursor-pointer relative bg-white dark:bg-[#12234e] ${
                 selectedRole === 'student'
-                  ? 'border-indigo-500 ring-2 ring-indigo-500/30 shadow-md shadow-indigo-500/10'
+                  ? 'border-[#00A896] ring-2 ring-[#00A896]/30 shadow-md shadow-[#00A896]/10'
                   : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
               }`}
             >
               <div className="flex items-center justify-between mb-2">
-                <div className="w-8 h-8 rounded-xl bg-indigo-100 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold">
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-normal ${
+                  selectedRole === 'student'
+                    ? 'bg-[#00A896] text-white'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                }`}>
                   <GraduationCap className="w-4 h-4" />
                 </div>
                 {selectedRole === 'student' && (
-                  <span className="w-2 h-2 rounded-full bg-indigo-600 animate-pulse" />
+                  <span className="w-2 h-2 rounded-full bg-[#00A896] animate-pulse" />
                 )}
               </div>
-              <h3 className="text-xs font-bold text-slate-900 dark:text-white">Student Portal</h3>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1">
+              <h3 className="text-xs font-normal text-slate-900 dark:text-white">Student Portal</h3>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1 font-light">
                 Socratic AI, Doubts & Agile Study
               </p>
             </button>
@@ -361,22 +342,26 @@ export const UnifiedLogin: React.FC = () => {
             <button
               type="button"
               onClick={() => setSelectedRole('teacher')}
-              className={`p-3.5 rounded-2xl text-left border transition-all cursor-pointer relative bg-white dark:bg-slate-900 ${
+              className={`p-3.5 rounded-2xl text-left border transition-all cursor-pointer relative bg-white dark:bg-[#12234e] ${
                 selectedRole === 'teacher'
-                  ? 'border-amber-500 ring-2 ring-amber-500/30 shadow-md shadow-amber-500/10'
+                  ? 'border-[#00A896] ring-2 ring-[#00A896]/30 shadow-md shadow-[#00A896]/10'
                   : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
               }`}
             >
               <div className="flex items-center justify-between mb-2">
-                <div className="w-8 h-8 rounded-xl bg-amber-100 dark:bg-amber-950/80 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold">
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-normal ${
+                  selectedRole === 'teacher'
+                    ? 'bg-[#00A896] text-white'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                }`}>
                   <Briefcase className="w-4 h-4" />
                 </div>
                 {selectedRole === 'teacher' && (
-                  <span className="w-2 h-2 rounded-full bg-amber-600 animate-pulse" />
+                  <span className="w-2 h-2 rounded-full bg-[#00A896] animate-pulse" />
                 )}
               </div>
-              <h3 className="text-xs font-bold text-slate-900 dark:text-white">Teacher's Desktop</h3>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1">
+              <h3 className="text-xs font-normal text-slate-900 dark:text-white">Teacher's Desktop</h3>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1 font-light">
                 Curriculum, Live Meet & Grading
               </p>
             </button>
@@ -385,22 +370,26 @@ export const UnifiedLogin: React.FC = () => {
             <button
               type="button"
               onClick={() => setSelectedRole('admin')}
-              className={`p-3.5 rounded-2xl text-left border transition-all cursor-pointer relative bg-white dark:bg-slate-900 ${
+              className={`p-3.5 rounded-2xl text-left border transition-all cursor-pointer relative bg-white dark:bg-[#12234e] ${
                 selectedRole === 'admin'
-                  ? 'border-cyan-500 ring-2 ring-cyan-500/30 shadow-md shadow-cyan-500/10'
+                  ? 'border-[#00A896] ring-2 ring-[#00A896]/30 shadow-md shadow-[#00A896]/10'
                   : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
               }`}
             >
               <div className="flex items-center justify-between mb-2">
-                <div className="w-8 h-8 rounded-xl bg-cyan-100 dark:bg-cyan-950/80 text-cyan-600 dark:text-cyan-400 flex items-center justify-center font-bold">
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-normal ${
+                  selectedRole === 'admin'
+                    ? 'bg-[#00A896] text-white'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                }`}>
                   <ShieldCheck className="w-4 h-4" />
                 </div>
                 {selectedRole === 'admin' && (
-                  <span className="w-2 h-2 rounded-full bg-cyan-600 animate-pulse" />
+                  <span className="w-2 h-2 rounded-full bg-[#00A896] animate-pulse" />
                 )}
               </div>
-              <h3 className="text-xs font-bold text-slate-900 dark:text-white">Admin Hub</h3>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1">
+              <h3 className="text-xs font-normal text-slate-900 dark:text-white">Admin Hub</h3>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1 font-light">
                 Multi-Panel Switch & Institutional Control
               </p>
             </button>
@@ -408,16 +397,16 @@ export const UnifiedLogin: React.FC = () => {
         </div>
 
         {/* Social SSO Row */}
-        <div className="w-full bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-200/80 dark:border-slate-800 shadow-xl mb-4">
+        <div className="w-full bg-white dark:bg-[#12234e] rounded-3xl p-6 sm:p-8 border border-slate-200/80 dark:border-slate-800 shadow-xl mb-4">
           <div className="mb-5">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-2 text-center">
+            <span className="text-[11px] font-normal uppercase tracking-wider text-slate-400 block mb-2 text-center">
               One-Click Social & Enterprise Authentication
             </span>
             <div className="grid grid-cols-3 gap-2.5">
               <button
                 type="button"
                 onClick={() => handleSocialSSO('Google')}
-                className="py-2.5 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-700/80 text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center justify-center gap-2 transition-all cursor-pointer shadow-2xs hover:scale-101"
+                className="py-2.5 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#0D1B3E] hover:bg-slate-100 dark:hover:bg-[#162a5c] text-xs font-normal text-slate-700 dark:text-slate-200 flex items-center justify-center gap-2 transition-all cursor-pointer shadow-2xs hover:scale-101"
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24">
                   <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/>
@@ -431,7 +420,7 @@ export const UnifiedLogin: React.FC = () => {
               <button
                 type="button"
                 onClick={() => handleSocialSSO('Outlook')}
-                className="py-2.5 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-700/80 text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center justify-center gap-2 transition-all cursor-pointer shadow-2xs hover:scale-101"
+                className="py-2.5 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#0D1B3E] hover:bg-slate-100 dark:hover:bg-[#162a5c] text-xs font-normal text-slate-700 dark:text-slate-200 flex items-center justify-center gap-2 transition-all cursor-pointer shadow-2xs hover:scale-101"
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24">
                   <path fill="#0078D4" d="M24 7.25v9.5c0 1.24-1.01 2.25-2.25 2.25H8.25A2.25 2.25 0 0 1 6 16.75V7.25C6 6.01 7.01 5 8.25 5h13.5C22.99 5 24 6.01 24 7.25z"/>
@@ -444,7 +433,7 @@ export const UnifiedLogin: React.FC = () => {
               <button
                 type="button"
                 onClick={() => handleSocialSSO('Apple')}
-                className="py-2.5 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-700/80 text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center justify-center gap-2 transition-all cursor-pointer shadow-2xs hover:scale-101"
+                className="py-2.5 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#0D1B3E] hover:bg-slate-100 dark:hover:bg-[#162a5c] text-xs font-normal text-slate-700 dark:text-slate-200 flex items-center justify-center gap-2 transition-all cursor-pointer shadow-2xs hover:scale-101"
               >
                 <svg className="w-4 h-4 fill-current text-slate-800 dark:text-white" viewBox="0 0 170 170">
                   <path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-5.36.21-10.39-1.9-15.08-6.35-3.35-2.91-7.25-7.66-11.7-14.25-5.92-8.8-10.59-19.14-14.01-30.98-3.41-11.85-5.12-22.95-5.12-33.31 0-14.71 3.73-27.02 11.2-36.93 7.47-9.92 16.92-14.99 28.36-15.22 4.8 0 10.22 1.34 16.27 4.02 6.04 2.68 10.04 4.07 12 4.17 1.8 0 5.86-1.42 12.19-4.27 6.33-2.85 11.83-4.11 16.5-3.79 17.51 1.25 30.63 8.35 39.38 21.32-15.53 9.42-23.11 22.09-22.74 38 0 12.33 4.67 22.75 14 31.25 4.35 3.99 9.39 7.02 15.11 9.09-2.58 7.39-5.46 14.62-8.62 21.68zM119.22 33.11c0-7.85 2.82-15.42 8.46-22.71 5.64-7.29 12.56-12.01 20.76-14.16 1.13 6.98-.32 14.05-4.35 21.2-4.03 7.15-10.09 12.18-18.17 15.09-.94-.83-1.89-1.91-2.85-3.24-2.57-3.56-3.85-8.96-3.85-16.18z"/>
@@ -454,7 +443,7 @@ export const UnifiedLogin: React.FC = () => {
             </div>
             <div className="relative flex py-4 items-center">
               <div className="flex-grow border-t border-slate-200 dark:border-slate-800"></div>
-              <span className="flex-shrink mx-4 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+              <span className="flex-shrink mx-4 text-[10px] font-normal uppercase tracking-wider text-slate-400">
                 Or Continue With Credentials
               </span>
               <div className="flex-grow border-t border-slate-200 dark:border-slate-800"></div>
@@ -465,7 +454,7 @@ export const UnifiedLogin: React.FC = () => {
           {authMode === 'signin' ? (
             <form onSubmit={handleSignIn} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-xs font-normal text-slate-700 dark:text-slate-300 mb-1">
                   Registered Email Address
                 </label>
                 <div className="relative">
@@ -476,20 +465,20 @@ export const UnifiedLogin: React.FC = () => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="student@educateai.org"
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#0D1B3E] text-xs text-slate-900 dark:text-white font-normal focus:outline-none focus:ring-2 focus:ring-[#00A896]"
                   />
                 </div>
               </div>
 
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  <label className="block text-xs font-normal text-slate-700 dark:text-slate-300">
                     Password
                   </label>
                   <button
                     type="button"
                     onClick={() => setShowForgotModal(true)}
-                    className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+                    className="text-[11px] font-normal text-[#00A896] hover:underline cursor-pointer"
                   >
                     Forgot password?
                   </button>
@@ -502,7 +491,7 @@ export const UnifiedLogin: React.FC = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#0D1B3E] text-xs text-slate-900 dark:text-white font-normal focus:outline-none focus:ring-2 focus:ring-[#00A896]"
                   />
                   <button
                     type="button"
@@ -514,25 +503,25 @@ export const UnifiedLogin: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400 pt-1">
+              <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400 pt-1 font-normal">
                 <label className="flex items-center gap-2 cursor-pointer select-none">
                   <input
                     type="checkbox"
                     checked={rememberMe}
                     onChange={(e) => setRememberMe(e.target.checked)}
-                    className="rounded border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500"
+                    className="rounded border-slate-300 dark:border-slate-700 text-[#00A896] focus:ring-[#00A896]"
                   />
                   <span>Remember me on this device</span>
                 </label>
-                <span className="text-[11px] text-slate-400 flex items-center gap-1">
-                  <CheckCircle2 className="w-3 h-3 text-emerald-500" /> 256-bit Secure
+                <span className="text-[11px] text-slate-400 flex items-center gap-1 font-normal">
+                  <CheckCircle2 className="w-3 h-3 text-[#00A896]" /> 256-bit Secure
                 </span>
               </div>
 
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className={`w-full mt-2 py-3 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md ${accents.primaryBtn} disabled:opacity-50`}
+                className={`w-full mt-2 py-3 px-4 rounded-xl font-normal text-sm flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md ${accents.primaryBtn} disabled:opacity-50`}
               >
                 {isSubmitting ? (
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -556,13 +545,13 @@ export const UnifiedLogin: React.FC = () => {
             <form onSubmit={handleSignUp} className="space-y-5">
               {/* Personal Details */}
               <div className="space-y-3">
-                <span className="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5">
+                <span className="text-xs font-normal uppercase tracking-wider text-[#00A896] flex items-center gap-1.5">
                   <User className="w-4 h-4" />
                   <span>1. Student Identity & Contact</span>
                 </span>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                    <label className="block text-[11px] font-normal text-slate-600 dark:text-slate-300 mb-1">
                       Full Student Name
                     </label>
                     <input
@@ -571,11 +560,11 @@ export const UnifiedLogin: React.FC = () => {
                       placeholder="e.g. Alex Rivera"
                       value={signupName}
                       onChange={(e) => setSignupName(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#0D1B3E] text-xs text-slate-900 dark:text-white font-normal focus:outline-none focus:ring-2 focus:ring-[#00A896]"
                     />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                    <label className="block text-[11px] font-normal text-slate-600 dark:text-slate-300 mb-1">
                       Student Email Address
                     </label>
                     <input
@@ -584,11 +573,11 @@ export const UnifiedLogin: React.FC = () => {
                       placeholder="alex.r@school.edu"
                       value={signupEmail}
                       onChange={(e) => setSignupEmail(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#0D1B3E] text-xs text-slate-900 dark:text-white font-normal focus:outline-none focus:ring-2 focus:ring-[#00A896]"
                     />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                    <label className="block text-[11px] font-normal text-slate-600 dark:text-slate-300 mb-1">
                       Mobile Number (For SMS & Live Alerts)
                     </label>
                     <div className="relative">
@@ -598,12 +587,12 @@ export const UnifiedLogin: React.FC = () => {
                         required
                         value={signupPhone}
                         onChange={(e) => setSignupPhone(e.target.value)}
-                        className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#0D1B3E] text-xs text-slate-900 dark:text-white font-normal focus:outline-none focus:ring-2 focus:ring-[#00A896]"
                       />
                     </div>
                   </div>
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                    <label className="block text-[11px] font-normal text-slate-600 dark:text-slate-300 mb-1">
                       Create Password
                     </label>
                     <div className="relative">
@@ -613,7 +602,7 @@ export const UnifiedLogin: React.FC = () => {
                         required
                         value={signupPassword}
                         onChange={(e) => setSignupPassword(e.target.value)}
-                        className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#0D1B3E] text-xs text-slate-900 dark:text-white font-normal focus:outline-none focus:ring-2 focus:ring-[#00A896]"
                       />
                     </div>
                   </div>
@@ -623,13 +612,13 @@ export const UnifiedLogin: React.FC = () => {
               {/* Guardian / Parent Details */}
               {selectedRole === 'student' && (
                 <div className="space-y-3 pt-3 border-t border-slate-100 dark:border-slate-800">
-                  <span className="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5">
+                  <span className="text-xs font-normal uppercase tracking-wider text-[#00A896] flex items-center gap-1.5">
                     <Users className="w-4 h-4" />
                     <span>2. Guardian / Parents Contact</span>
                   </span>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
-                      <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                      <label className="block text-[11px] font-normal text-slate-600 dark:text-slate-300 mb-1">
                         Parent / Guardian Name
                       </label>
                       <input
@@ -638,11 +627,11 @@ export const UnifiedLogin: React.FC = () => {
                         placeholder="Parent Name"
                         value={guardianName}
                         onChange={(e) => setGuardianName(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#0D1B3E] text-xs text-slate-900 dark:text-white font-normal focus:outline-none focus:ring-2 focus:ring-[#00A896]"
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                      <label className="block text-[11px] font-normal text-slate-600 dark:text-slate-300 mb-1">
                         Parent Contact Number
                       </label>
                       <input
@@ -651,11 +640,11 @@ export const UnifiedLogin: React.FC = () => {
                         placeholder="+91 98765 00000"
                         value={guardianPhone}
                         onChange={(e) => setGuardianPhone(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#0D1B3E] text-xs text-slate-900 dark:text-white font-normal focus:outline-none focus:ring-2 focus:ring-[#00A896]"
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                      <label className="block text-[11px] font-normal text-slate-600 dark:text-slate-300 mb-1">
                         Emergency Parent Email
                       </label>
                       <input
@@ -664,7 +653,7 @@ export const UnifiedLogin: React.FC = () => {
                         placeholder="parent@emergency.org"
                         value={guardianEmail}
                         onChange={(e) => setGuardianEmail(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#0D1B3E] text-xs text-slate-900 dark:text-white font-normal focus:outline-none focus:ring-2 focus:ring-[#00A896]"
                       />
                     </div>
                   </div>
@@ -674,15 +663,15 @@ export const UnifiedLogin: React.FC = () => {
               {/* Smart School & Location Mapping (Google Maps Platform) */}
               <div className="space-y-3 pt-3 border-t border-slate-100 dark:border-slate-800">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5">
+                  <span className="text-xs font-normal uppercase tracking-wider text-[#00A896] flex items-center gap-1.5">
                     <MapPin className="w-4 h-4" />
                     <span>3. Smart School & Location Mapping (Google Maps)</span>
                   </span>
-                  <span className="text-[10px] bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-full font-bold">
+                  <span className="text-[10px] bg-[#00A896]/15 text-[#00A896] px-2 py-0.5 rounded-full font-normal">
                     Auto Geocoded
                   </span>
                 </div>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-light">
                   Search your school name. Powered by Google Places API, new entries are automatically registered in the central institutional database.
                 </p>
 
@@ -711,7 +700,7 @@ export const UnifiedLogin: React.FC = () => {
 
               {/* Academic Profiling: Grade, Stream, Board, and Language Medium */}
               <div className="space-y-3 pt-3 border-t border-slate-100 dark:border-slate-800">
-                <span className="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5">
+                <span className="text-xs font-normal uppercase tracking-wider text-[#00A896] flex items-center gap-1.5">
                   <BookOpen className="w-4 h-4" />
                   <span>4. Academic Curriculum & Board Profiling</span>
                 </span>
@@ -719,13 +708,13 @@ export const UnifiedLogin: React.FC = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {/* Grade Dropdown (Grades 6-12) */}
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                    <label className="block text-[11px] font-normal text-slate-600 dark:text-slate-300 mb-1">
                       Current Grade / Class
                     </label>
                     <select
                       value={gradeNumber}
                       onChange={(e) => setGradeNumber(Number(e.target.value))}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#0D1B3E] text-xs font-normal text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#00A896] cursor-pointer"
                     >
                       <option value={6}>Grade 6 (Middle School)</option>
                       <option value={7}>Grade 7 (Middle School)</option>
@@ -740,13 +729,13 @@ export const UnifiedLogin: React.FC = () => {
                   {/* Stream Selection (Mandatory for Grades 11 and 12) */}
                   {(gradeNumber === 11 || gradeNumber === 12) && (
                     <div className="animate-fadeIn">
-                      <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                      <label className="block text-[11px] font-normal text-slate-600 dark:text-slate-300 mb-1">
                         Academic Stream (Grades 11 & 12 Only)
                       </label>
                       <select
                         value={stream}
                         onChange={(e) => setStream(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl border border-indigo-300 dark:border-indigo-700 bg-indigo-50/50 dark:bg-indigo-950/40 text-xs font-bold text-indigo-900 dark:text-indigo-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                        className="w-full px-3 py-2 rounded-xl border border-[#00A896]/40 bg-[#00A896]/10 text-xs font-normal text-teal-900 dark:text-teal-200 focus:outline-none focus:ring-2 focus:ring-[#00A896] cursor-pointer"
                       >
                         <option value="Science (PCM/PCB)">Science (PCM / PCB & STEM Electives)</option>
                         <option value="Commerce">Commerce (Accountancy, Business Studies, Economics)</option>
@@ -757,13 +746,13 @@ export const UnifiedLogin: React.FC = () => {
 
                   {/* Education Board Dropdown */}
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                    <label className="block text-[11px] font-normal text-slate-600 dark:text-slate-300 mb-1">
                       Educational Board / Syllabus
                     </label>
                     <select
                       value={educationBoard}
                       onChange={(e) => setEducationBoard(e.target.value as EducationBoard)}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#0D1B3E] text-xs font-normal text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#00A896] cursor-pointer"
                     >
                       {SUPPORTED_BOARDS.map((b) => (
                         <option key={b.value} value={b.value}>
@@ -775,13 +764,13 @@ export const UnifiedLogin: React.FC = () => {
 
                   {/* Language Medium Dropdown */}
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                    <label className="block text-[11px] font-normal text-slate-600 dark:text-slate-300 mb-1">
                       Preferred Language Medium
                     </label>
                     <select
                       value={preferredLanguage}
                       onChange={(e) => setPreferredLanguage(e.target.value as LanguageMedium)}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#0D1B3E] text-xs font-normal text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#00A896] cursor-pointer"
                     >
                       {SUPPORTED_LANGUAGES.map((l) => (
                         <option key={l.value} value={l.value}>
@@ -794,21 +783,21 @@ export const UnifiedLogin: React.FC = () => {
               </div>
 
               {/* 7-Day Free Trial Callout */}
-              <div className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-indigo-500/10 to-blue-500/10 border border-emerald-500/20 text-xs flex items-center justify-between">
+              <div className="p-3.5 rounded-2xl bg-[#00A896]/10 border border-[#00A896]/30 text-xs flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-emerald-500 text-white flex items-center justify-center font-bold">
+                  <div className="w-8 h-8 rounded-xl bg-[#00A896] text-white flex items-center justify-center font-normal">
                     ✓
                   </div>
                   <div>
-                    <h4 className="font-bold text-slate-900 dark:text-white">
+                    <h4 className="font-normal text-slate-900 dark:text-white">
                       7-Day Full Access Free Trial Included
                     </h4>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 font-light">
                       Unrestricted AI Tutoring, Quick Doubts 24/7, and Agile Study Roadmap generation.
                     </p>
                   </div>
                 </div>
-                <span className="text-[10px] font-extrabold px-2.5 py-1 rounded-full bg-emerald-600 text-white whitespace-nowrap">
+                <span className="text-[10px] font-normal px-2.5 py-1 rounded-full bg-[#00A896] text-white whitespace-nowrap">
                   No Charge Today
                 </span>
               </div>
@@ -816,7 +805,7 @@ export const UnifiedLogin: React.FC = () => {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full py-3.5 px-4 rounded-xl font-bold text-sm bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/25 transition-all cursor-pointer active:scale-98 disabled:opacity-50"
+                className="w-full py-3.5 px-4 rounded-xl font-normal text-sm bg-[#00A896] hover:bg-[#009282] text-white flex items-center justify-center gap-2 shadow-lg shadow-[#00A896]/25 transition-all cursor-pointer active:scale-98 disabled:opacity-50"
               >
                 {isSubmitting ? (
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -832,28 +821,28 @@ export const UnifiedLogin: React.FC = () => {
 
           {/* Quick Demo 1-Click Login Row for Fast Testing */}
           <div className="mt-6 pt-5 border-t border-slate-100 dark:border-slate-800 text-center">
-            <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-2.5">
+            <p className="text-[11px] font-normal text-slate-500 dark:text-slate-400 mb-2.5">
               ⚡ Quick One-Click Demo Logins:
             </p>
             <div className="grid grid-cols-3 gap-2">
               <button
                 type="button"
                 onClick={() => handleQuickDemoLogin('student')}
-                className="py-1.5 px-2 rounded-lg text-[11px] font-semibold bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 transition-colors cursor-pointer"
+                className="py-1.5 px-2 rounded-lg text-[11px] font-normal bg-[#00A896]/10 hover:bg-[#00A896]/20 text-[#00A896] dark:text-teal-300 border border-[#00A896]/30 transition-colors cursor-pointer"
               >
                 🎓 Sarah (Student)
               </button>
               <button
                 type="button"
                 onClick={() => handleQuickDemoLogin('teacher')}
-                className="py-1.5 px-2 rounded-lg text-[11px] font-semibold bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/60 dark:hover:bg-amber-900/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 transition-colors cursor-pointer"
+                className="py-1.5 px-2 rounded-lg text-[11px] font-normal bg-slate-100 hover:bg-slate-200 dark:bg-[#0D1B3E] dark:hover:bg-[#162a5c] text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer"
               >
                 💼 Ms. Elena (Teacher)
               </button>
               <button
                 type="button"
                 onClick={() => handleQuickDemoLogin('admin')}
-                className="py-1.5 px-2 rounded-lg text-[11px] font-semibold bg-cyan-50 hover:bg-cyan-100 dark:bg-cyan-950/60 dark:hover:bg-cyan-900/60 text-cyan-700 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800 transition-colors cursor-pointer"
+                className="py-1.5 px-2 rounded-lg text-[11px] font-normal bg-slate-100 hover:bg-slate-200 dark:bg-[#0D1B3E] dark:hover:bg-[#162a5c] text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer"
               >
                 🛡️ Dr. Marcus (Admin)
               </button>
@@ -862,26 +851,26 @@ export const UnifiedLogin: React.FC = () => {
         </div>
 
         {/* Access Rule Footnote */}
-        <p className="text-xs text-slate-500 dark:text-slate-400 text-center max-w-lg">
-          🔒 <strong>Access Rule Enforcement:</strong> Student and Educator logins are strictly confined to their dedicated workspaces. Only Administrators possess permissions to switch across all three panels.
+        <p className="text-xs text-slate-500 dark:text-slate-400 text-center max-w-lg font-light">
+          🔒 Access Rule Enforcement: Student and Educator logins are strictly confined to their dedicated workspaces. Only Administrators possess permissions to switch across all three panels.
         </p>
       </main>
 
       {/* Forgot Password Modal */}
       {showForgotModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 max-w-md w-full border border-slate-200 dark:border-slate-800 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs font-normal">
+          <div className="bg-white dark:bg-[#12234e] rounded-3xl p-6 max-w-md w-full border border-slate-200 dark:border-slate-800 shadow-2xl">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <KeyRound className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-                <h3 className="font-bold text-slate-900 dark:text-white text-base">Reset Password</h3>
+                <KeyRound className="w-5 h-5 text-[#00A896]" />
+                <h3 className="font-normal text-slate-900 dark:text-white text-base">Reset Password</h3>
               </div>
               <button
                 onClick={() => {
                   setShowForgotModal(false);
                   setForgotSuccess(false);
                 }}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
               >
                 ✕
               </button>
@@ -889,11 +878,11 @@ export const UnifiedLogin: React.FC = () => {
 
             {forgotSuccess ? (
               <div className="text-center py-4 space-y-3">
-                <div className="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 mx-auto flex items-center justify-center">
+                <div className="w-12 h-12 rounded-full bg-[#00A896]/15 text-[#00A896] mx-auto flex items-center justify-center">
                   <Check className="w-6 h-6" />
                 </div>
-                <h4 className="font-bold text-slate-900 dark:text-white text-sm">Reset Link Sent</h4>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
+                <h4 className="font-normal text-slate-900 dark:text-white text-sm">Reset Link Sent</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-light">
                   We sent a recovery link to <strong>{forgotEmail || email}</strong>. Please check your inbox to reset your password.
                 </p>
                 <button
@@ -901,7 +890,7 @@ export const UnifiedLogin: React.FC = () => {
                     setShowForgotModal(false);
                     setForgotSuccess(false);
                   }}
-                  className="w-full py-2 bg-indigo-600 text-white rounded-xl text-xs font-semibold cursor-pointer"
+                  className="w-full py-2 bg-[#00A896] text-white rounded-xl text-xs font-normal cursor-pointer"
                 >
                   Return to Login
                 </button>
@@ -914,11 +903,11 @@ export const UnifiedLogin: React.FC = () => {
                 }}
                 className="space-y-4"
               >
-                <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-light">
                   Enter your registered institutional email. We will dispatch a secure one-time password verification link.
                 </p>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block text-xs font-normal text-slate-700 dark:text-slate-300 mb-1">
                     Email Address
                   </label>
                   <input
@@ -926,12 +915,12 @@ export const UnifiedLogin: React.FC = () => {
                     required
                     value={forgotEmail || email}
                     onChange={(e) => setForgotEmail(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#0D1B3E] text-xs font-normal focus:outline-none focus:ring-2 focus:ring-[#00A896]"
                   />
                 </div>
                 <button
                   type="submit"
-                  className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md transition-colors cursor-pointer"
+                  className="w-full py-2.5 rounded-xl bg-[#00A896] hover:bg-[#009282] text-white font-normal text-xs shadow-md transition-colors cursor-pointer"
                 >
                   Send Reset Link
                 </button>

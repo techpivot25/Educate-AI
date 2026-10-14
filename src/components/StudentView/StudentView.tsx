@@ -3,6 +3,7 @@ import { useApp } from '../../context/AppContext';
 import { useTheme } from '../../context/ThemeContext';
 import { FormulasAndGraphsTab } from './FormulasAndGraphsTab';
 import { AgileStudyRoadmap } from './AgileStudyRoadmap';
+import { PivotIQLogo } from '../common/PivotIQLogo';
 import {
   GraduationCap,
   BookOpen,
@@ -126,6 +127,9 @@ export const StudentView: React.FC = () => {
     upvoteCommunityPost,
     subscriptionState,
     notifications,
+    activeBroadcastQuiz,
+    setActiveBroadcastQuiz,
+    setEcosystemOverviewMode,
   } = useApp();
 
   // Mobile sidebar state
@@ -308,15 +312,13 @@ export const StudentView: React.FC = () => {
           {/* Brand Header */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#FF6B00] to-[#FFA04D] flex items-center justify-center text-white shadow-lg shadow-orange-500/25 shrink-0">
-                <GraduationCap className="w-5 h-5 stroke-[2.3]" />
-              </div>
+              <PivotIQLogo size={40} />
               <div>
                 <h1 className="font-light text-white text-base tracking-wide leading-tight">
-                  Educate AI
+                  PivotIQ
                 </h1>
-                <div className="flex items-center gap-1.5 text-[10px] text-orange-400 font-bold uppercase tracking-wider">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <div className="flex items-center gap-1.5 text-[10px] text-[#00A896] font-normal uppercase tracking-wider">
+                  <span className="w-2 h-2 rounded-full bg-[#00A896] animate-pulse" />
                   <span>Student Hub</span>
                 </div>
               </div>
@@ -337,7 +339,7 @@ export const StudentView: React.FC = () => {
             className="group relative p-3 rounded-2xl bg-[#132A4C]/90 hover:bg-[#16335C] border border-[#1E3E6B]/80 transition-all cursor-pointer shadow-sm flex items-center gap-3"
             title="Manage Student Profile"
           >
-            <div className="relative w-11 h-11 rounded-xl overflow-hidden shrink-0 bg-[#0B1E38] border-2 border-[#FF6B00] flex items-center justify-center text-white font-black text-sm shadow-inner">
+            <div className="relative w-11 h-11 rounded-xl overflow-hidden shrink-0 bg-[#0D1B3E] border-2 border-[#00A896] flex items-center justify-center text-white font-normal text-sm shadow-inner">
               {currentUser?.avatar ? (
                 <img
                   src={currentUser.avatar}
@@ -347,17 +349,17 @@ export const StudentView: React.FC = () => {
               ) : (
                 <span>{(currentUser?.name || 'S').charAt(0)}</span>
               )}
-              <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-400 ring-2 ring-[#0B1E38]" />
+              <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-[#00A896] ring-2 ring-[#0D1B3E]" />
             </div>
 
             <div className="min-w-0 flex-1">
               <div className="flex items-center justify-between gap-1">
-                <p className="text-xs font-bold text-white truncate group-hover:text-orange-400 transition-colors">
+                <p className="text-xs font-normal text-white truncate group-hover:text-[#00A896] transition-colors">
                   {currentUser?.name || 'Sarah Connor'}
                 </p>
                 <Edit3 className="w-3.5 h-3.5 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
               </div>
-              <p className="text-[11px] text-slate-300 font-medium truncate mt-0.5">
+              <p className="text-[11px] text-slate-300 font-light truncate mt-0.5">
                 Grade {studentGradeLevel} &bull; {currentBoard}
               </p>
             </div>
@@ -365,7 +367,7 @@ export const StudentView: React.FC = () => {
 
           {/* Navigation Links Menu */}
           <div className="space-y-1 pt-1">
-            <span className="px-3 text-[10px] font-black uppercase tracking-wider text-slate-400">
+            <span className="px-3 text-[10px] font-normal uppercase tracking-wider text-slate-400">
               Platform Menu
             </span>
             <nav className="space-y-1 mt-2">
@@ -378,25 +380,25 @@ export const StudentView: React.FC = () => {
                       setStudentNav(tab.id);
                       setMobileSidebarOpen(false);
                     }}
-                    className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs sm:text-sm transition-all cursor-pointer ${
+                    className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-normal transition-all cursor-pointer ${
                       isActive
-                        ? 'bg-[#FF6B00] text-white font-extrabold shadow-md shadow-orange-500/25'
-                        : 'text-slate-300 hover:text-white hover:bg-white/10 font-semibold'
+                        ? 'bg-[#00A896] text-white shadow-md shadow-[#00A896]/20'
+                        : 'text-slate-300 hover:text-white hover:bg-white/10'
                     }`}
                   >
                     <div className="flex items-center gap-3">
                       <span className={`${isActive ? 'text-white' : 'text-slate-400'}`}>
                         {tab.icon}
                       </span>
-                      <span>{tab.label}</span>
+                      <span className="font-normal">{tab.label}</span>
                     </div>
 
                     {tab.badge && (
                       <span
-                        className={`text-[9px] px-1.5 py-0.2 rounded-full font-extrabold uppercase ${
+                        className={`text-[9px] px-1.5 py-0.5 rounded-full font-normal uppercase ${
                           isActive
-                            ? 'bg-white text-[#FF6B00]'
-                            : 'bg-[#FF6B00] text-white'
+                            ? 'bg-[#0D1B3E] text-[#00A896]'
+                            : 'bg-[#00A896] text-white'
                         }`}
                       >
                         {tab.badge}
@@ -414,18 +416,18 @@ export const StudentView: React.FC = () => {
           {/* 7-Day Free Trial Card */}
           <div className="p-3 rounded-xl bg-[#132A4C]/80 border border-[#1E3E6B]/60 space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-extrabold text-white flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-[11px] font-normal text-white flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-[#00A896] animate-pulse" />
                 <span>{subscriptionState.tier}</span>
               </span>
-              <span className="text-[10px] font-black px-1.5 py-0.5 rounded-md bg-[#FF6B00] text-white">
+              <span className="text-[10px] font-normal px-1.5 py-0.5 rounded-md bg-[#00A896] text-white">
                 {subscriptionState.trialDaysLeft}d left
               </span>
             </div>
             {/* Progress bar */}
-            <div className="w-full bg-[#0B1E38] rounded-full h-1.5 overflow-hidden">
+            <div className="w-full bg-[#0D1B3E] rounded-full h-1.5 overflow-hidden">
               <div
-                className="bg-gradient-to-r from-emerald-400 to-[#FF6B00] h-full rounded-full transition-all"
+                className="bg-[#00A896] h-full rounded-full transition-all"
                 style={{ width: `${Math.min(100, Math.max(15, (7 - subscriptionState.trialDaysLeft) * 14.2))}%` }}
               />
             </div>
@@ -435,9 +437,9 @@ export const StudentView: React.FC = () => {
           <div className="flex items-center justify-between pt-1 text-xs">
             <button
               onClick={() => setIsProfileOpen(true)}
-              className="flex items-center gap-1.5 text-slate-300 hover:text-white transition-colors cursor-pointer font-semibold"
+              className="flex items-center gap-1.5 text-slate-300 hover:text-white transition-colors cursor-pointer font-normal"
             >
-              <UserIcon className="w-3.5 h-3.5 text-orange-400" />
+              <UserIcon className="w-3.5 h-3.5 text-[#00A896]" />
               <span>My Account</span>
             </button>
 
@@ -452,7 +454,7 @@ export const StudentView: React.FC = () => {
             {currentUser?.role === 'admin' ? (
               <button
                 onClick={() => setCurrentRole('admin')}
-                className="flex items-center gap-1 text-[11px] font-bold text-orange-400 hover:text-orange-300 transition-colors cursor-pointer"
+                className="flex items-center gap-1 text-[11px] font-normal text-[#00A896] hover:text-teal-300 transition-colors cursor-pointer"
                 title="Return to Admin Panel"
               >
                 <span>Admin &rarr;</span>
@@ -510,26 +512,36 @@ export const StudentView: React.FC = () => {
             {/* Right: Quick Context Controls & Badges */}
             <div className="flex items-center gap-2 sm:gap-3 shrink-0">
               {/* Quick Board Selector Badge */}
-              <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 text-xs font-bold text-slate-800 dark:text-slate-200 shadow-2xs">
-                <Globe className="w-3.5 h-3.5 text-[#FF6B00]" />
+              <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 text-xs font-normal text-slate-800 dark:text-slate-200 shadow-2xs">
+                <Globe className="w-3.5 h-3.5 text-[#00A896]" />
                 <span>{currentBoard}</span>
               </div>
 
               {/* Quick Grade Badge */}
-              <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-800/60 text-xs font-extrabold text-[#FF6B00] dark:text-[#FFA04D] shadow-2xs">
+              <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#00A896]/15 dark:bg-[#00A896]/20 border border-[#00A896]/30 text-xs font-normal text-[#00A896] dark:text-[#00A896] shadow-2xs">
                 <span>Grade {studentGradeLevel}</span>
               </div>
 
               {/* Date pill */}
-              <div className="hidden xl:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 text-xs font-semibold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700/80">
+              <div className="hidden xl:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 text-xs font-normal text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700/80">
                 <Calendar className="w-3.5 h-3.5 text-slate-400" />
                 <span>{currentDateStr}</span>
               </div>
 
+              {/* Workflow & Ecosystem Map Button */}
+              <button
+                onClick={() => setEcosystemOverviewMode(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-normal text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700/80 shadow-2xs transition-all cursor-pointer"
+                title="View 3-Panel Connected Workflow & Data Flow"
+              >
+                <Layers className="w-3.5 h-3.5 text-[#00A896]" />
+                <span className="hidden sm:inline">Workflow Map</span>
+              </button>
+
               {/* Direct Profile trigger avatar */}
               <button
                 onClick={() => setIsProfileOpen(true)}
-                className="w-9 h-9 rounded-xl overflow-hidden ring-2 ring-[#FF6B00]/60 bg-[#0B1E38] flex items-center justify-center text-white text-xs font-bold shadow-xs hover:scale-105 transition-all cursor-pointer"
+                className="w-9 h-9 rounded-xl overflow-hidden ring-2 ring-[#00A896]/60 bg-[#0D1B3E] flex items-center justify-center text-white text-xs font-normal shadow-xs hover:scale-105 transition-all cursor-pointer"
                 title="Account Settings"
               >
                 {currentUser?.avatar ? (
@@ -542,21 +554,62 @@ export const StudentView: React.FC = () => {
           </div>
         </header>
 
+        {/* LIVE ASSESSMENT BROADCAST BANNER */}
+        {activeBroadcastQuiz && (
+          <div className="bg-gradient-to-r from-[#00A896] via-[#0D1B3E] to-[#0B1E38] text-white px-4 py-3 shadow-md flex items-center justify-between z-20 border-b border-[#00A896]/30">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center animate-pulse shrink-0">
+                <Send className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-normal uppercase tracking-wider bg-[#00A896] text-white px-2 py-0.5 rounded-full animate-pulse">
+                    LIVE QUIZ BROADCAST
+                  </span>
+                  <span className="font-normal text-sm">{activeBroadcastQuiz.quiz.title}</span>
+                </div>
+                <p className="text-xs text-white/80 font-light">
+                  Target: {activeBroadcastQuiz.targetClass} &bull; Broadcast at {activeBroadcastQuiz.broadcastAt} &bull; {activeBroadcastQuiz.quiz.questions.length} Questions
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  setActiveQuizId(activeBroadcastQuiz.quiz.id);
+                  setStudentNav('practice');
+                }}
+                className="px-3.5 py-1.5 rounded-xl bg-[#00A896] hover:bg-[#009282] text-white font-normal text-xs shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
+              >
+                <span>Start Assessment</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => setActiveBroadcastQuiz(null)}
+                className="p-1 hover:bg-white/10 rounded-lg text-white/80 hover:text-white cursor-pointer"
+                title="Dismiss"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* HIGH PRIORITY GOOGLE MEET LIVE NOTIFICATION BANNER */}
         {activeStudentMeeting && (
-          <div className="bg-gradient-to-r from-[#FF6B00] via-[#FA5A1E] to-[#0B1E38] text-white px-4 py-3 shadow-md flex items-center justify-between z-20">
+          <div className="bg-gradient-to-r from-[#00A896] via-[#0D1B3E] to-[#0B1E38] text-white px-4 py-3 shadow-md flex items-center justify-between z-20 border-b border-[#00A896]/30">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center animate-pulse shrink-0">
                 <Video className="w-5 h-5 text-white" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-black uppercase tracking-wider bg-rose-500 text-white px-2 py-0.5 rounded-full animate-pulse">
+                  <span className="text-[10px] font-normal uppercase tracking-wider bg-rose-500 text-white px-2 py-0.5 rounded-full animate-pulse">
                     LIVE SESSION
                   </span>
-                  <span className="font-extrabold text-sm">{activeStudentMeeting.title}</span>
+                  <span className="font-normal text-sm">{activeStudentMeeting.title}</span>
                 </div>
-                <p className="text-xs text-white/90">
+                <p className="text-xs text-white/90 font-light">
                   Hosted by {activeStudentMeeting.host_name} &bull; Google Meet Room is ready
                 </p>
               </div>
@@ -566,14 +619,14 @@ export const StudentView: React.FC = () => {
                 href={activeStudentMeeting.meet_link}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-4 py-1.5 rounded-xl bg-white text-[#FF6B00] font-black text-xs hover:bg-white/90 shadow-sm flex items-center gap-1.5 transition-all"
+                className="px-4 py-1.5 rounded-xl bg-white text-[#0D1B3E] font-normal text-xs hover:bg-white/90 shadow-sm flex items-center gap-1.5 transition-all"
               >
                 <span>Join Meeting</span>
                 <ExternalLink className="w-3.5 h-3.5" />
               </a>
               <button
                 onClick={dismissStudentMeetingAlert}
-                className="p-1 hover:bg-white/10 rounded-lg text-white/80 hover:text-white"
+                className="p-1 hover:bg-white/10 rounded-lg text-white/80 hover:text-white cursor-pointer"
                 title="Dismiss"
               >
                 <X className="w-4 h-4" />

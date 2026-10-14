@@ -73,6 +73,7 @@ export interface AppUser {
   assignedCohorts?: string[];
   createdLessonPlansCount?: number;
   activeStudentsCount?: number;
+  cabin?: string;
 
   // Admin Profile Additions
   permissionLevel?: 'Super Admin' | 'Proctor Manager' | 'Content Admin';

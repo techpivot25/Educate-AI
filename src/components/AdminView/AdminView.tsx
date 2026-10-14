@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
+import { PivotIQLogo } from '../common/PivotIQLogo';
 import {
   ShieldCheck,
   Video,
@@ -100,12 +101,10 @@ export const AdminView: React.FC = () => {
           <div className="bg-white dark:bg-[#131d33] rounded-3xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-xl transition-colors">
             {/* Header */}
             <div className="flex items-center gap-3 mb-6 px-1">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white shadow-lg shadow-cyan-500/20">
-                <ShieldCheck className="w-6 h-6" />
-              </div>
+              <PivotIQLogo size={36} />
               <div>
                 <h2 className="font-bold text-slate-900 dark:text-white text-base leading-tight">
-                  Educate AI Agent Admin
+                  PivotIQ Admin
                 </h2>
                 <span className="text-xs text-cyan-600 dark:text-cyan-400 font-medium">
                   Admin Dashboard
@@ -113,131 +112,143 @@ export const AdminView: React.FC = () => {
               </div>
             </div>
 
-            <nav className="space-y-1.5 text-xs font-semibold">
+            <nav className="space-y-1.5 text-xs font-normal">
               <button
                 onClick={() => setAdminNav('dashboard')}
-                className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl transition-all cursor-pointer ${
+                className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl transition-all cursor-pointer font-normal ${
                   adminNav === 'dashboard'
-                    ? 'bg-cyan-50 dark:bg-[#1e2c4c] text-cyan-700 dark:text-cyan-400 border-l-4 border-cyan-500 dark:border-cyan-400 shadow-inner'
+                    ? 'bg-[#00A896]/10 dark:bg-[#00A896]/20 text-[#00A896] dark:text-[#00A896] border-l-4 border-[#00A896] shadow-inner'
                     : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <Video className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
-                  <span>Platform Dashboard</span>
+                  <Video className={`w-4 h-4 ${adminNav === 'dashboard' ? 'text-[#00A896]' : 'text-slate-500 dark:text-slate-400'}`} />
+                  <span className="font-normal">Platform Dashboard</span>
                 </div>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-100 dark:bg-cyan-950 text-cyan-700 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800">
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-normal border ${
+                  adminNav === 'dashboard'
+                    ? 'bg-[#00A896]/20 text-[#00A896] border-[#00A896]/40'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700'
+                }`}>
                   Live
                 </span>
               </button>
 
               <button
                 onClick={() => setAdminNav('users')}
-                className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl transition-all cursor-pointer ${
+                className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl transition-all cursor-pointer font-normal ${
                   adminNav === 'users'
-                    ? 'bg-cyan-50 dark:bg-[#1e2c4c] text-cyan-700 dark:text-cyan-400 border-l-4 border-cyan-500 dark:border-cyan-400 shadow-inner'
+                    ? 'bg-[#00A896]/10 dark:bg-[#00A896]/20 text-[#00A896] dark:text-[#00A896] border-l-4 border-[#00A896] shadow-inner'
                     : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <UserPlus className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
-                  <span>User Management (CRUD)</span>
+                  <UserPlus className={`w-4 h-4 ${adminNav === 'users' ? 'text-[#00A896]' : 'text-slate-500 dark:text-slate-400'}`} />
+                  <span className="font-normal">User Management (CRUD)</span>
                 </div>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-100 dark:bg-cyan-950 text-cyan-700 dark:text-cyan-300 font-bold border border-cyan-200 dark:border-cyan-800">
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-normal border ${
+                  adminNav === 'users'
+                    ? 'bg-[#00A896]/20 text-[#00A896] border-[#00A896]/40'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700'
+                }`}>
                   {usersList.length}
                 </span>
               </button>
 
               <button
                 onClick={() => setAdminNav('curriculum')}
-                className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl transition-all cursor-pointer ${
+                className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl transition-all cursor-pointer font-normal ${
                   adminNav === 'curriculum'
-                    ? 'bg-cyan-50 dark:bg-[#1e2c4c] text-cyan-700 dark:text-cyan-400 border-l-4 border-cyan-500 dark:border-cyan-400 shadow-inner'
+                    ? 'bg-[#00A896]/10 dark:bg-[#00A896]/20 text-[#00A896] dark:text-[#00A896] border-l-4 border-[#00A896] shadow-inner'
                     : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <BookOpen className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
-                  <span>Curriculum</span>
+                  <BookOpen className={`w-4 h-4 ${adminNav === 'curriculum' ? 'text-[#00A896]' : 'text-slate-500 dark:text-slate-400'}`} />
+                  <span className="font-normal">Curriculum</span>
                 </div>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-100 dark:bg-cyan-950 text-cyan-700 dark:text-cyan-300 font-bold border border-cyan-200 dark:border-cyan-800 whitespace-nowrap">
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-normal border whitespace-nowrap ${
+                  adminNav === 'curriculum'
+                    ? 'bg-[#00A896]/20 text-[#00A896] border-[#00A896]/40'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700'
+                }`}>
                   Grades 6-12
                 </span>
               </button>
 
               <button
                 onClick={() => setAdminNav('teachers')}
-                className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl transition-all cursor-pointer ${
+                className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl transition-all cursor-pointer font-normal ${
                   adminNav === 'teachers'
-                    ? 'bg-cyan-50 dark:bg-[#1e2c4c] text-cyan-700 dark:text-cyan-400 border-l-4 border-cyan-500 dark:border-cyan-400 shadow-inner'
+                    ? 'bg-[#00A896]/10 dark:bg-[#00A896]/20 text-[#00A896] dark:text-[#00A896] border-l-4 border-[#00A896] shadow-inner'
                     : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <Users className="w-4 h-4 text-slate-500 dark:text-slate-400" />
-                  <span>Teacher Management</span>
+                  <Users className={`w-4 h-4 ${adminNav === 'teachers' ? 'text-[#00A896]' : 'text-slate-500 dark:text-slate-400'}`} />
+                  <span className="font-normal">Teacher Management</span>
                 </div>
-                <span className="text-[10px] text-slate-500 dark:text-slate-400">{teachersList.length}</span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">{teachersList.length}</span>
               </button>
 
               <button
                 onClick={() => setAdminNav('students')}
-                className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl transition-all cursor-pointer ${
+                className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl transition-all cursor-pointer font-normal ${
                   adminNav === 'students'
-                    ? 'bg-cyan-50 dark:bg-[#1e2c4c] text-cyan-700 dark:text-cyan-400 border-l-4 border-cyan-500 dark:border-cyan-400 shadow-inner'
+                    ? 'bg-[#00A896]/10 dark:bg-[#00A896]/20 text-[#00A896] dark:text-[#00A896] border-l-4 border-[#00A896] shadow-inner'
                     : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <Users className="w-4 h-4 text-slate-500 dark:text-slate-400" />
-                  <span>Student Management</span>
+                  <Users className={`w-4 h-4 ${adminNav === 'students' ? 'text-[#00A896]' : 'text-slate-500 dark:text-slate-400'}`} />
+                  <span className="font-normal">Student Management</span>
                 </div>
-                <span className="text-[10px] text-slate-500 dark:text-slate-400">{studentsList.length}</span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">{studentsList.length}</span>
               </button>
 
               <button
                 onClick={() => setAdminNav('config')}
-                className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl transition-all cursor-pointer ${
+                className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl transition-all cursor-pointer font-normal ${
                   adminNav === 'config'
-                    ? 'bg-cyan-50 dark:bg-[#1e2c4c] text-cyan-700 dark:text-cyan-400 border-l-4 border-cyan-500 dark:border-cyan-400 shadow-inner'
+                    ? 'bg-[#00A896]/10 dark:bg-[#00A896]/20 text-[#00A896] dark:text-[#00A896] border-l-4 border-[#00A896] shadow-inner'
                     : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <Settings className="w-4 h-4 text-slate-500 dark:text-slate-400" />
-                  <span>System Configuration</span>
+                  <Settings className={`w-4 h-4 ${adminNav === 'config' ? 'text-[#00A896]' : 'text-slate-500 dark:text-slate-400'}`} />
+                  <span className="font-normal">System Configuration</span>
                 </div>
-                <span className="text-[10px] text-slate-500 dark:text-slate-400">Rules</span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">Rules</span>
               </button>
 
               <button
                 onClick={() => setAdminNav('certificates')}
-                className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl transition-all cursor-pointer ${
+                className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl transition-all cursor-pointer font-normal ${
                   adminNav === 'certificates'
-                    ? 'bg-cyan-50 dark:bg-[#1e2c4c] text-cyan-700 dark:text-cyan-400 border-l-4 border-cyan-500 dark:border-cyan-400 shadow-inner'
+                    ? 'bg-[#00A896]/10 dark:bg-[#00A896]/20 text-[#00A896] dark:text-[#00A896] border-l-4 border-[#00A896] shadow-inner'
                     : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <Award className="w-4 h-4 text-slate-500 dark:text-slate-400" />
-                  <span>Certificates</span>
+                  <Award className={`w-4 h-4 ${adminNav === 'certificates' ? 'text-[#00A896]' : 'text-slate-500 dark:text-slate-400'}`} />
+                  <span className="font-normal">Certificates</span>
                 </div>
-                <span className="text-[10px] text-amber-600 dark:text-amber-400 font-bold">{certificates.length}</span>
+                <span className="text-[10px] text-[#00A896] font-normal">{certificates.length}</span>
               </button>
 
               <button
                 onClick={() => setAdminNav('analytics')}
-                className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl transition-all cursor-pointer ${
+                className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl transition-all cursor-pointer font-normal ${
                   adminNav === 'analytics'
-                    ? 'bg-cyan-50 dark:bg-[#1e2c4c] text-cyan-700 dark:text-cyan-400 border-l-4 border-cyan-500 dark:border-cyan-400 shadow-inner'
+                    ? 'bg-[#00A896]/10 dark:bg-[#00A896]/20 text-[#00A896] dark:text-[#00A896] border-l-4 border-[#00A896] shadow-inner'
                     : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <BarChart3 className="w-4 h-4 text-slate-500 dark:text-slate-400" />
-                  <span>Analytics</span>
+                  <BarChart3 className={`w-4 h-4 ${adminNav === 'analytics' ? 'text-[#00A896]' : 'text-slate-500 dark:text-slate-400'}`} />
+                  <span className="font-normal">Analytics</span>
                 </div>
-                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">99.4%</span>
+                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-normal">99.4%</span>
               </button>
             </nav>
           </div>

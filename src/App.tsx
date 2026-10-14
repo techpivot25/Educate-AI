@@ -59,7 +59,7 @@ const QuotaDefenseBanner: React.FC = () => {
 };
 
 const MainContent: React.FC = () => {
-  const { currentRole, isAuthenticated, ecosystemOverviewMode } = useApp();
+  const { currentRole, isAuthenticated, ecosystemOverviewMode, isProfileOpen } = useApp();
 
   if (!isAuthenticated) {
     return <UnifiedLogin />;
@@ -68,8 +68,8 @@ const MainContent: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col font-sans transition-colors bg-[#F5F7FF] dark:bg-[#12131C] text-[#1F1F24] dark:text-[#F1F1F6]">
       <QuotaDefenseBanner />
-      {/* Student Panel features its own full-height dark navy sidebar and header matching the attached theme */}
-      {currentRole !== 'student' && <GlobalHeader />}
+      {/* Student and Teacher Panels feature their own full-height dark navy sidebar and header matching the student theme */}
+      {currentRole !== 'student' && currentRole !== 'teacher' && <GlobalHeader />}
       <div className="flex-1">
         {ecosystemOverviewMode ? (
           <UnifiedEcosystemView />
@@ -81,7 +81,7 @@ const MainContent: React.FC = () => {
           </>
         )}
       </div>
-      <UserProfileModal />
+      {isProfileOpen && <UserProfileModal />}
       <CurriculumExplorerModal />
     </div>
   );

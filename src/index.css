@@ -2,7 +2,18 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+@font-face {
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('https://fonts.gstatic.com/s/poppins/v24/pxiEyp8kv8JHgFVrJJbecmNE.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
 @theme {
+  --font-sans: 'Poppins', sans-serif;
+  --font-poppins: 'Poppins', sans-serif;
   --color-primary-indigo: #4B49AC;
   --color-secondary-periwinkle: #98BDFF;
   --color-sky-blue: #7DA0FA;
@@ -15,6 +26,7 @@
 }
 
 :root {
+  font-family: 'Poppins', sans-serif;
   --canvas-bg: #F5F7FF;
   --card-bg: #FFFFFF;
   --text-main: #1F1F24;
@@ -33,10 +45,34 @@ html.dark, [data-theme="dark"] {
   --text-muted: #9CA3AF;
 }
 
+html,
+body,
+#root {
+  font-family: 'Poppins', sans-serif;
+}
+
 body {
+  font-family: 'Poppins', sans-serif;
   background-color: var(--canvas-bg);
   color: var(--text-main);
   transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+button,
+input,
+select,
+textarea,
+optgroup {
+  font-family: 'Poppins', sans-serif;
+}
+
+code,
+pre,
+kbd,
+samp,
+.font-mono,
+[class*="font-mono"] {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
 }
 
 .mirror {
