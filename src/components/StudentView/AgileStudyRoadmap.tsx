@@ -25,7 +25,12 @@ import {
   Check,
   AlertCircle,
   BookOpen,
+  Download,
+  Mail,
+  WifiOff,
 } from 'lucide-react';
+import { OfflineStudyPackModal } from './OfflineStudyPackModal';
+import { ParentWeeklyDigestModal } from './ParentWeeklyDigestModal';
 
 export const AgileStudyRoadmap: React.FC = () => {
   const {
@@ -56,6 +61,10 @@ export const AgileStudyRoadmap: React.FC = () => {
 
   // Selected task for status and points editor modal
   const [selectedTask, setSelectedTask] = useState<DailyStudyTask | null>(null);
+
+  // Offline Pack & Parental Digest Modals
+  const [isOfflineModalOpen, setIsOfflineModalOpen] = useState(false);
+  const [isParentDigestOpen, setIsParentDigestOpen] = useState(false);
 
   // New task creation modal state
   const [isNewTaskOpen, setIsNewTaskOpen] = useState(false);
@@ -482,6 +491,26 @@ export const AgileStudyRoadmap: React.FC = () => {
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Add Task</span>
+          </button>
+
+          {/* Offline Study Pack button */}
+          <button
+            onClick={() => setIsOfflineModalOpen(true)}
+            title="Save Study Plan & AI Summaries for Offline Viewing / Low-Bandwidth Mode"
+            className="px-3 py-1.5 rounded-xl bg-teal-50 dark:bg-teal-950/50 hover:bg-teal-100 dark:hover:bg-teal-900/50 text-[#00A896] border border-teal-200 dark:border-teal-800 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Offline Pack</span>
+          </button>
+
+          {/* Parental Weekly Digest button */}
+          <button
+            onClick={() => setIsParentDigestOpen(true)}
+            title="Parental Weekly Digest: Completed vs Planned Sprint Hours"
+            className="px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/50 hover:bg-amber-100 dark:hover:bg-amber-900/50 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
+          >
+            <Mail className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Parent Digest</span>
           </button>
 
           {/* Export Spreadsheet button */}
@@ -1622,6 +1651,18 @@ export const AgileStudyRoadmap: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Offline Mode & Low-Bandwidth Modal */}
+      <OfflineStudyPackModal
+        isOpen={isOfflineModalOpen}
+        onClose={() => setIsOfflineModalOpen(false)}
+      />
+
+      {/* Parental Weekly Digest Modal */}
+      <ParentWeeklyDigestModal
+        isOpen={isParentDigestOpen}
+        onClose={() => setIsParentDigestOpen(false)}
+      />
     </div>
   );
 };

@@ -4,6 +4,9 @@ import { useTheme } from '../../context/ThemeContext';
 import { FormulasAndGraphsTab } from './FormulasAndGraphsTab';
 import { AgileStudyRoadmap } from './AgileStudyRoadmap';
 import { CourseProgressTracker } from './CourseProgressTracker';
+import { StudentGamificationHub } from './StudentGamificationHub';
+import { OfflineStudyPackModal } from './OfflineStudyPackModal';
+import { ParentWeeklyDigestModal } from './ParentWeeklyDigestModal';
 import { PivotIQLogo } from '../common/PivotIQLogo';
 import {
   GraduationCap,
@@ -28,6 +31,7 @@ import {
   Edit3,
   Upload,
   X,
+  Mail,
   Flame,
   Target,
   Mic,
@@ -160,6 +164,10 @@ export const StudentView: React.FC = () => {
   const [quickDoubtSubject, setQuickDoubtSubject] = useState('Physics');
   const [isSubmittingDoubt, setIsSubmittingDoubt] = useState(false);
   const [isQuickDoubtsOpen, setIsQuickDoubtsOpen] = useState(false);
+
+  // New Modals for Offline Pack & Parental Weekly Digest
+  const [isOfflineModalOpen, setIsOfflineModalOpen] = useState(false);
+  const [isParentDigestOpen, setIsParentDigestOpen] = useState(false);
 
   // Practice Quizzes Interactive States
   const [activeQuizId, setActiveQuizId] = useState<string | null>(null);
@@ -511,7 +519,30 @@ export const StudentView: React.FC = () => {
             </div>
 
             {/* Right: Quick Context Controls & Badges */}
-            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+              {/* Duolingo-style Daily Learning Streak & XP Points Widget */}
+              <StudentGamificationHub />
+
+              {/* Offline Study Pack (Low-Bandwidth Mode & Offline Saver) */}
+              <button
+                onClick={() => setIsOfflineModalOpen(true)}
+                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-normal text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700/80 shadow-2xs transition-all cursor-pointer"
+                title="Save Agile Study Plan & AI Summaries for Offline Viewing / Low-Bandwidth Mode"
+              >
+                <Download className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
+                <span className="hidden lg:inline">Offline Pack</span>
+              </button>
+
+              {/* Parental Weekly Digest (Completed vs Planned Hours Sunday Email) */}
+              <button
+                onClick={() => setIsParentDigestOpen(true)}
+                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-normal text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700/80 shadow-2xs transition-all cursor-pointer"
+                title="Parental Weekly Digest: Completed sprint hours vs planned hours summary"
+              >
+                <Mail className="w-3.5 h-3.5 text-amber-500" />
+                <span className="hidden lg:inline">Parent Digest</span>
+              </button>
+
               {/* Quick Board Selector Badge */}
               <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 text-xs font-normal text-slate-800 dark:text-slate-200 shadow-2xs">
                 <Globe className="w-3.5 h-3.5 text-[#00A896]" />
@@ -1483,6 +1514,18 @@ export const StudentView: React.FC = () => {
           <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-emerald-400 rounded-full border-2 border-white animate-pulse" />
         </button>
       </div>
+
+      {/* Offline Mode & Low-Bandwidth Hub Modal */}
+      <OfflineStudyPackModal
+        isOpen={isOfflineModalOpen}
+        onClose={() => setIsOfflineModalOpen(false)}
+      />
+
+      {/* Parental Weekly Digest Modal (Completed vs Planned Hours Sunday Email) */}
+      <ParentWeeklyDigestModal
+        isOpen={isParentDigestOpen}
+        onClose={() => setIsParentDigestOpen(false)}
+      />
     </div>
   );
 };
