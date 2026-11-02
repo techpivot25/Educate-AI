@@ -353,7 +353,7 @@ export const OfflineStudyPackModal: React.FC<OfflineStudyPackModalProps> = ({
         </div>
 
         {/* Content */}
-        <div className="p-5 sm:p-6 overflow-y-auto space-y-5 text-slate-800 dark:text-slate-200">
+        <div className="p-5 sm:p-6 overflow-y-auto space-y-5 text-slate-800 dark:text-white">
           {/* Low-Bandwidth Mode Toggle Card */}
           <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/80 flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -375,13 +375,13 @@ export const OfflineStudyPackModal: React.FC<OfflineStudyPackModalProps> = ({
                     className={`px-2 py-0.2 rounded-full text-[10px] font-bold ${
                       lowBandwidthMode
                         ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-300'
-                        : 'bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                        : 'bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-white'
                     }`}
                   >
                     {lowBandwidthMode ? 'Active' : 'Disabled'}
                   </span>
                 </div>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                <p className="text-[11px] text-slate-500 dark:text-white mt-0.5">
                   Compresses assets, disables high-res video streaming, and caches all sprint data for
                   rural & tier-2/3 networks.
                 </p>
@@ -393,7 +393,7 @@ export const OfflineStudyPackModal: React.FC<OfflineStudyPackModalProps> = ({
               className={`px-4 py-2 rounded-xl text-xs font-bold cursor-pointer transition-all ${
                 lowBandwidthMode
                   ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-xs'
-                  : 'bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 hover:bg-slate-300'
+                  : 'bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-white hover:bg-slate-300'
               }`}
             >
               {lowBandwidthMode ? 'Enabled' : 'Enable 2G Saver'}
@@ -405,10 +405,10 @@ export const OfflineStudyPackModal: React.FC<OfflineStudyPackModalProps> = ({
             <div className="flex items-center gap-3">
               <HardDrive className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
               <div>
-                <h4 className="text-xs font-bold text-emerald-900 dark:text-emerald-200">
+                <h4 className="text-xs font-bold text-emerald-900 dark:text-white">
                   Local Browser Storage Status
                 </h4>
-                <p className="text-[11px] text-emerald-700 dark:text-emerald-300">
+                <p className="text-[11px] text-emerald-700 dark:text-emerald-200">
                   24 Modules, 15 Formulas, and 3 Sprints cached &bull; Last synchronized {lastSyncDate}
                 </p>
               </div>
@@ -477,23 +477,23 @@ export const OfflineStudyPackModal: React.FC<OfflineStudyPackModalProps> = ({
 
           {/* Included Features List */}
           <div>
-            <h5 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
+            <h5 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-white mb-2">
               What is saved in your offline pack:
             </h5>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-              <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 flex items-center gap-2">
+              <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 flex items-center gap-2 text-slate-800 dark:text-white">
                 <BookOpen className="w-4 h-4 text-[#00A896]" />
                 <span>Agile Study Roadmap & 31-Day Sprints</span>
               </div>
-              <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 flex items-center gap-2">
+              <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 flex items-center gap-2 text-slate-800 dark:text-white">
                 <Sparkles className="w-4 h-4 text-amber-500" />
                 <span>AI Quick Summaries (4 STEM Subjects)</span>
               </div>
-              <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 flex items-center gap-2">
+              <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 flex items-center gap-2 text-slate-800 dark:text-white">
                 <FileText className="w-4 h-4 text-indigo-500" />
                 <span>Master Formula Sheets & Key Constants</span>
               </div>
-              <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 flex items-center gap-2">
+              <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 flex items-center gap-2 text-slate-800 dark:text-white">
                 <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                 <span>State Board Emergency Exam Checklist</span>
               </div>
@@ -503,13 +503,13 @@ export const OfflineStudyPackModal: React.FC<OfflineStudyPackModalProps> = ({
 
         {/* Footer */}
         <div className="p-4 bg-slate-50 dark:bg-slate-900/80 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
-          <span className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-            <ShieldAlert className="w-3.5 h-3.5 text-slate-400" />
+          <span className="text-[11px] text-slate-500 dark:text-white flex items-center gap-1.5">
+            <ShieldAlert className="w-3.5 h-3.5 text-slate-400 dark:text-white" />
             Zero external CDN dependencies. Safe for offline USB/SD card transfers.
           </span>
           <button
             onClick={onClose}
-            className="px-4 py-1.5 rounded-xl bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold transition-colors cursor-pointer"
+            className="px-4 py-1.5 rounded-xl bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-white text-xs font-bold transition-colors cursor-pointer"
           >
             Close
           </button>

@@ -64,6 +64,9 @@ export interface AppUser {
   physicsProgress?: number;
   biologyProgress?: number;
   mathProgress?: number;
+  chemistryProgress?: number;
+  historyProgress?: number;
+  englishProgress?: number;
   attendance?: number;
   gpa?: number;
 
@@ -184,9 +187,13 @@ export interface StudentProfile {
   gpa: number;
   attendance: number; // percentage
   enrolledSubjects: string[];
+  overallProgress?: number;
   physicsProgress: number; // percentage
   biologyProgress: number;
   mathProgress: number;
+  chemistryProgress?: number;
+  historyProgress?: number;
+  englishProgress?: number;
   riskScore: 'Low' | 'Medium' | 'High';
   activeProctorStatus: AnomalyType;
 }

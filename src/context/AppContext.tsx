@@ -131,6 +131,8 @@ interface AppContextType {
   dailyTasks: DailyStudyTask[];
   setDailyTasks: React.Dispatch<React.SetStateAction<DailyStudyTask[]>>;
   updateStudyTask: (taskId: string, updates: Partial<DailyStudyTask>) => void;
+  addStudyTask: (task: DailyStudyTask) => void;
+  deleteStudyTask: (taskId: string) => void;
   weeklySprints: WeeklySprintAllocation[];
   masterChapters: MasterChapterItem[];
   generateStudyPlan: (params?: any) => Promise<void>;
@@ -176,11 +178,20 @@ interface AppContextType {
   // Teacher State
   lessonPlans: LessonPlan[];
   quizzes: Quiz[];
+  setQuizzes: React.Dispatch<React.SetStateAction<Quiz[]>>;
   aiSuggestions: AiSuggestion[];
   isDraftingPlan: boolean;
   isDraftingQuiz: boolean;
   draftLessonPlan: (topic: string, grade: string, style: string) => Promise<LessonPlan | null>;
   draftQuiz: (prompt: string) => Promise<Quiz | null>;
+  recordQuizSubmission: (quizId: string, answers: { [qIndex: number]: number }) => {
+    score: number;
+    correctCount: number;
+    totalQuestions: number;
+    certificateIssued?: DigitalCertificate;
+  };
+  completeCurriculumUnit: (subjectName: string, unitTitle: string) => void;
+  syncStudentProgressAcrossPanels: (tasks?: DailyStudyTask[], triggerTask?: DailyStudyTask) => void;
   activeBroadcastQuiz: BroadcastedQuizInfo | null;
   setActiveBroadcastQuiz: (info: BroadcastedQuizInfo | null) => void;
   publishQuiz: (quiz: Quiz, targetClass?: string) => void;
@@ -194,6 +205,7 @@ interface AppContextType {
   triggerAnomaly: (feedId: string, anomalyType: AnomalyType) => void;
   resolveAnomaly: (logId: string) => void;
   studentsList: StudentProfile[];
+  setStudentsList: React.Dispatch<React.SetStateAction<StudentProfile[]>>;
   teachersList: TeacherProfile[];
   certificates: DigitalCertificate[];
   issueCertificate: (studentName: string, courseTitle: string, score: number) => DigitalCertificate;
@@ -1158,20 +1170,113 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     addNotification('Subscription Updated', 'Your subscription & billing preference has been updated.', 'success', 'system');
   };
 
+  // Global Student Roster with real-time multi-panel synchronization
+  const [studentsList, setStudentsList] = useState<StudentProfile[]>([
+    {
+      id: 'stu-1',
+      name: 'Sarah Connor',
+      email: 'sarah.c@educateai.org',
+      grade: '8th Grade',
+      gpa: 3.85,
+      attendance: 98,
+      enrolledSubjects: ['Physics', 'Biology', 'Algebra', 'English Literature', 'Chemistry', 'World History'],
+      physicsProgress: 75,
+      biologyProgress: 88,
+      mathProgress: 92,
+      riskScore: 'Low',
+      activeProctorStatus: 'Clear',
+    },
+    {
+      id: 'stu-2',
+      name: 'Alex Rivera',
+      email: 'alex.r@educateai.org',
+      grade: '7th Grade',
+      gpa: 3.2,
+      attendance: 91,
+      enrolledSubjects: ['Science 7B', 'Pre-Algebra', 'World History'],
+      physicsProgress: 52,
+      biologyProgress: 64,
+      mathProgress: 70,
+      riskScore: 'High',
+      activeProctorStatus: 'Head Rotation',
+    },
+    {
+      id: 'stu-3',
+      name: 'Liam Chen',
+      email: 'liam.c@educateai.org',
+      grade: '8th Grade',
+      gpa: 3.95,
+      attendance: 100,
+      enrolledSubjects: ['Physics', 'Honors Chemistry', 'Calculus'],
+      physicsProgress: 94,
+      biologyProgress: 96,
+      mathProgress: 98,
+      riskScore: 'Low',
+      activeProctorStatus: 'Clear',
+    },
+    {
+      id: 'stu-4',
+      name: 'Carlos Mendez',
+      email: 'carlos.m@educateai.org',
+      grade: '7th Grade',
+      gpa: 3.5,
+      attendance: 94,
+      enrolledSubjects: ['Science 7B', 'Algebra', 'Art'],
+      physicsProgress: 72,
+      biologyProgress: 76,
+      mathProgress: 81,
+      riskScore: 'Low',
+      activeProctorStatus: 'Clear',
+    },
+    {
+      id: 'stu-5',
+      name: 'Zoe Washington',
+      email: 'zoe.w@educateai.org',
+      grade: '8th Grade',
+      gpa: 3.65,
+      attendance: 95,
+      enrolledSubjects: ['Physics', 'Biology', 'Geometry'],
+      physicsProgress: 68,
+      biologyProgress: 80,
+      mathProgress: 85,
+      riskScore: 'Medium',
+      activeProctorStatus: 'Head Rotation',
+    },
+    {
+      id: 'stu-6',
+      name: 'Daniel Vance',
+      email: 'daniel.v@educateai.org',
+      grade: '8th Grade',
+      gpa: 3.1,
+      attendance: 86,
+      enrolledSubjects: ['Physics', 'General Science', 'World History'],
+      physicsProgress: 45,
+      biologyProgress: 58,
+      mathProgress: 63,
+      riskScore: 'High',
+      activeProctorStatus: 'Multiple Faces Detected',
+    },
+  ]);
+
   // Agile Study Planner State
   const [dailyTasks, setDailyTasks] = useState<DailyStudyTask[]>([
     // October 2026 Tasks
     { id: 'dt-oct-2', day: 2, date: '2026-10-02', subject: 'Algebra I', topic: 'Linear Equations & Variables', duration_hrs: 1.5, is_core: true, status: 'Completed', points: 25, color: '#4F46E5' },
     { id: 'dt-oct-5', day: 5, date: '2026-10-05', subject: 'Physics', topic: 'Kinematics & Velocity Vectors', duration_hrs: 2, is_core: false, status: 'Completed', points: 30, color: '#0284C7' },
+    { id: 'dt-oct-7', day: 7, date: '2026-10-07', subject: 'English Literature', topic: 'Shakespearean Sonnets & Metaphor Analysis', duration_hrs: 1.5, is_core: false, status: 'Completed', points: 25, color: '#D97706' },
     { id: 'dt-oct-8', day: 8, date: '2026-10-08', subject: 'Chemistry', topic: 'Atomic Structure & Bohr Model', duration_hrs: 1.5, is_core: false, status: 'Completed', points: 20, color: '#10B981' },
+    { id: 'dt-oct-11', day: 11, date: '2026-10-11', subject: 'Biology', topic: 'Plant Respiration & Calvin Cycle Dynamics', duration_hrs: 1.5, is_core: false, status: 'Completed', points: 25, color: '#059669' },
     { id: 'dt-oct-12', day: 12, date: '2026-10-12', subject: 'Algebra I', topic: 'Lesson 3 Review: Linear Inequalities', duration_hrs: 1.5, is_core: true, status: 'Completed', points: 25, color: '#4F46E5' },
     { id: 'dt-oct-14', day: 14, date: '2026-10-14', subject: 'Physics', topic: 'Lab Prep: Vector Dynamics & Net Force', duration_hrs: 2, is_core: false, status: 'In Progress', points: 30, color: '#0284C7' },
     { id: 'dt-oct-15', day: 15, date: '2026-10-15', subject: 'History', topic: 'Reading: Global Dynasties (Ch 4)', duration_hrs: 1.5, is_core: false, status: 'In Progress', points: 20, color: '#0EA5E9' },
     { id: 'dt-oct-16', day: 16, date: '2026-10-16', subject: 'Biology', topic: 'Cell Division: Mitosis vs Meiosis', duration_hrs: 1.5, is_core: false, status: 'On Hold', points: 20, color: '#059669' },
+    { id: 'dt-oct-18', day: 18, date: '2026-10-18', subject: 'English Literature', topic: 'Essay Drafting: Narrative Arc & Characterization', duration_hrs: 1.5, is_core: false, status: 'In Progress', points: 20, color: '#D97706' },
     { id: 'dt-oct-19', day: 19, date: '2026-10-19', subject: 'Algebra I', topic: 'Lesson 3 Review: Exponent Rules', duration_hrs: 1.5, is_core: true, status: 'To Do', points: 25, color: '#4F46E5' },
     { id: 'dt-oct-21a', day: 21, date: '2026-10-21', subject: 'Physics', topic: 'Lab Prep: Friction Coefficients', duration_hrs: 1.5, is_core: false, status: 'To Do', points: 25, color: '#0284C7' },
     { id: 'dt-oct-21b', day: 21, date: '2026-10-21', subject: 'History', topic: 'Reading: Economic Networks', duration_hrs: 1, is_core: false, status: 'Revision', points: 15, color: '#F59E0B' },
+    { id: 'dt-oct-22', day: 22, date: '2026-10-22', subject: 'Biology', topic: 'Genetics: Mendelian Inheritance & Punnett Squares', duration_hrs: 1.5, is_core: false, status: 'To Do', points: 25, color: '#059669' },
     { id: 'dt-oct-23', day: 23, date: '2026-10-23', subject: 'History', topic: 'Reading: Maritime Trade Maps', duration_hrs: 1.5, is_core: false, status: 'To Do', points: 20, color: '#0EA5E9' },
+    { id: 'dt-oct-25', day: 25, date: '2026-10-25', subject: 'English Literature', topic: 'Poetry Explication & Rhyme Scheme Mastery', duration_hrs: 1.5, is_core: false, status: 'To Do', points: 20, color: '#D97706' },
     { id: 'dt-oct-26', day: 26, date: '2026-10-26', subject: 'Algebra I', topic: 'Lesson 3 Review: Factoring Trinomials', duration_hrs: 1.5, is_core: true, status: 'Revision', points: 30, color: '#8B5CF6' },
     { id: 'dt-oct-28', day: 28, date: '2026-10-28', subject: 'Physics', topic: 'Lab Prep: Momentum Collisions', duration_hrs: 2, is_core: false, status: 'To Do', points: 35, color: '#0284C7' },
     { id: 'dt-oct-29', day: 29, date: '2026-10-29', subject: 'History', topic: 'Reading: Post-Classical Societies', duration_hrs: 1.5, is_core: false, status: 'To Do', points: 20, color: '#0EA5E9' },
@@ -1180,25 +1285,260 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     { id: 'dt-nov-2', day: 2, date: '2026-11-02', subject: 'Algebra I', topic: 'Quadratic Formula Intro & Roots', duration_hrs: 1.5, is_core: true, status: 'Completed', points: 25, color: '#4F46E5' },
     { id: 'dt-nov-3', day: 3, date: '2026-11-03', subject: 'Algebra I', topic: 'Parabola Symmetry & Vertex Form', duration_hrs: 1.5, is_core: true, status: 'In Progress', points: 25, color: '#4F46E5' },
     { id: 'dt-nov-4', day: 4, date: '2026-11-04', subject: 'Physics', topic: 'Centripetal Force & Orbit Mechanics', duration_hrs: 2, is_core: false, status: 'In Progress', points: 30, color: '#0284C7' },
+    { id: 'dt-nov-5', day: 5, date: '2026-11-05', subject: 'English Literature', topic: 'Comparative Literature: Prose & Allegory', duration_hrs: 1.5, is_core: false, status: 'Completed', points: 25, color: '#D97706' },
     { id: 'dt-nov-6', day: 6, date: '2026-11-06', subject: 'Chemistry', topic: 'Chemical Equilibrium & Le Chatelier', duration_hrs: 1.5, is_core: false, status: 'To Do', points: 25, color: '#10B981' },
+    { id: 'dt-nov-8', day: 8, date: '2026-11-08', subject: 'Biology', topic: 'Cell Membrane Transport: Osmosis & Diffusion', duration_hrs: 1.5, is_core: false, status: 'Revision', points: 20, color: '#059669' },
     { id: 'dt-nov-9', day: 9, date: '2026-11-09', subject: 'History', topic: 'Reading: Diplomatic Treaties & Alliances', duration_hrs: 1.5, is_core: false, status: 'To Do', points: 20, color: '#0EA5E9' },
     { id: 'dt-nov-10', day: 10, date: '2026-11-10', subject: 'History', topic: 'Reading: Cultural Diffusion & Trade routes', duration_hrs: 1.5, is_core: false, status: 'On Hold', points: 20, color: '#0EA5E9' },
     { id: 'dt-nov-12', day: 12, date: '2026-11-12', subject: 'Algebra I', topic: 'Complex Numbers & Imaginary Roots', duration_hrs: 1.5, is_core: true, status: 'To Do', points: 25, color: '#4F46E5' },
+    { id: 'dt-nov-15', day: 15, date: '2026-11-15', subject: 'Biology', topic: 'Ecology: Trophic Levels & Energy Pyramids', duration_hrs: 1.5, is_core: false, status: 'To Do', points: 25, color: '#059669' },
     { id: 'dt-nov-16', day: 16, date: '2026-11-16', subject: 'Physics', topic: 'Work, Energy & Power Review', duration_hrs: 2, is_core: false, status: 'Completed', points: 30, color: '#0284C7' },
     { id: 'dt-nov-19', day: 19, date: '2026-11-19', subject: 'Chemistry', topic: 'Acid-Base Titration Curves & pH', duration_hrs: 1.5, is_core: false, status: 'Revision', points: 25, color: '#10B981' },
+    { id: 'dt-nov-20', day: 20, date: '2026-11-20', subject: 'English Literature', topic: 'Final Paper Review: Persuasive Rhetoric', duration_hrs: 1.5, is_core: false, status: 'To Do', points: 20, color: '#D97706' },
     { id: 'dt-nov-24', day: 24, date: '2026-11-24', subject: 'Algebra I', topic: 'Polynomial Functions & Graph Analysis', duration_hrs: 1.5, is_core: true, status: 'To Do', points: 25, color: '#4F46E5' },
     { id: 'dt-nov-27', day: 27, date: '2026-11-27', subject: 'History', topic: 'Modern Economic Revolutions', duration_hrs: 1.5, is_core: false, status: 'To Do', points: 20, color: '#0EA5E9' },
   ]);
 
-  const updateStudyTask = (taskId: string, updates: Partial<DailyStudyTask>) => {
-    setDailyTasks((prev) =>
-      prev.map((t) => {
-        if (t.id === taskId) {
-          return { ...t, ...updates };
+  // Synchronize student metrics across Student, Teacher, and Admin panels in real-time
+  const syncStudentProgressAcrossPanels = (
+    currentTasks: DailyStudyTask[] = dailyTasks,
+    triggerTask?: DailyStudyTask
+  ) => {
+    const studentName = currentUser?.name || 'Sarah Connor';
+
+    const getSubjectMetrics = (keywords: string[]) => {
+      const matching = currentTasks.filter((t) =>
+        keywords.some((k) => (t.subject || '').toLowerCase().includes(k))
+      );
+      if (matching.length === 0) return 75;
+      const totalPoints = matching.reduce((acc, t) => acc + (t.points || 25), 0);
+      const earnedPoints = matching.reduce((acc, t) => {
+        if (t.status === 'Completed') return acc + (t.points || 25);
+        if (t.status === 'Revision') return acc + (t.points || 25) * 0.75;
+        if (t.status === 'In Progress') return acc + (t.points || 25) * 0.45;
+        if (t.status === 'On Hold') return acc + (t.points || 25) * 0.15;
+        return acc;
+      }, 0);
+      const ratio = totalPoints > 0 ? earnedPoints / totalPoints : 0;
+      return Math.min(100, Math.max(15, Math.round(25 + ratio * 75)));
+    };
+
+    const mathProgress = getSubjectMetrics(['math', 'algeb', 'geom', 'calc']);
+    const physicsProgress = getSubjectMetrics(['phys']);
+    const chemistryProgress = getSubjectMetrics(['chem']);
+    const biologyProgress = getSubjectMetrics(['bio']);
+    const historyProgress = getSubjectMetrics(['hist', 'world', 'social', 'civic']);
+    const englishProgress = getSubjectMetrics(['eng', 'lit', 'prose']);
+    const overallProgress = Math.round(
+      (mathProgress + physicsProgress + chemistryProgress + biologyProgress + historyProgress + englishProgress) / 6
+    );
+
+    // 1. Update currentUser in memory and storage
+    setCurrentUser((prev) => {
+      if (!prev) return prev;
+      const updated = {
+        ...prev,
+        overallProgress,
+        mathProgress,
+        physicsProgress,
+        chemistryProgress,
+        biologyProgress,
+        historyProgress,
+        englishProgress,
+      };
+      try {
+        localStorage.setItem('educate_ai_current_user', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+
+    // 2. Update studentsList roster (so Teacher & Admin panels reflect real-time changes instantly)
+    setStudentsList((prev) =>
+      prev.map((s) => {
+        if (s.id === 'stu-1' || s.name === studentName) {
+          return {
+            ...s,
+            overallProgress,
+            physicsProgress,
+            biologyProgress,
+            mathProgress,
+            chemistryProgress,
+            historyProgress,
+            englishProgress,
+          };
         }
-        return t;
+        return s;
       })
     );
+
+    // 3. Emit real-time cross-panel notification
+    if (triggerTask) {
+      addNotification(
+        'Student Roadmap Activity Synced ⚡',
+        `${studentName} updated "${triggerTask.subject}: ${triggerTask.topic}" to ${triggerTask.status}. Overall Mastery: ${overallProgress}% | Physics: ${physicsProgress}% | Chemistry: ${chemistryProgress}%. Parallelly synced across Student, Teacher & Admin dashboards!`,
+        triggerTask.status === 'Completed' ? 'success' : 'info',
+        'student'
+      );
+    }
+  };
+
+  const updateStudyTask = (taskId: string, updates: Partial<DailyStudyTask>) => {
+    setDailyTasks((prev) => {
+      let targetTask: DailyStudyTask | undefined;
+      const updated = prev.map((t) => {
+        if (t.id === taskId) {
+          targetTask = { ...t, ...updates };
+          return targetTask;
+        }
+        return t;
+      });
+      syncStudentProgressAcrossPanels(updated, targetTask);
+      return updated;
+    });
+  };
+
+  const addStudyTask = (newTask: DailyStudyTask) => {
+    setDailyTasks((prev) => {
+      const updated = [...prev, newTask];
+      syncStudentProgressAcrossPanels(updated, newTask);
+      return updated;
+    });
+    addNotification(
+      'Task Scheduled 📅',
+      `Scheduled ${newTask.subject}: "${newTask.topic}" on Day ${newTask.day} (${newTask.points ?? 25} pts). Live progress recalculated!`,
+      'success',
+      'student'
+    );
+  };
+
+  const deleteStudyTask = (taskId: string) => {
+    setDailyTasks((prev) => {
+      const updated = prev.filter((t) => t.id !== taskId);
+      syncStudentProgressAcrossPanels(updated);
+      return updated;
+    });
+    addNotification('Task Removed', 'Study task has been removed from roadmap.', 'info', 'student');
+  };
+
+  const completeCurriculumUnit = (subjectName: string, unitTitle: string) => {
+    const studentName = currentUser?.name || 'Sarah Connor';
+    const newTask: DailyStudyTask = {
+      id: `task-unit-${Date.now()}`,
+      day: new Date().getDate(),
+      date: new Date().toISOString().split('T')[0],
+      subject: subjectName,
+      topic: unitTitle,
+      duration_hrs: 1.5,
+      is_core: subjectName.toLowerCase().includes('math') || subjectName.toLowerCase().includes('algeb'),
+      status: 'Completed',
+      points: 30,
+      color: '#00A896',
+    };
+
+    setDailyTasks((prev) => {
+      const updated = [newTask, ...prev];
+      syncStudentProgressAcrossPanels(updated, newTask);
+      return updated;
+    });
+
+    addNotification(
+      'Unit Completed & Synced 📚',
+      `${studentName} completed unit "${unitTitle}" in ${subjectName}. Progress immediately updated across Student, Teacher & Admin dashboards!`,
+      'success',
+      'student'
+    );
+  };
+
+  const recordQuizSubmission = (
+    quizId: string,
+    answers: { [qIndex: number]: number }
+  ): {
+    score: number;
+    correctCount: number;
+    totalQuestions: number;
+    certificateIssued?: DigitalCertificate;
+  } => {
+    const quiz = quizzes.find((q) => q.id === quizId);
+    if (!quiz) return { score: 0, correctCount: 0, totalQuestions: 0 };
+
+    let correctCount = 0;
+    quiz.questions.forEach((q, idx) => {
+      if (answers[idx] === q.answerIndex) {
+        correctCount++;
+      }
+    });
+
+    const totalQuestions = Math.max(1, quiz.questions.length);
+    const score = Math.round((correctCount / totalQuestions) * 100);
+    const studentName = currentUser?.name || 'Sarah Connor';
+
+    // 1. Update quiz attempts and avgScore
+    setQuizzes((prev) =>
+      prev.map((q) => {
+        if (q.id === quizId) {
+          const oldAttempts = q.attempts || 0;
+          const oldAvg = q.avgScore || score;
+          const newAvg = Math.round((oldAvg * oldAttempts + score) / (oldAttempts + 1));
+          return { ...q, attempts: oldAttempts + 1, avgScore: newAvg };
+        }
+        return q;
+      })
+    );
+
+    // 2. Update currentUser in real time
+    const isPhysics = quiz.topic.toLowerCase().includes('phys') || quiz.title.toLowerCase().includes('phys') || quiz.topic.toLowerCase().includes('kinematics');
+    const isBio = quiz.topic.toLowerCase().includes('bio') || quiz.title.toLowerCase().includes('cell');
+    const isMath = quiz.topic.toLowerCase().includes('math') || quiz.title.toLowerCase().includes('algeb');
+    const isChem = quiz.topic.toLowerCase().includes('chem') || quiz.title.toLowerCase().includes('atom') || quiz.title.toLowerCase().includes('period');
+
+    setCurrentUser((prev) => {
+      if (!prev) return prev;
+      const updated = {
+        ...prev,
+        physicsProgress: isPhysics ? Math.min(100, Math.max(prev.physicsProgress ?? 75, score)) : prev.physicsProgress,
+        biologyProgress: isBio ? Math.min(100, Math.max(prev.biologyProgress ?? 80, score)) : prev.biologyProgress,
+        mathProgress: isMath ? Math.min(100, Math.max(prev.mathProgress ?? 85, score)) : prev.mathProgress,
+        chemistryProgress: isChem ? Math.min(100, Math.max(prev.chemistryProgress ?? 80, score)) : prev.chemistryProgress,
+        gpa: parseFloat(Math.min(4.0, (prev.gpa ?? 3.85) + (score >= 80 ? 0.02 : 0)).toFixed(2)),
+      };
+      try {
+        localStorage.setItem('educate_ai_current_user', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+
+    // 3. Update studentsList roster for real-time visibility in Teacher & Admin panels
+    setStudentsList((prev) =>
+      prev.map((s) => {
+        if (s.id === 'stu-1' || s.name === studentName) {
+          return {
+            ...s,
+            physicsProgress: isPhysics ? Math.min(100, Math.max(s.physicsProgress, score)) : s.physicsProgress,
+            biologyProgress: isBio ? Math.min(100, Math.max(s.biologyProgress, score)) : s.biologyProgress,
+            mathProgress: isMath ? Math.min(100, Math.max(s.mathProgress, score)) : s.mathProgress,
+            chemistryProgress: isChem ? Math.min(100, Math.max(s.chemistryProgress ?? 80, score)) : s.chemistryProgress,
+            gpa: parseFloat(Math.min(4.0, s.gpa + (score >= 80 ? 0.02 : 0)).toFixed(2)),
+          };
+        }
+        return s;
+      })
+    );
+
+    // 4. Issue certificate if score >= 80
+    let cert: DigitalCertificate | undefined;
+    if (score >= 80) {
+      cert = issueCertificate(studentName, quiz.title, score);
+    }
+
+    // 5. Emit multi-panel notifications
+    addNotification(
+      'Assessment Complete 🎯',
+      `${studentName} completed "${quiz.title}" scoring ${score}% (${correctCount}/${totalQuestions}). Updated in Teacher class roster and Admin analytics in real time!`,
+      score >= 70 ? 'success' : 'info',
+      'student'
+    );
+
+    return { score, correctCount, totalQuestions, certificateIssued: cert };
   };
 
   const [weeklySprints] = useState<WeeklySprintAllocation[]>([
@@ -1760,93 +2100,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     },
   ]);
 
-  // Students roster
-  const [studentsList] = useState<StudentProfile[]>([
-    {
-      id: 'stu-1',
-      name: 'Sarah Connor',
-      email: 'sarah.c@educateai.org',
-      grade: '8th Grade',
-      gpa: 3.85,
-      attendance: 98,
-      enrolledSubjects: ['Physics', 'Biology', 'Algebra', 'English Literature'],
-      physicsProgress: 75,
-      biologyProgress: 88,
-      mathProgress: 92,
-      riskScore: 'Low',
-      activeProctorStatus: 'Clear',
-    },
-    {
-      id: 'stu-2',
-      name: 'Alex Rivera',
-      email: 'alex.r@educateai.org',
-      grade: '7th Grade',
-      gpa: 3.2,
-      attendance: 91,
-      enrolledSubjects: ['Science 7B', 'Pre-Algebra', 'World History'],
-      physicsProgress: 52,
-      biologyProgress: 64,
-      mathProgress: 70,
-      riskScore: 'High',
-      activeProctorStatus: 'Head Rotation',
-    },
-    {
-      id: 'stu-3',
-      name: 'Liam Chen',
-      email: 'liam.c@educateai.org',
-      grade: '8th Grade',
-      gpa: 3.95,
-      attendance: 100,
-      enrolledSubjects: ['Physics', 'Honors Chemistry', 'Calculus'],
-      physicsProgress: 94,
-      biologyProgress: 96,
-      mathProgress: 98,
-      riskScore: 'Low',
-      activeProctorStatus: 'Clear',
-    },
-    {
-      id: 'stu-4',
-      name: 'Carlos Mendez',
-      email: 'carlos.m@educateai.org',
-      grade: '7th Grade',
-      gpa: 3.5,
-      attendance: 94,
-      enrolledSubjects: ['Science 7B', 'Algebra', 'Art'],
-      physicsProgress: 72,
-      biologyProgress: 76,
-      mathProgress: 81,
-      riskScore: 'Low',
-      activeProctorStatus: 'Clear',
-    },
-    {
-      id: 'stu-5',
-      name: 'Zoe Washington',
-      email: 'zoe.w@educateai.org',
-      grade: '8th Grade',
-      gpa: 3.65,
-      attendance: 95,
-      enrolledSubjects: ['Physics', 'Biology', 'Geometry'],
-      physicsProgress: 68,
-      biologyProgress: 80,
-      mathProgress: 85,
-      riskScore: 'Medium',
-      activeProctorStatus: 'Head Rotation',
-    },
-    {
-      id: 'stu-6',
-      name: 'Daniel Vance',
-      email: 'daniel.v@educateai.org',
-      grade: '8th Grade',
-      gpa: 3.1,
-      attendance: 86,
-      enrolledSubjects: ['Physics', 'General Science', 'World History'],
-      physicsProgress: 45,
-      biologyProgress: 58,
-      mathProgress: 63,
-      riskScore: 'High',
-      activeProctorStatus: 'Multiple Faces Detected',
-    },
-  ]);
+  // Students roster state is defined at top of component for real-time cross-panel synchronization
 
   // Teachers roster
   const [teachersList] = useState<TeacherProfile[]>([
@@ -2300,6 +2554,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         resolveDoubt,
         lessonPlans,
         quizzes,
+        setQuizzes,
+        recordQuizSubmission,
+        completeCurriculumUnit,
+        syncStudentProgressAcrossPanels,
         aiSuggestions,
         isDraftingPlan,
         isDraftingQuiz,
@@ -2316,6 +2574,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         triggerAnomaly,
         resolveAnomaly,
         studentsList,
+        setStudentsList,
         teachersList,
         certificates,
         issueCertificate,
@@ -2346,6 +2605,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         dailyTasks,
         setDailyTasks,
         updateStudyTask,
+        addStudyTask,
+        deleteStudyTask,
         weeklySprints,
         masterChapters,
         generateStudyPlan,

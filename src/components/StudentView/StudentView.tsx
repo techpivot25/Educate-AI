@@ -135,6 +135,9 @@ export const StudentView: React.FC = () => {
     activeBroadcastQuiz,
     setActiveBroadcastQuiz,
     setEcosystemOverviewMode,
+    recordQuizSubmission,
+    completeCurriculumUnit,
+    addNotification,
   } = useApp();
 
   // Mobile sidebar state
@@ -173,6 +176,16 @@ export const StudentView: React.FC = () => {
   const [activeQuizId, setActiveQuizId] = useState<string | null>(null);
   const [selectedAnswers, setSelectedAnswers] = useState<{ [qIndex: number]: number }>({});
   const [quizSubmitted, setQuizSubmitted] = useState(false);
+  const [quizResult, setQuizResult] = useState<{
+    score: number;
+    correctCount: number;
+    totalQuestions: number;
+    certificateIssued?: DigitalCertificate;
+  } | null>(null);
+
+  // Interactive Grade Review & Certificate Modal State
+  const [activeCertModal, setActiveCertModal] = useState<DigitalCertificate | null>(null);
+  const [gradeReviewMessage, setGradeReviewMessage] = useState<string | null>(null);
 
   // Ask AI Tutor Voice Input & Homework Photo States
   const [isVoiceRecording, setIsVoiceRecording] = useState(false);
@@ -366,9 +379,9 @@ export const StudentView: React.FC = () => {
                 <p className="text-xs font-normal text-white truncate group-hover:text-[#00A896] transition-colors">
                   {currentUser?.name || 'Sarah Connor'}
                 </p>
-                <Edit3 className="w-3.5 h-3.5 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                <Edit3 className="w-3.5 h-3.5 text-slate-300 group-hover:text-white opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
               </div>
-              <p className="text-[11px] text-slate-300 font-light truncate mt-0.5">
+              <p className="text-[11px] text-white/90 font-light truncate mt-0.5">
                 Grade {studentGradeLevel} &bull; {currentBoard}
               </p>
             </div>
@@ -376,7 +389,7 @@ export const StudentView: React.FC = () => {
 
           {/* Navigation Links Menu */}
           <div className="space-y-1 pt-1">
-            <span className="px-3 text-[10px] font-normal uppercase tracking-wider text-slate-400">
+            <span className="px-3 text-[10px] font-normal uppercase tracking-wider text-white/80">
               Platform Menu
             </span>
             <nav className="space-y-1 mt-2">
@@ -392,11 +405,11 @@ export const StudentView: React.FC = () => {
                     className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-normal transition-all cursor-pointer ${
                       isActive
                         ? 'bg-[#00A896] text-white shadow-md shadow-[#00A896]/20'
-                        : 'text-slate-300 hover:text-white hover:bg-white/10'
+                        : 'text-white/90 hover:text-white hover:bg-white/10'
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <span className={`${isActive ? 'text-white' : 'text-slate-400'}`}>
+                      <span className={`${isActive ? 'text-white' : 'text-white/80'}`}>
                         {tab.icon}
                       </span>
                       <span className="font-normal">{tab.label}</span>
@@ -446,7 +459,7 @@ export const StudentView: React.FC = () => {
           <div className="flex items-center justify-between pt-1 text-xs">
             <button
               onClick={() => setIsProfileOpen(true)}
-              className="flex items-center gap-1.5 text-slate-300 hover:text-white transition-colors cursor-pointer font-normal"
+              className="flex items-center gap-1.5 text-white/90 hover:text-white transition-colors cursor-pointer font-normal"
             >
               <UserIcon className="w-3.5 h-3.5 text-[#00A896]" />
               <span>My Account</span>
@@ -454,10 +467,10 @@ export const StudentView: React.FC = () => {
 
             <button
               onClick={toggleTheme}
-              className="p-1.5 rounded-lg bg-[#132A4C] hover:bg-[#1C3A66] text-slate-300 hover:text-white transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg bg-[#132A4C] hover:bg-[#1C3A66] text-white/90 hover:text-white transition-colors cursor-pointer"
               title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} mode`}
             >
-              {theme === 'dark' ? <Sun className="w-3.5 h-3.5 text-amber-400" /> : <Moon className="w-3.5 h-3.5" />}
+              {theme === 'dark' ? <Sun className="w-3.5 h-3.5 text-amber-400" /> : <Moon className="w-3.5 h-3.5 text-white" />}
             </button>
 
             {currentUser?.role === 'admin' ? (
@@ -471,7 +484,7 @@ export const StudentView: React.FC = () => {
             ) : (
               <button
                 onClick={logout}
-                className="flex items-center gap-1 text-slate-400 hover:text-rose-400 transition-colors cursor-pointer"
+                className="flex items-center gap-1 text-white/80 hover:text-rose-400 transition-colors cursor-pointer"
                 title="Sign Out"
               >
                 <LogOut className="w-3.5 h-3.5" />
@@ -492,7 +505,7 @@ export const StudentView: React.FC = () => {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setMobileSidebarOpen(true)}
-                className="lg:hidden p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                className="lg:hidden p-2 rounded-xl text-slate-600 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                 aria-label="Open Navigation"
               >
                 <Menu className="w-5 h-5 stroke-[2.2]" />
@@ -512,7 +525,7 @@ export const StudentView: React.FC = () => {
                     {studentNav === 'settings' && 'Student Account Preferences'}
                   </span>
                 </h2>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 hidden sm:block">
+                <p className="text-[11px] text-slate-500 dark:text-white hidden sm:block">
                   CBSE/ICSE/State Board Compliant &bull; Grade {studentGradeLevel} &bull; Socratic Mastery
                 </p>
               </div>
@@ -526,7 +539,7 @@ export const StudentView: React.FC = () => {
               {/* Offline Study Pack (Low-Bandwidth Mode & Offline Saver) */}
               <button
                 onClick={() => setIsOfflineModalOpen(true)}
-                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-normal text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700/80 shadow-2xs transition-all cursor-pointer"
+                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-normal text-slate-700 dark:text-white border border-slate-200 dark:border-slate-700/80 shadow-2xs transition-all cursor-pointer"
                 title="Save Agile Study Plan & AI Summaries for Offline Viewing / Low-Bandwidth Mode"
               >
                 <Download className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
@@ -536,7 +549,7 @@ export const StudentView: React.FC = () => {
               {/* Parental Weekly Digest (Completed vs Planned Hours Sunday Email) */}
               <button
                 onClick={() => setIsParentDigestOpen(true)}
-                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-normal text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700/80 shadow-2xs transition-all cursor-pointer"
+                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-normal text-slate-700 dark:text-white border border-slate-200 dark:border-slate-700/80 shadow-2xs transition-all cursor-pointer"
                 title="Parental Weekly Digest: Completed sprint hours vs planned hours summary"
               >
                 <Mail className="w-3.5 h-3.5 text-amber-500" />
@@ -544,7 +557,7 @@ export const StudentView: React.FC = () => {
               </button>
 
               {/* Quick Board Selector Badge */}
-              <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 text-xs font-normal text-slate-800 dark:text-slate-200 shadow-2xs">
+              <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 text-xs font-normal text-slate-800 dark:text-white shadow-2xs">
                 <Globe className="w-3.5 h-3.5 text-[#00A896]" />
                 <span>{currentBoard}</span>
               </div>
@@ -555,15 +568,15 @@ export const StudentView: React.FC = () => {
               </div>
 
               {/* Date pill */}
-              <div className="hidden xl:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 text-xs font-normal text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700/80">
-                <Calendar className="w-3.5 h-3.5 text-slate-400" />
+              <div className="hidden xl:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 text-xs font-normal text-slate-600 dark:text-white border border-slate-200 dark:border-slate-700/80">
+                <Calendar className="w-3.5 h-3.5 text-slate-400 dark:text-white" />
                 <span>{currentDateStr}</span>
               </div>
 
               {/* Workflow & Ecosystem Map Button */}
               <button
                 onClick={() => setEcosystemOverviewMode(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-normal text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700/80 shadow-2xs transition-all cursor-pointer"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-normal text-slate-700 dark:text-white border border-slate-200 dark:border-slate-700/80 shadow-2xs transition-all cursor-pointer"
                 title="View 3-Panel Connected Workflow & Data Flow"
               >
                 <Layers className="w-3.5 h-3.5 text-[#00A896]" />
@@ -684,13 +697,13 @@ export const StudentView: React.FC = () => {
               <div className="lg:col-span-4 space-y-6">
                 {/* CARD 1: GRADE & BOARD FILTERS */}
                 <div className="bg-white dark:bg-[#0E1A2D] rounded-2xl p-5 border border-slate-200/90 dark:border-slate-800/80 shadow-xs space-y-4">
-                  <h3 className="text-xs font-light uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  <h3 className="text-xs font-light uppercase tracking-wider text-slate-500 dark:text-white">
                     Grade & Board Filters
                   </h3>
 
                   {/* Grade Selector Dropdown */}
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    <label className="text-xs font-semibold text-slate-700 dark:text-white">
                       Grade Level
                     </label>
                     <div className="relative">
@@ -716,7 +729,7 @@ export const StudentView: React.FC = () => {
 
                   {/* Education Board Selector Dropdown */}
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    <label className="text-xs font-semibold text-slate-700 dark:text-white">
                       Governing Board
                     </label>
                     <div className="relative">
@@ -737,7 +750,7 @@ export const StudentView: React.FC = () => {
 
                   {/* Multilingual Medium Selector Dropdown */}
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                    <label className="text-xs font-semibold text-slate-700 dark:text-white flex items-center gap-1.5">
                       <Languages className="w-3.5 h-3.5 text-[#FF6B00]" />
                       <span>Language Medium</span>
                     </label>
@@ -757,7 +770,7 @@ export const StudentView: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="pt-1 flex items-center justify-between text-[11px] text-slate-500">
+                  <div className="pt-1 flex items-center justify-between text-[11px] text-slate-500 dark:text-white">
                     <span className="flex items-center gap-1">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                       <span>Vector RAG Synced</span>
@@ -782,7 +795,7 @@ export const StudentView: React.FC = () => {
                         <h3 className="text-sm font-light text-slate-900 dark:text-white leading-tight">
                           Quick Doubts AI
                         </h3>
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                        <p className="text-[11px] text-slate-500 dark:text-white">
                           Ask questions on the fly
                         </p>
                       </div>
@@ -794,9 +807,9 @@ export const StudentView: React.FC = () => {
                   </div>
 
                   {/* Socratic Assistant Greeting Bubble */}
-                  <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/60 text-xs leading-relaxed text-slate-700 dark:text-slate-300">
+                  <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/60 text-xs leading-relaxed text-slate-700 dark:text-white">
                     <div className="flex items-center gap-2 mb-1 text-[11px] font-bold text-[#FF6B00]">
-                      <Sparkles className="w-3 h-3" />
+                      <Sparkles className="w-3.5 h-3.5" />
                       <span>AI Tutor Assistant</span>
                     </div>
                     "Hi! Stuck on a concept or formula in your study plan? Type it below and I'll break it down step-by-step!"
@@ -823,7 +836,7 @@ export const StudentView: React.FC = () => {
                   {/* Recent Resolved Doubts snippet */}
                   <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-2">
                     <div className="flex items-center justify-between text-[11px]">
-                      <span className="font-bold text-slate-500 uppercase tracking-wider">
+                      <span className="font-bold text-slate-500 dark:text-white uppercase tracking-wider">
                         Recent Activity
                       </span>
                       <span className="text-[#FF6B00] font-bold">
@@ -836,13 +849,13 @@ export const StudentView: React.FC = () => {
                         className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800 text-[11px] space-y-0.5"
                       >
                         <div className="flex items-center justify-between gap-2">
-                          <span className="font-bold text-slate-800 dark:text-slate-200 truncate">{d.question}</span>
+                          <span className="font-bold text-slate-800 dark:text-slate-100 truncate">{d.question}</span>
                           <span className="text-[9px] px-1.5 py-0.2 rounded-full font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400">
                             {d.status}
                           </span>
                         </div>
                         {d.solution && (
-                          <p className="text-slate-500 line-clamp-1 text-[10px]">{d.solution}</p>
+                          <p className="text-slate-500 dark:text-white line-clamp-1 text-[10px]">{d.solution}</p>
                         )}
                       </div>
                     ))}
@@ -852,7 +865,7 @@ export const StudentView: React.FC = () => {
                 {/* CARD 3: STUDY SPRINT GOALS (Student Momentum) */}
                 <div className="bg-white dark:bg-[#0E1A2D] rounded-2xl p-5 border border-slate-200/90 dark:border-slate-800/80 shadow-xs space-y-3">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-xs font-light uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                    <h3 className="text-xs font-light uppercase tracking-wider text-slate-500 dark:text-white flex items-center gap-1.5">
                       <Flame className="w-4 h-4 text-[#FF6B00]" />
                       <span>Study Momentum</span>
                     </h3>
@@ -862,14 +875,14 @@ export const StudentView: React.FC = () => {
                   </div>
 
                   <div className="space-y-2 text-xs">
-                    <div className="flex items-center justify-between text-slate-600 dark:text-slate-300">
+                    <div className="flex items-center justify-between text-slate-600 dark:text-white">
                       <span>Weekly Core Math:</span>
                       <span className="font-bold text-slate-900 dark:text-white">10.5 / 10.5 hrs</span>
                     </div>
                     <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
                       <div className="bg-gradient-to-r from-[#FF6B00] to-[#FFA04D] h-full rounded-full w-4/5" />
                     </div>
-                    <div className="flex items-center gap-1.5 text-[11px] text-slate-500 pt-1">
+                    <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-white pt-1">
                       <Target className="w-3.5 h-3.5 text-[#FF6B00]" />
                       <span>Next Milestone: Quadratic Formula Drills</span>
                     </div>
@@ -892,9 +905,15 @@ export const StudentView: React.FC = () => {
             <div className="space-y-6">
               <div className="bg-white dark:bg-[#0E1A2D] rounded-2xl p-6 border border-slate-200/90 dark:border-slate-800/80 shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                  <h2 className="text-2xl font-light text-slate-900 dark:text-white tracking-wide">Skills Passport & Subject Units</h2>
-                  <p className="text-xs sm:text-sm text-slate-500 mt-1">
-                    Auto-aligned to Grade {studentGradeLevel} &bull; {currentBoard} Governing Curriculum
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-2xl font-light text-slate-900 dark:text-white tracking-wide">Skills Passport & Subject Units</h2>
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+                      <span>Live Synced</span>
+                    </span>
+                  </div>
+                  <p className="text-xs sm:text-sm text-slate-500 dark:text-white mt-1">
+                    Auto-aligned to Grade {studentGradeLevel} &bull; {currentBoard} Governing Curriculum &bull; Real-time sync with Teacher & Admin panels
                   </p>
                 </div>
                 <button
@@ -906,52 +925,135 @@ export const StudentView: React.FC = () => {
                 </button>
               </div>
 
+              {/* Informational banner */}
+              <div className="p-3.5 rounded-xl bg-teal-50 dark:bg-[#0B2528] border border-teal-200/80 dark:border-teal-800/60 flex items-center justify-between gap-3 text-xs">
+                <div className="flex items-center gap-2 text-teal-800 dark:text-teal-200">
+                  <Zap className="w-4 h-4 text-[#00A896] shrink-0" />
+                  <span>Completing any unit below immediately records a finished task on your Agile Roadmap, updates your progress bar, and broadcasts to your Teacher's class roster without page refresh.</span>
+                </div>
+                <span className="font-bold text-[#00A896] shrink-0">Live Active</span>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {displaySubjects.map((sub) => {
                   const topicsForSub = topicsDB.filter((t) => t.subject_id === sub.id && t.status === 'ACTIVE');
+                  
+                  // Compute live mastery percentage for this subject
+                  const normSubName = sub.name.toLowerCase();
+                  let subProgress = 75;
+                  if (normSubName.includes('math') || normSubName.includes('algeb')) {
+                    subProgress = currentUser?.mathProgress ?? 92;
+                  } else if (normSubName.includes('phys')) {
+                    subProgress = currentUser?.physicsProgress ?? 75;
+                  } else if (normSubName.includes('bio')) {
+                    subProgress = currentUser?.biologyProgress ?? 88;
+                  } else if (normSubName.includes('chem')) {
+                    subProgress = 82;
+                  } else if (normSubName.includes('hist') || normSubName.includes('civic')) {
+                    subProgress = 78;
+                  } else if (normSubName.includes('eng') || normSubName.includes('lit')) {
+                    subProgress = 85;
+                  }
+
+                  const matchingTasks = dailyTasks.filter((t) =>
+                    (t.subject || '').toLowerCase().includes(normSubName) || normSubName.includes((t.subject || '').toLowerCase())
+                  );
+                  const completedTasksCount = matchingTasks.filter((t) => t.status === 'Completed').length;
+
                   return (
                     <div
                       key={sub.id}
-                      className="bg-white dark:bg-[#0E1A2D] rounded-2xl p-5 border border-slate-200/90 dark:border-slate-800/80 shadow-xs hover:shadow-md transition-all space-y-4"
+                      className="bg-white dark:bg-[#0E1A2D] rounded-2xl p-5 border border-slate-200/90 dark:border-slate-800/80 shadow-xs hover:shadow-md transition-all space-y-4 flex flex-col justify-between"
                     >
-                      <div className="flex items-start justify-between">
-                        <div className="w-10 h-10 rounded-xl bg-orange-50 dark:bg-orange-950/80 text-[#FF6B00] flex items-center justify-center font-bold text-lg">
-                          {sub.name.charAt(0)}
-                        </div>
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                          {sub.code || `GR-${sub.grade_level}`}
-                        </span>
-                      </div>
-
                       <div>
-                        <h3 className="font-light text-base text-slate-900 dark:text-white">{sub.name}</h3>
-                        <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{sub.description}</p>
-                      </div>
+                        <div className="flex items-start justify-between">
+                          <div className="w-10 h-10 rounded-xl bg-orange-50 dark:bg-orange-950/80 text-[#FF6B00] flex items-center justify-center font-bold text-lg">
+                            {sub.name.charAt(0)}
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-white">
+                              {sub.code || `GR-${sub.grade_level}`}
+                            </span>
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-50 dark:bg-teal-950 text-[#00A896]">
+                              {subProgress}%
+                            </span>
+                          </div>
+                        </div>
 
-                      <div className="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                          Active Units ({topicsForSub.length}):
-                        </span>
-                        <div className="space-y-1">
-                          {topicsForSub.slice(0, 3).map((top) => (
-                            <div key={top.id} className="text-xs text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                              <span className="w-1.5 h-1.5 rounded-full bg-[#FF6B00]" />
-                              <span className="truncate">{top.title}</span>
-                            </div>
-                          ))}
+                        <div className="mt-2">
+                          <h3 className="font-light text-base text-slate-900 dark:text-white">{sub.name}</h3>
+                          <p className="text-xs text-slate-500 dark:text-white mt-0.5 line-clamp-2">{sub.description}</p>
+                        </div>
+
+                        {/* Progress Bar */}
+                        <div className="mt-3 space-y-1">
+                          <div className="flex items-center justify-between text-[11px]">
+                            <span className="text-slate-500 dark:text-white">Syllabus Mastery:</span>
+                            <span className="font-bold text-[#00A896]">{subProgress}%</span>
+                          </div>
+                          <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                            <div
+                              className="bg-[#00A896] h-full rounded-full transition-all duration-500"
+                              style={{ width: `${subProgress}%` }}
+                            />
+                          </div>
+                          <div className="text-[10px] text-slate-400 dark:text-white text-right">
+                            {completedTasksCount} Agile Tasks Completed
+                          </div>
+                        </div>
+
+                        {/* Interactive Units List */}
+                        <div className="space-y-2 pt-3 border-t border-slate-100 dark:border-slate-800 mt-3">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-white">
+                            Active Curriculum Units ({topicsForSub.length}):
+                          </span>
+                          <div className="space-y-1.5">
+                            {topicsForSub.slice(0, 3).map((top) => (
+                              <div
+                                key={top.id}
+                                className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700/60 flex items-center justify-between gap-2 text-xs"
+                              >
+                                <div className="flex items-center gap-1.5 truncate">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-[#FF6B00] shrink-0" />
+                                  <span className="truncate text-slate-700 dark:text-white font-medium">{top.title}</span>
+                                </div>
+                                <button
+                                  onClick={() => completeCurriculumUnit(sub.name, top.title)}
+                                  className="px-2 py-0.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 text-[10px] font-bold border border-emerald-200 dark:border-emerald-800 shrink-0 cursor-pointer transition-colors"
+                                  title="Mark unit completed and sync to Teacher/Admin in real time"
+                                >
+                                  ✓ Complete
+                                </button>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       </div>
 
-                      <div className="pt-2">
+                      {/* Action buttons */}
+                      <div className="pt-3 grid grid-cols-2 gap-2">
+                        <button
+                          onClick={() => {
+                            setStudentNav('practice');
+                            const matchedQuiz = quizzes.find((q) =>
+                              q.topic.toLowerCase().includes(normSubName) || q.title.toLowerCase().includes(normSubName)
+                            );
+                            if (matchedQuiz) setActiveQuizId(matchedQuiz.id);
+                          }}
+                          className="py-2 rounded-xl bg-teal-50 hover:bg-teal-100 dark:bg-teal-950/60 dark:hover:bg-teal-900/60 text-[#00A896] text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer"
+                        >
+                          <FileQuestion className="w-3.5 h-3.5" />
+                          <span>Practice Quiz</span>
+                        </button>
                         <button
                           onClick={() => {
                             setStudentNav('ai-tutor');
                             sendTutorMessage(`Let's start tutoring on ${sub.name} - ${topicsForSub[0]?.title || 'Core Syllabus'}.`);
                           }}
-                          className="w-full py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-[#FF6B00] hover:text-white text-slate-700 dark:text-slate-200 text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer"
+                          className="py-2 rounded-xl bg-orange-50 hover:bg-[#FF6B00] hover:text-white dark:bg-orange-950/60 text-[#FF6B00] text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer"
                         >
                           <Sparkles className="w-3.5 h-3.5" />
-                          <span>Launch AI Tutor Drill</span>
+                          <span>Launch AI Drill</span>
                         </button>
                       </div>
                     </div>
@@ -964,29 +1066,145 @@ export const StudentView: React.FC = () => {
           {/* TAB 4: GRADES & MASTERY */}
           {studentNav === 'grades' && (
             <div className="space-y-6">
-              <div className="bg-white dark:bg-[#0E1A2D] rounded-2xl p-6 border border-slate-200/90 dark:border-slate-800/80 shadow-xs">
-                <h2 className="text-2xl font-light text-slate-900 dark:text-white tracking-wide">Academic Performance & Mastery KPIs</h2>
-                <p className="text-xs sm:text-sm text-slate-500 mt-1">
-                  Cumulative GPA: 3.82 / 4.0 &bull; Board Compliance: 98% &bull; Grade {studentGradeLevel}
-                </p>
+              <div className="bg-white dark:bg-[#0E1A2D] rounded-2xl p-6 border border-slate-200/90 dark:border-slate-800/80 shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-2xl font-light text-slate-900 dark:text-white tracking-wide">Academic Performance & Mastery KPIs</h2>
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                      Real-Time Computed
+                    </span>
+                  </div>
+                  <p className="text-xs sm:text-sm text-slate-500 dark:text-white mt-1">
+                    Cumulative GPA: {currentUser?.gpa ?? 3.85} / 4.0 &bull; Board Compliance: 98% &bull; Grade {studentGradeLevel}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      addNotification(
+                        'Faculty Grade Review Requested 📋',
+                        `${currentUser?.name || 'Sarah Connor'} requested faculty grade review on Core STEM modules. Teacher notified in real time!`,
+                        'info',
+                        'student'
+                      );
+                      setGradeReviewMessage('Faculty review requested! Your instructor has received this in their Educator Portal.');
+                      setTimeout(() => setGradeReviewMessage(null), 4000);
+                    }}
+                    className="px-4 py-2 rounded-xl bg-[#00A896] hover:bg-[#009282] text-white text-xs font-bold shadow-sm transition-all cursor-pointer flex items-center gap-1.5"
+                  >
+                    <CheckCheck className="w-4 h-4" />
+                    <span>Request Faculty Review</span>
+                  </button>
+                </div>
               </div>
 
+              {gradeReviewMessage && (
+                <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/70 border border-emerald-200 dark:border-emerald-800 text-xs font-bold text-emerald-800 dark:text-emerald-300 animate-in fade-in flex items-center justify-between">
+                  <span>✓ {gradeReviewMessage}</span>
+                  <button onClick={() => setGradeReviewMessage(null)} className="text-xs opacity-70 hover:opacity-100">✕</button>
+                </div>
+              )}
+
+              {/* Dynamic KPI Scorecards */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <div className="bg-white dark:bg-[#0E1A2D] p-5 rounded-2xl border border-slate-200/90 dark:border-slate-800/80 text-center shadow-xs">
-                  <div className="text-3xl font-black text-[#FF6B00]">88%</div>
-                  <div className="text-xs font-bold text-slate-500 mt-1">Overall Mastery</div>
+                  <div className="text-3xl font-black text-[#FF6B00]">{currentUser?.overallProgress ?? 88}%</div>
+                  <div className="text-xs font-bold text-slate-500 dark:text-white mt-1">Overall Mastery</div>
+                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold block mt-0.5">Top 5% Cohort</span>
                 </div>
                 <div className="bg-white dark:bg-[#0E1A2D] p-5 rounded-2xl border border-slate-200/90 dark:border-slate-800/80 text-center shadow-xs">
-                  <div className="text-3xl font-black text-[#0B1E38] dark:text-[#7DA0FA]">85%</div>
-                  <div className="text-xs font-bold text-slate-500 mt-1">Physics Ch. 2</div>
+                  <div className="text-3xl font-black text-[#00A896]">{currentUser?.physicsProgress ?? 75}%</div>
+                  <div className="text-xs font-bold text-slate-500 dark:text-white mt-1">Physics Progress</div>
+                  <span className="text-[10px] text-teal-600 dark:text-teal-400 font-bold block mt-0.5">Kinematics & Dynamics</span>
                 </div>
                 <div className="bg-white dark:bg-[#0E1A2D] p-5 rounded-2xl border border-slate-200/90 dark:border-slate-800/80 text-center shadow-xs">
-                  <div className="text-3xl font-black text-emerald-600">95%</div>
-                  <div className="text-xs font-bold text-slate-500 mt-1">Algebra I (Core)</div>
+                  <div className="text-3xl font-black text-indigo-600 dark:text-indigo-400">{currentUser?.mathProgress ?? 92}%</div>
+                  <div className="text-xs font-bold text-slate-500 dark:text-white mt-1">Algebra I (Core)</div>
+                  <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-bold block mt-0.5">Quadratic Equations</span>
                 </div>
                 <div className="bg-white dark:bg-[#0E1A2D] p-5 rounded-2xl border border-slate-200/90 dark:border-slate-800/80 text-center shadow-xs">
-                  <div className="text-3xl font-black text-amber-500">98%</div>
-                  <div className="text-xs font-bold text-slate-500 mt-1">Attendance</div>
+                  <div className="text-3xl font-black text-amber-500">{currentUser?.attendance ?? 98}%</div>
+                  <div className="text-xs font-bold text-slate-500 dark:text-white mt-1">Attendance</div>
+                  <span className="text-[10px] text-amber-600 dark:text-amber-400 font-bold block mt-0.5">Exam Eligible</span>
+                </div>
+              </div>
+
+              {/* Comprehensive Grade Book & Continuous Assessment Table */}
+              <div className="bg-white dark:bg-[#0E1A2D] rounded-2xl p-6 border border-slate-200/90 dark:border-slate-800/80 shadow-xs space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-light text-base text-slate-900 dark:text-white">Subject Mastery & Continuous Evaluation Ledger</h3>
+                    <p className="text-xs text-slate-500 dark:text-white">Dynamically updated through Agile Sprint story points, daily tasks, and quiz assessments</p>
+                  </div>
+                  <span className="text-xs font-bold text-[#00A896]">Term 1 (2026–2027)</span>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs font-normal">
+                    <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-600 dark:text-white uppercase font-bold border-b border-slate-200 dark:border-slate-700">
+                      <tr>
+                        <th className="p-3">Course / Discipline</th>
+                        <th className="p-3">Curriculum Units</th>
+                        <th className="p-3">Agile Sprints</th>
+                        <th className="p-3">Mastery Level</th>
+                        <th className="p-3">Letter Grade</th>
+                        <th className="p-3">Status</th>
+                        <th className="p-3">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                      {[
+                        { name: 'Algebra I (Core Mathematics)', code: 'MTH-101', progress: currentUser?.mathProgress ?? 92, grade: 'A+', status: 'Mastered' },
+                        { name: 'Physics II (Mechanics & Vectors)', code: 'PHY-201', progress: currentUser?.physicsProgress ?? 75, grade: 'A', status: 'On Track' },
+                        { name: 'Biology (Cell Structure & Respiration)', code: 'BIO-201', progress: currentUser?.biologyProgress ?? 88, grade: 'A', status: 'On Track' },
+                        { name: 'Chemistry (Atomic Chart & Bonding)', code: 'CHM-101', progress: 84, grade: 'A', status: 'On Track' },
+                        { name: 'World History (Global Networks)', code: 'HIS-101', progress: 79, grade: 'B+', status: 'Revision Needed' },
+                        { name: 'English Literature (Persuasive Rhetoric)', code: 'ENG-201', progress: 86, grade: 'A', status: 'On Track' },
+                      ].map((item, idx) => (
+                        <tr key={idx} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors">
+                          <td className="p-3 font-bold text-slate-900 dark:text-white">
+                            <div>{item.name}</div>
+                            <span className="text-[10px] font-normal text-slate-400 dark:text-white/80">{item.code}</span>
+                          </td>
+                          <td className="p-3 text-slate-600 dark:text-white">4 / 5 Units</td>
+                          <td className="p-3 text-slate-600 dark:text-white">Sprint 2 Active</td>
+                          <td className="p-3">
+                            <div className="w-28 bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                              <div
+                                className="bg-[#00A896] h-full rounded-full"
+                                style={{ width: `${item.progress}%` }}
+                              />
+                            </div>
+                            <span className="text-[10px] font-bold text-[#00A896] mt-0.5 block">{item.progress}%</span>
+                          </td>
+                          <td className="p-3 font-black text-slate-900 dark:text-white">{item.grade}</td>
+                          <td className="p-3">
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                              item.status === 'Mastered'
+                                ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'
+                                : item.status === 'On Track'
+                                ? 'bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-400 border border-teal-200 dark:border-teal-800'
+                                : 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800'
+                            }`}>
+                              {item.status}
+                            </span>
+                          </td>
+                          <td className="p-3">
+                            <button
+                              onClick={() => {
+                                setStudentNav('practice');
+                                const q = quizzes.find((quiz) => quiz.title.toLowerCase().includes(item.code.toLowerCase().slice(0, 3)));
+                                if (q) setActiveQuizId(q.id);
+                              }}
+                              className="px-2.5 py-1 rounded-lg bg-orange-50 hover:bg-[#FF6B00] hover:text-white dark:bg-orange-950/60 text-[#FF6B00] text-[10px] font-bold transition-colors cursor-pointer"
+                            >
+                              Launch Drill
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
 
@@ -996,7 +1214,7 @@ export const StudentView: React.FC = () => {
                   <Sparkles className="w-4 h-4" />
                   <span>AI Targeted Remedial Opportunity</span>
                 </div>
-                <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
+                <p className="text-xs text-slate-700 dark:text-white leading-relaxed">
                   Review flagged doubt: <strong>Action-Reaction pairs on isolated systems (Newton's 3rd Law)</strong>. Recommend completing 3 rapid practice assessments.
                 </p>
                 <button
@@ -1017,9 +1235,14 @@ export const StudentView: React.FC = () => {
             <div className="space-y-6">
               <div className="bg-white dark:bg-[#0E1A2D] rounded-2xl p-6 border border-slate-200/90 dark:border-slate-800/80 shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                  <h2 className="text-2xl font-light text-slate-900 dark:text-white tracking-wide">Interactive Practice Quizzes</h2>
-                  <p className="text-xs sm:text-sm text-slate-500 mt-1">
-                    Reinforce concepts with board-compliant MCQs & instant feedback
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-2xl font-light text-slate-900 dark:text-white tracking-wide">Interactive Practice Quizzes</h2>
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                      Real-Time Sync Active
+                    </span>
+                  </div>
+                  <p className="text-xs sm:text-sm text-slate-500 dark:text-white mt-1">
+                    Reinforce concepts with board-compliant MCQs & instant feedback • Score &gt;=80% automatically earns verified credentials
                   </p>
                 </div>
                 <span className="px-3 py-1 rounded-full text-xs font-bold bg-orange-50 dark:bg-orange-950/60 text-[#FF6B00] border border-orange-200 dark:border-orange-800/60">
@@ -1036,6 +1259,7 @@ export const StudentView: React.FC = () => {
                       setActiveQuizId(quiz.id);
                       setSelectedAnswers({});
                       setQuizSubmitted(false);
+                      setQuizResult(null);
                     }}
                     className={`p-5 rounded-2xl border transition-all cursor-pointer ${
                       activeQuizId === quiz.id
@@ -1044,7 +1268,7 @@ export const StudentView: React.FC = () => {
                     }`}
                   >
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-white">
                         {quiz.grade || `Grade ${studentGradeLevel}`}
                       </span>
                       <span className="text-xs font-bold text-[#FF6B00]">
@@ -1052,7 +1276,11 @@ export const StudentView: React.FC = () => {
                       </span>
                     </div>
                     <h3 className="font-light text-slate-900 dark:text-white text-base">{quiz.title}</h3>
-                    <p className="text-xs text-slate-500 mt-1">{quiz.topic}</p>
+                    <p className="text-xs text-slate-500 dark:text-white mt-1">{quiz.topic}</p>
+                    <div className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-400 dark:text-white/80">
+                      <span>Attempts: {quiz.attempts || 0}</span>
+                      <span>Avg: {quiz.avgScore ? `${quiz.avgScore}%` : 'Pending'}</span>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -1060,9 +1288,14 @@ export const StudentView: React.FC = () => {
               {/* Active Quiz Player */}
               {activeQuiz && (
                 <div className="bg-white dark:bg-[#0E1A2D] rounded-2xl p-6 border border-slate-200/90 dark:border-slate-800/80 shadow-xs space-y-6">
-                  <div className="border-b border-slate-100 dark:border-slate-800 pb-4">
-                    <h3 className="text-lg font-light text-slate-900 dark:text-white">{activeQuiz.title}</h3>
-                    <p className="text-xs text-slate-500">{activeQuiz.topic} &bull; Select the best answer for each question</p>
+                  <div className="border-b border-slate-100 dark:border-slate-800 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                      <h3 className="text-lg font-light text-slate-900 dark:text-white">{activeQuiz.title}</h3>
+                      <p className="text-xs text-slate-500 dark:text-white">{activeQuiz.topic} &bull; Select the best answer for each question</p>
+                    </div>
+                    <div className="text-xs font-bold text-slate-600 dark:text-white bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-xl">
+                      Answered: {Object.keys(selectedAnswers).length} / {activeQuiz.questions.length}
+                    </div>
                   </div>
 
                   <div className="space-y-6">
@@ -1086,7 +1319,7 @@ export const StudentView: React.FC = () => {
                                   className={`p-3 rounded-xl text-left text-xs font-semibold transition-all cursor-pointer border ${
                                     isOptionSelected
                                       ? 'bg-[#FF6B00] text-white border-[#FF6B00] shadow-xs'
-                                      : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
+                                      : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-white border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
                                   }`}
                                 >
                                   {String.fromCharCode(65 + optIndex)}. {opt}
@@ -1106,27 +1339,63 @@ export const StudentView: React.FC = () => {
                     })}
                   </div>
 
+                  {/* Submission and Result Bar */}
+                  {quizSubmitted && quizResult && (
+                    <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 space-y-3 animate-in fade-in">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div>
+                          <div className="text-emerald-800 dark:text-emerald-300 font-bold text-base flex items-center gap-2">
+                            <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                            <span>Assessment Score: {quizResult.score}% ({quizResult.correctCount} / {quizResult.totalQuestions} Correct)</span>
+                          </div>
+                          <p className="text-xs text-emerald-700 dark:text-emerald-400 mt-1">
+                            ⚡ Real-time synchronized: Your score has been parallelly updated in Teacher class roster and Admin audit analytics without page refresh.
+                          </p>
+                        </div>
+                        {quizResult.certificateIssued && (
+                          <button
+                            onClick={() => {
+                              setActiveCertModal(quizResult.certificateIssued || null);
+                              setStudentNav('certificates');
+                            }}
+                            className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm flex items-center gap-1.5 cursor-pointer shrink-0"
+                          >
+                            <Award className="w-4 h-4" />
+                            <span>View Issued Certificate</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-800">
                     <button
                       onClick={() => {
                         setSelectedAnswers({});
                         setQuizSubmitted(false);
+                        setQuizResult(null);
                       }}
-                      className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                      className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
                     >
-                      Reset
+                      Reset / Retake
                     </button>
 
                     {!quizSubmitted ? (
                       <button
-                        onClick={() => setQuizSubmitted(true)}
-                        className="px-5 py-2.5 rounded-xl bg-[#FF6B00] hover:bg-[#E56000] text-white text-xs font-extrabold shadow-sm shadow-orange-500/25 cursor-pointer"
+                        onClick={() => {
+                          const result = recordQuizSubmission(activeQuiz.id, selectedAnswers);
+                          setQuizSubmitted(true);
+                          setQuizResult(result);
+                        }}
+                        disabled={Object.keys(selectedAnswers).length === 0}
+                        className="px-5 py-2.5 rounded-xl bg-[#FF6B00] hover:bg-[#E56000] disabled:opacity-50 text-white text-xs font-extrabold shadow-sm shadow-orange-500/25 cursor-pointer flex items-center gap-1.5"
                       >
-                        Submit Answers
+                        <CheckCircle2 className="w-4 h-4" />
+                        <span>Submit Answers & Sync</span>
                       </button>
                     ) : (
-                      <span className="text-xs font-bold text-emerald-600">
-                        Score: {Object.entries(selectedAnswers).filter(([idx, val]) => activeQuiz.questions[Number(idx)]?.answerIndex === val).length} / {activeQuiz.questions.length} Correct
+                      <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                        Score: {quizResult ? quizResult.score : 0}% Recorded & Synced
                       </span>
                     )}
                   </div>
@@ -1148,8 +1417,8 @@ export const StudentView: React.FC = () => {
                     <h2 className="font-light text-slate-900 dark:text-white text-base">
                       Socratic AI Tutor
                     </h2>
-                    <div className="flex items-center gap-2 text-xs text-slate-500">
-                      <span className="text-emerald-600 font-semibold flex items-center gap-1">
+                    <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-white">
+                      <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                         Active
                       </span>
@@ -1161,7 +1430,7 @@ export const StudentView: React.FC = () => {
 
                 <button
                   onClick={() => sendTutorMessage('Can you summarize our key physics takeaways today?')}
-                  className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-200 transition-colors cursor-pointer"
+                  className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-white hover:bg-slate-200 transition-colors cursor-pointer"
                 >
                   Summary
                 </button>
@@ -1186,7 +1455,7 @@ export const StudentView: React.FC = () => {
                       className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-xs ${
                         msg.sender === 'student'
                           ? 'bg-[#FF6B00] text-white rounded-br-xs font-medium'
-                          : 'bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-bl-xs'
+                          : 'bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded-bl-xs'
                       }`}
                     >
                       <div className="whitespace-pre-wrap">{msg.text}</div>
@@ -1197,7 +1466,7 @@ export const StudentView: React.FC = () => {
                       )}
                       <span
                         className={`text-[10px] block mt-1 text-right ${
-                          msg.sender === 'student' ? 'text-white/70' : 'text-slate-400'
+                          msg.sender === 'student' ? 'text-white/70' : 'text-slate-400 dark:text-white'
                         }`}
                       >
                         {msg.timestamp}
@@ -1221,7 +1490,7 @@ export const StudentView: React.FC = () => {
                     <div className="w-8 h-8 rounded-xl bg-[#0B1E38] text-white flex items-center justify-center shrink-0">
                       <Sparkles className="w-4 h-4 animate-spin text-orange-400" />
                     </div>
-                    <div className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-3 rounded-2xl text-xs text-slate-500">
+                    <div className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-3 rounded-2xl text-xs text-slate-500 dark:text-white">
                       Thinking Socratically...
                     </div>
                   </div>
@@ -1236,7 +1505,7 @@ export const StudentView: React.FC = () => {
                     <img src={attachedImagePreview} alt="Problem" className="w-10 h-10 object-cover rounded-lg border" />
                     <span className="font-bold text-[#FF6B00]">Homework photo ready for step-by-step breakdown</span>
                   </div>
-                  <button onClick={() => setAttachedImagePreview(null)} className="p-1 text-slate-400 hover:text-slate-600">
+                  <button onClick={() => setAttachedImagePreview(null)} className="p-1 text-slate-400 dark:text-white hover:text-slate-600">
                     <X className="w-4 h-4" />
                   </button>
                 </div>
@@ -1246,7 +1515,7 @@ export const StudentView: React.FC = () => {
               <form onSubmit={handleSendMessage} className="p-4 border-t border-slate-200 dark:border-slate-800 flex items-center gap-2">
                 <label
                   title="Attach photo of homework problem"
-                  className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-600 dark:text-slate-300 flex items-center justify-center cursor-pointer transition-colors shrink-0"
+                  className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-600 dark:text-white flex items-center justify-center cursor-pointer transition-colors shrink-0"
                 >
                   <ImageIcon className="w-4 h-4" />
                   <input type="file" accept="image/*" onChange={handleHomeworkPhotoUpload} className="hidden" />
@@ -1257,7 +1526,7 @@ export const StudentView: React.FC = () => {
                   onClick={toggleVoiceRecording}
                   title={isVoiceRecording ? 'Stop voice recording' : 'Speak to AI Tutor'}
                   className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all cursor-pointer shrink-0 ${
-                    isVoiceRecording ? 'bg-rose-500 text-white animate-pulse' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
+                    isVoiceRecording ? 'bg-rose-500 text-white animate-pulse' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-white'
                   }`}
                 >
                   {isVoiceRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
@@ -1268,7 +1537,7 @@ export const StudentView: React.FC = () => {
                   value={inputMessage}
                   onChange={(e) => setInputMessage(e.target.value)}
                   placeholder="Ask any concept, formula, or problem..."
-                  className="flex-1 bg-slate-50 dark:bg-slate-800 text-xs sm:text-sm px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-[#FF6B00]"
+                  className="flex-1 bg-slate-50 dark:bg-slate-800 text-xs sm:text-sm px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#FF6B00]"
                 />
 
                 <button
@@ -1288,7 +1557,7 @@ export const StudentView: React.FC = () => {
               <div className="bg-white dark:bg-[#0E1A2D] rounded-2xl p-6 border border-slate-200/90 dark:border-slate-800/80 shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                   <h2 className="text-2xl font-light text-slate-900 dark:text-white tracking-wide">Digital Certificates & Badges</h2>
-                  <p className="text-xs sm:text-sm text-slate-500 mt-1">
+                  <p className="text-xs sm:text-sm text-slate-500 dark:text-white mt-1">
                     Cryptographically verified credentials awarded for curriculum mastery
                   </p>
                 </div>
@@ -1311,12 +1580,12 @@ export const StudentView: React.FC = () => {
 
                     <div>
                       <h3 className="font-light text-lg text-slate-900 dark:text-white">{cert.courseTitle}</h3>
-                      <p className="text-xs text-slate-500 mt-0.5">Recipient: {cert.studentName} &bull; Score: {cert.score}%</p>
+                      <p className="text-xs text-slate-500 dark:text-white mt-0.5">Recipient: {cert.studentName} &bull; Score: {cert.score}%</p>
                     </div>
 
-                    <div className="pt-2 border-t border-slate-100 dark:border-slate-800 text-[11px] text-slate-500 space-y-1">
+                    <div className="pt-2 border-t border-slate-100 dark:border-slate-800 text-[11px] text-slate-500 dark:text-white space-y-1">
                       <div>Issued by: {cert.instructorName} on {cert.issueDate}</div>
-                      <div className="font-mono text-[10px] text-slate-400 truncate">Hash: {cert.verificationHash}</div>
+                      <div className="font-mono text-[10px] text-slate-400 dark:text-white truncate">Hash: {cert.verificationHash}</div>
                     </div>
                   </div>
                 ))}
@@ -1330,7 +1599,7 @@ export const StudentView: React.FC = () => {
               <div className="bg-white dark:bg-[#0E1A2D] rounded-2xl p-6 border border-slate-200/90 dark:border-slate-800/80 shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                   <h2 className="text-2xl font-light text-slate-900 dark:text-white tracking-wide">Community Doubt Forum</h2>
-                  <p className="text-xs sm:text-sm text-slate-500 mt-1">
+                  <p className="text-xs sm:text-sm text-slate-500 dark:text-white mt-1">
                     Ask peers & verified teachers &bull; AI moderation active with zero-tolerance policy
                   </p>
                 </div>
@@ -1344,8 +1613,8 @@ export const StudentView: React.FC = () => {
                   >
                     <div className="flex items-start justify-between">
                       <div>
-                        <div className="flex items-center gap-2 text-xs text-slate-500">
-                          <span className="font-bold text-slate-800 dark:text-slate-200">{post.author_name}</span>
+                        <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-white">
+                          <span className="font-bold text-slate-800 dark:text-white">{post.author_name}</span>
                           <span>&bull;</span>
                           <span>{post.subject} (Grade {post.grade_level})</span>
                           <span>&bull;</span>
@@ -1356,14 +1625,14 @@ export const StudentView: React.FC = () => {
 
                       <button
                         onClick={() => upvoteCommunityPost(post.id)}
-                        className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-orange-50 hover:text-[#FF6B00] text-xs font-bold transition-colors cursor-pointer"
+                        className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-orange-50 hover:text-[#FF6B00] text-xs font-bold text-slate-700 dark:text-white transition-colors cursor-pointer"
                       >
                         <ThumbsUp className="w-3.5 h-3.5" />
                         <span>{post.upvotes}</span>
                       </button>
                     </div>
 
-                    <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">{post.content}</p>
+                    <p className="text-xs text-slate-600 dark:text-white leading-relaxed">{post.content}</p>
 
                     {post.is_verified && post.verified_solution && (
                       <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-xs space-y-1">
@@ -1386,7 +1655,7 @@ export const StudentView: React.FC = () => {
               <div className="bg-white dark:bg-[#0E1A2D] rounded-2xl p-6 border border-slate-200/90 dark:border-slate-800/80 shadow-xs flex items-center justify-between">
                 <div>
                   <h2 className="text-2xl font-light text-slate-900 dark:text-white tracking-wide">Student Account & Preferences</h2>
-                  <p className="text-xs sm:text-sm text-slate-500 mt-1">
+                  <p className="text-xs sm:text-sm text-slate-500 dark:text-white mt-1">
                     Manage profile, governing boards, language medium, and active subscription
                   </p>
                 </div>
@@ -1406,7 +1675,7 @@ export const StudentView: React.FC = () => {
                       <span className="font-extrabold text-sm text-[#FF6B00]">{subscriptionState.tier}</span>
                       <span className="text-xs font-bold text-emerald-600">Active</span>
                     </div>
-                    <p className="text-xs text-slate-600 dark:text-slate-300">
+                    <p className="text-xs text-slate-600 dark:text-white">
                       Full access trial expires on {subscriptionState.trialEndDate} ({subscriptionState.trialDaysLeft} days remaining).
                     </p>
                   </div>
@@ -1418,7 +1687,7 @@ export const StudentView: React.FC = () => {
                     <div className="font-bold text-slate-900 dark:text-white">
                       {currentUser?.school_name || 'D.A.V. Public School, Sector 8'}
                     </div>
-                    <p className="text-slate-500">
+                    <p className="text-slate-500 dark:text-white">
                       {currentUser?.school_address || 'Sector 8-C, Chandigarh, Punjab & Haryana, India'}
                     </p>
                   </div>
@@ -1442,12 +1711,12 @@ export const StudentView: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="font-light text-sm">Quick Doubts AI</h3>
-                  <p className="text-[10px] text-slate-500">Autonomous Step-by-Step Solver</p>
+                  <p className="text-[10px] text-slate-500 dark:text-white">Autonomous Step-by-Step Solver</p>
                 </div>
               </div>
               <button
                 onClick={() => setIsQuickDoubtsOpen(false)}
-                className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400"
+                className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 dark:text-white"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1455,11 +1724,11 @@ export const StudentView: React.FC = () => {
 
             <form onSubmit={handleQuickDoubtSubmit} className="space-y-3">
               <div className="space-y-1">
-                <label className="text-[11px] font-bold text-slate-600 dark:text-slate-300">Subject</label>
+                <label className="text-[11px] font-bold text-slate-600 dark:text-white">Subject</label>
                 <select
                   value={quickDoubtSubject}
                   onChange={(e) => setQuickDoubtSubject(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-800 text-xs font-bold rounded-xl px-3 py-2 border border-slate-200 dark:border-slate-700"
+                  className="w-full bg-slate-50 dark:bg-slate-800 text-xs font-bold rounded-xl px-3 py-2 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
                 >
                   {displaySubjects.map((s) => (
                     <option key={s.id} value={s.name}>
@@ -1474,11 +1743,11 @@ export const StudentView: React.FC = () => {
                 value={quickDoubtText}
                 onChange={(e) => setQuickDoubtText(e.target.value)}
                 placeholder="Type your question or copy-paste math equation..."
-                className="w-full bg-slate-50 dark:bg-slate-800 text-xs p-3 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-[#FF6B00] resize-none"
+                className="w-full bg-slate-50 dark:bg-slate-800 text-xs p-3 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#FF6B00] resize-none"
               />
 
               <div className="flex items-center justify-between gap-2">
-                <label className="flex items-center gap-1.5 py-1.5 px-3 rounded-xl border border-dashed text-xs text-slate-500 cursor-pointer hover:border-[#FF6B00]">
+                <label className="flex items-center gap-1.5 py-1.5 px-3 rounded-xl border border-dashed text-xs text-slate-500 dark:text-white cursor-pointer hover:border-[#FF6B00]">
                   <UploadCloud className="w-3.5 h-3.5 text-[#FF6B00]" />
                   <span>Diagram</span>
                   <input

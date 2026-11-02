@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { ChemistryAtomicChart } from './ChemistryAtomicChart';
 import {
   Binary,
   Cpu,
@@ -262,6 +263,44 @@ export const FORMULA_DATABASE: FormulaItem[] = [
     exampleProblem: 'Solution with [H⁺] = 1 × 10⁻⁴ M: pH = -log(10⁻⁴) = 4. Solution is moderately acidic.',
     keyTakeaway: 'Each whole step on pH scale represents a 10-fold change in acidity.',
   },
+  {
+    id: 'f-chem-4',
+    name: 'Atomic Structure: Mass Number, Atomic Number & Subatomic Particles',
+    latex: 'A = Z + N, \\quad p^+ = Z, \\quad e^- = Z \\;(\\text{for neutral atom})',
+    expression: 'A = Z + N | p⁺ = Z | e⁻ = Z (neutral atom) | n⁰ = A - Z',
+    category: 'Chemistry',
+    gradeLevels: [8, 9, 10, 11],
+    governingBoards: ['CBSE', 'ICSE', 'IB', 'IGCSE', 'State Boards'],
+    topic: 'Atomic Structure & Periodic Table',
+    description: 'Fundamental relationship governing atomic identity and isotope mass. Z determines elemental identity; A is total nucleons.',
+    variables: [
+      { symbol: 'Z', meaning: 'Atomic number (number of protons in nucleus)' },
+      { symbol: 'A', meaning: 'Mass number (total protons + neutrons)' },
+      { symbol: 'N', meaning: 'Number of neutrons in nucleus (N = A - Z)' },
+      { symbol: 'p⁺, e⁻, n⁰', meaning: 'Protons, Electrons, Neutrons' },
+    ],
+    exampleProblem: 'For Sodium-23 (²³₁₁Na): Z = 11 (11 protons, 11 electrons), A = 23. Neutrons N = 23 - 11 = 12 neutrons.',
+    keyTakeaway: 'Isotopes possess identical Z (same element) but differing neutron counts N and mass numbers A.',
+  },
+  {
+    id: 'f-chem-5',
+    name: 'Bohr-Bury Shell Electron Capacity Rule & Quantum Energy Levels',
+    latex: '\\text{Max capacity} = 2n^2, \\quad E_n = -\\frac{13.6 \\cdot Z^2}{n^2} \\;\\text{eV}',
+    expression: 'Shell Capacity = 2n² (K=2, L=8, M=18, N=32) | Eₙ = -13.6·Z²/n² eV',
+    category: 'Chemistry',
+    gradeLevels: [9, 10, 11, 12],
+    governingBoards: ['CBSE', 'ICSE', 'IB', 'IGCSE', 'State Boards'],
+    topic: 'Bohr Atomic Model & Electron Configuration',
+    description: 'Calculates the maximum permissible electron occupancy in principal quantum energy level n, and energy of hydrogenic orbits.',
+    variables: [
+      { symbol: 'n', meaning: 'Principal quantum shell number (1=K, 2=L, 3=M, 4=N)' },
+      { symbol: '2n²', meaning: 'Maximum electron capacity per shell' },
+      { symbol: 'Eₙ', meaning: 'Orbital energy in electron-volts (eV)' },
+      { symbol: 'Octet Rule', meaning: 'Outermost valence shell cannot accommodate >8 electrons regardless of n' },
+    ],
+    exampleProblem: 'For M-shell (n=3): Maximum capacity = 2(3)² = 18 electrons. However, valence shell octet limit is 8 electrons before filling 4s.',
+    keyTakeaway: 'The Aufbau principle fills 4s (lower energy n+l rule: 4+0=4) before 3d (3+2=5).',
+  },
 
   // HISTORY & CIVICS
   {
@@ -440,6 +479,171 @@ export const DIAGRAM_DATABASE: DiagramModel[] = [
         <text x="230" y="245" fill="#94A3B8" fontSize="11" textAnchor="middle">
           Sodium (Na): Electronic Configuration: 2, 8, 1 &bull; Forms Na⁺ (Ne core)
         </text>
+      </svg>
+    ),
+  },
+
+  // 2B. CHEMISTRY PERIODIC ATOMIC CHART & PERIODIC CLASSIFICATION
+  {
+    id: 'd-atom-2',
+    title: 'Modern Chemistry Periodic Atomic Chart & Element Groups',
+    category: 'Chemistry',
+    gradeLevels: [8, 9, 10, 11, 12],
+    governingBoards: ['CBSE', 'ICSE', 'IB', 'IGCSE', 'State Boards'],
+    topic: 'Periodic Classification of Elements & Periodic Trends',
+    diagramType: 'Atomic',
+    description: 'Comprehensive Modern Periodic Table chart mapping atomic numbers Z=1 to 20+, highlighting alkali metals, alkaline earth, transition metals, halogens, noble gases, and periodic trends (radius & electronegativity).',
+    labels: [
+      { text: 'Group 1 (Alkali Metals): Li, Na, K', detail: 'Valence ns¹; highly reactive metals; forms univalent cations (M⁺)' },
+      { text: 'Group 2 (Alkaline Earth): Be, Mg, Ca', detail: 'Valence ns²; bivalent cations (M²⁺); basic oxides' },
+      { text: 'Group 17 (Halogens): F, Cl, Br, I', detail: 'Valence ns² np⁵; high electronegativity & electron affinity; forms salts' },
+      { text: 'Group 18 (Noble Gases): He, Ne, Ar, Kr', detail: 'Complete octet (ns² np⁶); chemically inert monoatomic gases' },
+    ],
+    svgVisual: (
+      <svg viewBox="0 0 460 260" className="w-full h-auto max-h-64 mx-auto select-none">
+        <rect width="460" height="260" fill="#0B132B" rx="16" />
+        {/* Periodic Trend Arrows */}
+        <g stroke="#38BDF8" strokeWidth="1.5">
+          <line x1="60" y1="35" x2="400" y2="35" />
+          <polygon points="405,35 397,31 397,39" fill="#38BDF8" />
+          <text x="230" y="28" fill="#38BDF8" fontSize="10" fontWeight="bold" textAnchor="middle">
+            Electronegativity &amp; Ionization Energy Increase →
+          </text>
+        </g>
+        <g stroke="#34D399" strokeWidth="1.5">
+          <line x1="45" y1="50" x2="45" y2="210" />
+          <polygon points="45,215 41,207 49,207" fill="#34D399" />
+          <text x="32" y="130" fill="#34D399" fontSize="9" fontWeight="bold" transform="rotate(-90 32 130)" textAnchor="middle">
+            Atomic Radius Increases ↓
+          </text>
+        </g>
+
+        {/* Element Tiles in Periodic Layout */}
+        {/* Period 1 */}
+        <rect x="60" y="50" width="34" height="34" rx="4" fill="#065F46" stroke="#34D399" strokeWidth="1" />
+        <text x="64" y="60" fill="#A7F3D0" fontSize="7">1</text>
+        <text x="77" y="72" fill="#FFFFFF" fontSize="12" fontWeight="bold" textAnchor="middle">H</text>
+        <text x="77" y="80" fill="#A7F3D0" fontSize="6" textAnchor="middle">1.01</text>
+
+        <rect x="380" y="50" width="34" height="34" rx="4" fill="#312E81" stroke="#818CF8" strokeWidth="1" />
+        <text x="384" y="60" fill="#C7D2FE" fontSize="7">2</text>
+        <text x="397" y="72" fill="#FFFFFF" fontSize="12" fontWeight="bold" textAnchor="middle">He</text>
+        <text x="397" y="80" fill="#C7D2FE" fontSize="6" textAnchor="middle">4.00</text>
+
+        {/* Period 2 */}
+        <rect x="60" y="90" width="34" height="34" rx="4" fill="#881337" stroke="#FB7185" strokeWidth="1" />
+        <text x="64" y="100" fill="#FECDD3" fontSize="7">3</text>
+        <text x="77" y="112" fill="#FFFFFF" fontSize="12" fontWeight="bold" textAnchor="middle">Li</text>
+        <text x="77" y="120" fill="#FECDD3" fontSize="6" textAnchor="middle">6.94</text>
+
+        <rect x="98" y="90" width="34" height="34" rx="4" fill="#78350F" stroke="#FBBF24" strokeWidth="1" />
+        <text x="102" y="100" fill="#FDE68A" fontSize="7">4</text>
+        <text x="115" y="112" fill="#FFFFFF" fontSize="12" fontWeight="bold" textAnchor="middle">Be</text>
+        <text x="115" y="120" fill="#FDE68A" fontSize="6" textAnchor="middle">9.01</text>
+
+        <rect x="226" y="90" width="34" height="34" rx="4" fill="#581C87" stroke="#C084FC" strokeWidth="1" />
+        <text x="230" y="100" fill="#E9D5FF" fontSize="7">5</text>
+        <text x="243" y="112" fill="#FFFFFF" fontSize="12" fontWeight="bold" textAnchor="middle">B</text>
+        <text x="243" y="120" fill="#E9D5FF" fontSize="6" textAnchor="middle">10.8</text>
+
+        <rect x="264" y="90" width="34" height="34" rx="4" fill="#065F46" stroke="#34D399" strokeWidth="1" />
+        <text x="268" y="100" fill="#A7F3D0" fontSize="7">6</text>
+        <text x="281" y="112" fill="#FFFFFF" fontSize="12" fontWeight="bold" textAnchor="middle">C</text>
+        <text x="281" y="120" fill="#A7F3D0" fontSize="6" textAnchor="middle">12.0</text>
+
+        <rect x="302" y="90" width="34" height="34" rx="4" fill="#065F46" stroke="#34D399" strokeWidth="1" />
+        <text x="306" y="100" fill="#A7F3D0" fontSize="7">7</text>
+        <text x="319" y="112" fill="#FFFFFF" fontSize="12" fontWeight="bold" textAnchor="middle">N</text>
+        <text x="319" y="120" fill="#A7F3D0" fontSize="6" textAnchor="middle">14.0</text>
+
+        <rect x="340" y="90" width="34" height="34" rx="4" fill="#065F46" stroke="#34D399" strokeWidth="1" />
+        <text x="344" y="100" fill="#A7F3D0" fontSize="7">8</text>
+        <text x="357" y="112" fill="#FFFFFF" fontSize="12" fontWeight="bold" textAnchor="middle">O</text>
+        <text x="357" y="120" fill="#A7F3D0" fontSize="6" textAnchor="middle">16.0</text>
+
+        <rect x="378" y="90" width="34" height="34" rx="4" fill="#7C2D12" stroke="#FB923C" strokeWidth="1" />
+        <text x="382" y="100" fill="#FFEDD5" fontSize="7">9</text>
+        <text x="395" y="112" fill="#FFFFFF" fontSize="12" fontWeight="bold" textAnchor="middle">F</text>
+        <text x="395" y="120" fill="#FFEDD5" fontSize="6" textAnchor="middle">19.0</text>
+
+        {/* Period 3 */}
+        <rect x="60" y="130" width="34" height="34" rx="4" fill="#881337" stroke="#FB7185" strokeWidth="1" />
+        <text x="64" y="140" fill="#FECDD3" fontSize="7">11</text>
+        <text x="77" y="152" fill="#FFFFFF" fontSize="12" fontWeight="bold" textAnchor="middle">Na</text>
+        <text x="77" y="160" fill="#FECDD3" fontSize="6" textAnchor="middle">22.9</text>
+
+        <rect x="98" y="130" width="34" height="34" rx="4" fill="#78350F" stroke="#FBBF24" strokeWidth="1" />
+        <text x="102" y="140" fill="#FDE68A" fontSize="7">12</text>
+        <text x="115" y="152" fill="#FFFFFF" fontSize="12" fontWeight="bold" textAnchor="middle">Mg</text>
+        <text x="115" y="160" fill="#FDE68A" fontSize="6" textAnchor="middle">24.3</text>
+
+        <rect x="226" y="130" width="34" height="34" rx="4" fill="#134E4A" stroke="#2DD4BF" strokeWidth="1" />
+        <text x="230" y="140" fill="#CCFBF1" fontSize="7">13</text>
+        <text x="243" y="152" fill="#FFFFFF" fontSize="12" fontWeight="bold" textAnchor="middle">Al</text>
+        <text x="243" y="160" fill="#CCFBF1" fontSize="6" textAnchor="middle">27.0</text>
+
+        <rect x="264" y="130" width="34" height="34" rx="4" fill="#581C87" stroke="#C084FC" strokeWidth="1" />
+        <text x="268" y="140" fill="#E9D5FF" fontSize="7">14</text>
+        <text x="281" y="152" fill="#FFFFFF" fontSize="12" fontWeight="bold" textAnchor="middle">Si</text>
+        <text x="281" y="160" fill="#E9D5FF" fontSize="6" textAnchor="middle">28.1</text>
+
+        <rect x="302" y="130" width="34" height="34" rx="4" fill="#065F46" stroke="#34D399" strokeWidth="1" />
+        <text x="306" y="140" fill="#A7F3D0" fontSize="7">15</text>
+        <text x="319" y="152" fill="#FFFFFF" fontSize="12" fontWeight="bold" textAnchor="middle">P</text>
+        <text x="319" y="160" fill="#A7F3D0" fontSize="6" textAnchor="middle">31.0</text>
+
+        <rect x="340" y="130" width="34" height="34" rx="4" fill="#065F46" stroke="#34D399" strokeWidth="1" />
+        <text x="344" y="140" fill="#A7F3D0" fontSize="7">16</text>
+        <text x="357" y="152" fill="#FFFFFF" fontSize="12" fontWeight="bold" textAnchor="middle">S</text>
+        <text x="357" y="160" fill="#A7F3D0" fontSize="6" textAnchor="middle">32.1</text>
+
+        <rect x="378" y="130" width="34" height="34" rx="4" fill="#7C2D12" stroke="#FB923C" strokeWidth="1" />
+        <text x="382" y="140" fill="#FFEDD5" fontSize="7">17</text>
+        <text x="395" y="152" fill="#FFFFFF" fontSize="12" fontWeight="bold" textAnchor="middle">Cl</text>
+        <text x="395" y="160" fill="#FFEDD5" fontSize="6" textAnchor="middle">35.5</text>
+
+        {/* Period 4 Sample Metals */}
+        <rect x="60" y="170" width="34" height="34" rx="4" fill="#881337" stroke="#FB7185" strokeWidth="1" />
+        <text x="64" y="180" fill="#FECDD3" fontSize="7">19</text>
+        <text x="77" y="192" fill="#FFFFFF" fontSize="12" fontWeight="bold" textAnchor="middle">K</text>
+        <text x="77" y="200" fill="#FECDD3" fontSize="6" textAnchor="middle">39.1</text>
+
+        <rect x="98" y="170" width="34" height="34" rx="4" fill="#78350F" stroke="#FBBF24" strokeWidth="1" />
+        <text x="102" y="180" fill="#FDE68A" fontSize="7">20</text>
+        <text x="115" y="192" fill="#FFFFFF" fontSize="12" fontWeight="bold" textAnchor="middle">Ca</text>
+        <text x="115" y="200" fill="#FDE68A" fontSize="6" textAnchor="middle">40.1</text>
+
+        {/* Transition metals block sample: Fe (26), Cu (29), Zn (30) */}
+        <rect x="150" y="170" width="34" height="34" rx="4" fill="#1E3A8A" stroke="#60A5FA" strokeWidth="1" />
+        <text x="154" y="180" fill="#BFDBFE" fontSize="7">26</text>
+        <text x="167" y="192" fill="#FFFFFF" fontSize="12" fontWeight="bold" textAnchor="middle">Fe</text>
+        <text x="167" y="200" fill="#BFDBFE" fontSize="6" textAnchor="middle">55.8</text>
+
+        <rect x="188" y="170" width="34" height="34" rx="4" fill="#1E3A8A" stroke="#60A5FA" strokeWidth="1" />
+        <text x="192" y="180" fill="#BFDBFE" fontSize="7">29</text>
+        <text x="205" y="192" fill="#FFFFFF" fontSize="12" fontWeight="bold" textAnchor="middle">Cu</text>
+        <text x="205" y="200" fill="#BFDBFE" fontSize="6" textAnchor="middle">63.5</text>
+
+        <rect x="226" y="170" width="34" height="34" rx="4" fill="#1E3A8A" stroke="#60A5FA" strokeWidth="1" />
+        <text x="230" y="180" fill="#BFDBFE" fontSize="7">30</text>
+        <text x="243" y="192" fill="#FFFFFF" fontSize="12" fontWeight="bold" textAnchor="middle">Zn</text>
+        <text x="243" y="200" fill="#BFDBFE" fontSize="6" textAnchor="middle">65.4</text>
+
+        {/* Legend strip at bottom */}
+        <g transform="translate(60, 222)" fontSize="8" fill="#94A3B8">
+          <circle cx="5" cy="5" r="4" fill="#FB7185" />
+          <text x="13" y="8">Alkali</text>
+          <circle cx="65" cy="5" r="4" fill="#FBBF24" />
+          <text x="73" y="8">Alkaline</text>
+          <circle cx="130" cy="5" r="4" fill="#60A5FA" />
+          <text x="138" y="8">Transition</text>
+          <circle cx="205" cy="5" r="4" fill="#34D399" />
+          <text x="213" y="8">Nonmetal</text>
+          <circle cx="275" cy="5" r="4" fill="#FB923C" />
+          <text x="283" y="8">Halogen</text>
+          <circle cx="340" cy="5" r="4" fill="#818CF8" />
+          <text x="348" y="8">Noble Gas</text>
+        </g>
       </svg>
     ),
   },
@@ -670,17 +874,17 @@ export const FormulasAndGraphsTab: React.FC<{
           <div className="flex items-center gap-3 shrink-0 bg-white/5 backdrop-blur-md px-4 py-3 rounded-2xl border border-white/10">
             <div className="text-center px-2">
               <div className="text-xl font-black text-indigo-400">{FORMULA_DATABASE.length}</div>
-              <div className="text-[10px] text-slate-400 uppercase font-semibold">Master Formulas</div>
+              <div className="text-[10px] text-slate-300 dark:text-white uppercase font-bold">Master Formulas</div>
             </div>
             <div className="h-8 w-px bg-white/10" />
             <div className="text-center px-2">
               <div className="text-xl font-black text-emerald-400">{DIAGRAM_DATABASE.length}</div>
-              <div className="text-[10px] text-slate-400 uppercase font-semibold">SVG Diagrams</div>
+              <div className="text-[10px] text-slate-300 dark:text-white uppercase font-bold">SVG Diagrams</div>
             </div>
             <div className="h-8 w-px bg-white/10" />
             <div className="text-center px-2">
               <div className="text-xl font-black text-amber-400">{currentBoard}</div>
-              <div className="text-[10px] text-slate-400 uppercase font-semibold">Governing Board</div>
+              <div className="text-[10px] text-slate-300 dark:text-white uppercase font-bold">Governing Board</div>
             </div>
           </div>
         </div>
@@ -700,7 +904,7 @@ export const FormulasAndGraphsTab: React.FC<{
                   className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap ${
                     isSelected
                       ? 'bg-[#4F46E5] text-white shadow-sm shadow-[#4F46E5]/25'
-                      : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+                      : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-700'
                   }`}
                 >
                   <span className={isSelected ? 'text-white' : sub.color}>{sub.icon}</span>
@@ -717,7 +921,7 @@ export const FormulasAndGraphsTab: React.FC<{
               className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
                 activeViewMode === 'all'
                   ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
-                  : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'
+                  : 'text-slate-600 dark:text-white/80 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               All Assets
@@ -727,7 +931,7 @@ export const FormulasAndGraphsTab: React.FC<{
               className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
                 activeViewMode === 'formulas'
                   ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
-                  : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'
+                  : 'text-slate-600 dark:text-white/80 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               Formulas ({filteredFormulas.length})
@@ -737,7 +941,7 @@ export const FormulasAndGraphsTab: React.FC<{
               className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
                 activeViewMode === 'diagrams'
                   ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
-                  : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'
+                  : 'text-slate-600 dark:text-white/80 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               Diagrams ({filteredDiagrams.length})
@@ -748,7 +952,7 @@ export const FormulasAndGraphsTab: React.FC<{
         {/* Search Bar & Context Indicator */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
           <div className="relative flex-1 max-w-md">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-slate-400 dark:text-white/70 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={searchTerm}
@@ -759,14 +963,14 @@ export const FormulasAndGraphsTab: React.FC<{
             {searchTerm && (
               <button
                 onClick={() => setSearchTerm('')}
-                className="text-xs text-slate-400 hover:text-slate-600 absolute right-3 top-1/2 -translate-y-1/2"
+                className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-white absolute right-3 top-1/2 -translate-y-1/2"
               >
                 ✕
               </button>
             )}
           </div>
 
-          <div className="flex items-center gap-2 text-xs text-slate-500">
+          <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-white">
             <span className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-emerald-500" />
               <span>Aligned to Grade {currentGrade} &bull; {currentBoard} Syllabus</span>
@@ -774,6 +978,22 @@ export const FormulasAndGraphsTab: React.FC<{
           </div>
         </div>
       </div>
+
+      {/* 2.5 DEDICATED CHEMISTRY ATOMIC & PERIODIC TABLE SIMULATOR */}
+      {selectedSubject === 'Chemistry' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between pb-1">
+            <h2 className="text-lg font-light text-slate-900 dark:text-white flex items-center gap-2 tracking-wide">
+              <Atom className="w-5 h-5 text-emerald-500" />
+              <span>Interactive Chemistry Atomic Chart & Bohr Orbital Simulator</span>
+            </h2>
+            <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-1 rounded-full border border-emerald-200 dark:border-emerald-800">
+              Board-Aligned Periodic System
+            </span>
+          </div>
+          <ChemistryAtomicChart />
+        </div>
+      )}
 
       {/* 3. SECTION A: SCHEMATIC DIAGRAMS & VECTOR MODELS */}
       {(activeViewMode === 'all' || activeViewMode === 'diagrams') && filteredDiagrams.length > 0 && (
@@ -783,7 +1003,7 @@ export const FormulasAndGraphsTab: React.FC<{
               <Compass className="w-5 h-5 text-[#4F46E5]" />
               <span>Board-Compliant Diagrams & Visual Models ({filteredDiagrams.length})</span>
             </h2>
-            <span className="text-xs text-slate-500">Interactive SVG graphics with labeled parts</span>
+            <span className="text-xs text-slate-500 dark:text-white">Interactive SVG graphics with labeled parts</span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -799,7 +1019,7 @@ export const FormulasAndGraphsTab: React.FC<{
                       <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-[#4F46E5] dark:text-[#818CF8]">
                         {diag.diagramType}
                       </span>
-                      <span className="text-[11px] text-slate-500 font-medium">{diag.topic}</span>
+                      <span className="text-[11px] text-slate-500 dark:text-white font-medium">{diag.topic}</span>
                     </div>
                     <h3 className="font-light text-base text-slate-900 dark:text-white mt-1">
                       {diag.title}
@@ -808,7 +1028,7 @@ export const FormulasAndGraphsTab: React.FC<{
                   <button
                     onClick={() => setSelectedDiagramModal(diag)}
                     title="Expand Fullscreen View"
-                    className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-600 dark:text-slate-300 cursor-pointer transition-colors"
+                    className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-600 dark:text-white cursor-pointer transition-colors"
                   >
                     <Maximize2 className="w-4 h-4" />
                   </button>
@@ -821,12 +1041,12 @@ export const FormulasAndGraphsTab: React.FC<{
 
                 {/* Diagram Description & Key Labels */}
                 <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between space-y-3 bg-slate-50/50 dark:bg-slate-900/50">
-                  <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                  <p className="text-xs text-slate-600 dark:text-white leading-relaxed">
                     {diag.description}
                   </p>
 
                   <div className="space-y-1.5 pt-2 border-t border-slate-200/60 dark:border-slate-800">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-white">
                       Component Breakdown & Annotations:
                     </span>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -836,7 +1056,7 @@ export const FormulasAndGraphsTab: React.FC<{
                           className="p-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700 text-[11px]"
                         >
                           <div className="font-bold text-slate-900 dark:text-white">{lbl.text}</div>
-                          <div className="text-[10px] text-slate-500 mt-0.5">{lbl.detail}</div>
+                          <div className="text-[10px] text-slate-500 dark:text-white/80 mt-0.5">{lbl.detail}</div>
                         </div>
                       ))}
                     </div>
@@ -856,16 +1076,16 @@ export const FormulasAndGraphsTab: React.FC<{
               <Binary className="w-5 h-5 text-[#4F46E5]" />
               <span>{selectedSubject} Formulas & Equations ({filteredFormulas.length})</span>
             </h2>
-            <span className="text-xs text-slate-500">Board-compliant derivation variables & worked examples</span>
+            <span className="text-xs text-slate-500 dark:text-white">Board-compliant derivation variables & worked examples</span>
           </div>
 
           {filteredFormulas.length === 0 ? (
             <div className="bg-white dark:bg-[#111827] rounded-2xl p-12 text-center border border-slate-200/80 dark:border-slate-800">
               <Binary className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-              <h3 className="text-base font-light text-slate-800 dark:text-slate-200">
+              <h3 className="text-base font-light text-slate-800 dark:text-white">
                 No formulas match "{searchTerm}"
               </h3>
-              <p className="text-xs text-slate-500 mt-1">
+              <p className="text-xs text-slate-500 dark:text-white mt-1">
                 Try searching for another keyword or switch subjects above.
               </p>
             </div>
@@ -881,10 +1101,10 @@ export const FormulasAndGraphsTab: React.FC<{
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-white">
                             {f.topic}
                           </span>
-                          <span className="text-[10px] text-slate-400">
+                          <span className="text-[10px] text-slate-400 dark:text-white font-medium">
                             Grades {f.gradeLevels.join(', ')}
                           </span>
                         </div>
@@ -898,7 +1118,7 @@ export const FormulasAndGraphsTab: React.FC<{
                         className={`p-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
                           copiedFormulaId === f.id
                             ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-600 border border-emerald-300'
-                            : 'bg-slate-50 dark:bg-slate-800 hover:bg-indigo-50 text-slate-600 dark:text-slate-300 hover:text-[#4F46E5]'
+                            : 'bg-slate-50 dark:bg-slate-800 hover:bg-indigo-50 text-slate-600 dark:text-white hover:text-[#4F46E5]'
                         }`}
                         title="Copy formula text"
                       >
@@ -921,11 +1141,11 @@ export const FormulasAndGraphsTab: React.FC<{
                       <div className="text-base sm:text-lg font-bold text-indigo-300 tracking-wide select-all">
                         {f.expression}
                       </div>
-                      <div className="text-[10px] text-slate-400">Standard Formula Expression</div>
+                      <div className="text-[10px] text-slate-300 dark:text-white">Standard Formula Expression</div>
                     </div>
 
                     {/* Description */}
-                    <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                    <p className="text-xs text-slate-600 dark:text-white leading-relaxed">
                       {f.description}
                     </p>
                   </div>
@@ -933,7 +1153,7 @@ export const FormulasAndGraphsTab: React.FC<{
                   {/* Variables & Units Breakdown */}
                   <div className="space-y-3 pt-3 border-t border-slate-100 dark:border-slate-800 text-xs">
                     <div>
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1.5">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-white block mb-1.5">
                         Variables & Units:
                       </span>
                       <div className="space-y-1">
@@ -942,11 +1162,11 @@ export const FormulasAndGraphsTab: React.FC<{
                             <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">
                               {v.symbol}
                             </span>
-                            <span className="text-slate-600 dark:text-slate-300 flex-1 truncate">
+                            <span className="text-slate-600 dark:text-white flex-1 truncate">
                               {v.meaning}
                             </span>
                             {v.units && (
-                              <span className="text-[10px] font-mono text-slate-400 shrink-0">
+                              <span className="text-[10px] font-mono text-slate-400 dark:text-white shrink-0">
                                 [{v.units}]
                               </span>
                             )}
@@ -961,14 +1181,14 @@ export const FormulasAndGraphsTab: React.FC<{
                         <span className="font-bold text-[#4F46E5] dark:text-[#818CF8] block">
                           Worked Example:
                         </span>
-                        <p className="text-slate-700 dark:text-slate-300 mt-0.5">
+                        <p className="text-slate-700 dark:text-white mt-0.5">
                           {f.exampleProblem}
                         </p>
                       </div>
                     )}
 
                     {/* Key Takeaway */}
-                    <div className="flex items-start gap-1.5 text-[11px] text-slate-500">
+                    <div className="flex items-start gap-1.5 text-[11px] text-slate-500 dark:text-white">
                       <Info className="w-3.5 h-3.5 text-indigo-500 shrink-0 mt-0.5" />
                       <span>{f.keyTakeaway}</span>
                     </div>
@@ -995,7 +1215,7 @@ export const FormulasAndGraphsTab: React.FC<{
               </div>
               <button
                 onClick={() => setSelectedDiagramModal(null)}
-                className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-600 dark:text-slate-300 cursor-pointer"
+                className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-600 dark:text-white cursor-pointer"
               >
                 ✕
               </button>
@@ -1005,7 +1225,7 @@ export const FormulasAndGraphsTab: React.FC<{
               {selectedDiagramModal.svgVisual}
             </div>
 
-            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300">
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-white">
               {selectedDiagramModal.description}
             </p>
 
@@ -1013,7 +1233,7 @@ export const FormulasAndGraphsTab: React.FC<{
               {selectedDiagramModal.labels.map((lbl, idx) => (
                 <div key={idx} className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 text-xs">
                   <div className="font-bold text-slate-900 dark:text-white">{lbl.text}</div>
-                  <div className="text-slate-500 text-[11px]">{lbl.detail}</div>
+                  <div className="text-slate-500 dark:text-white/80 text-[11px]">{lbl.detail}</div>
                 </div>
               ))}
             </div>

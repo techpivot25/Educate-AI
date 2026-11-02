@@ -342,11 +342,11 @@ export const UserProfileModal: React.FC = () => {
                 <span>Account Information</span>
               </h3>
               <div className="flex items-center gap-2">
-                <label className="text-xs font-normal text-slate-500 dark:text-slate-400">Status:</label>
+                <label className="text-xs font-normal text-slate-500 dark:text-white">Status:</label>
                 <select
                   value={status}
                   onChange={(e) => setStatus(e.target.value as 'Active' | 'Inactive')}
-                  className="text-xs font-normal px-2.5 py-1 rounded-lg border border-slate-200 dark:border-[#1C3A66] bg-slate-50 dark:bg-[#132A4C]/60 text-slate-800 dark:text-slate-200 cursor-pointer focus:outline-none focus:ring-1 focus:ring-[#00A896]"
+                  className="text-xs font-normal px-2.5 py-1 rounded-lg border border-slate-200 dark:border-[#1C3A66] bg-slate-50 dark:bg-[#132A4C]/60 text-slate-800 dark:text-white cursor-pointer focus:outline-none focus:ring-1 focus:ring-[#00A896]"
                 >
                   <option value="Active">Active</option>
                   <option value="Inactive">Inactive</option>
@@ -366,12 +366,12 @@ export const UserProfileModal: React.FC = () => {
                 </div>
                 <div className="space-y-1 flex-1">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-normal text-slate-800 dark:text-slate-200 block">
+                    <label className="text-xs font-normal text-slate-800 dark:text-white block">
                       Avatar Profile Selection
                     </label>
                     <span className="text-[10px] text-[#00A896] font-normal">Live Preview</span>
                   </div>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  <p className="text-[11px] text-slate-500 dark:text-white">
                     Choose an avatar from the gallery, roll a fresh style, or upload a custom photo.
                   </p>
                   <div className="flex items-center gap-2 pt-1 flex-wrap">
@@ -384,7 +384,7 @@ export const UserProfileModal: React.FC = () => {
                       <span>{showAvatarGallery ? 'Collapse Gallery' : 'Select Avatar Gallery'}</span>
                     </button>
 
-                    <label className="px-3 py-1.5 rounded-lg bg-white dark:bg-[#132A4C] hover:bg-slate-100 dark:hover:bg-[#1C3A66] text-slate-700 dark:text-slate-200 text-[11px] font-normal flex items-center gap-1.5 cursor-pointer border border-slate-200 dark:border-slate-700 transition-colors">
+                    <label className="px-3 py-1.5 rounded-lg bg-white dark:bg-[#132A4C] hover:bg-slate-100 dark:hover:bg-[#1C3A66] text-slate-700 dark:text-white text-[11px] font-normal flex items-center gap-1.5 cursor-pointer border border-slate-200 dark:border-slate-700 transition-colors">
                       <Upload className="w-3.5 h-3.5 text-[#00A896]" />
                       <span>Upload Image</span>
                       <input type="file" accept="image/*" onChange={handleAvatarFile} className="hidden" />
@@ -393,7 +393,7 @@ export const UserProfileModal: React.FC = () => {
                     <button
                       type="button"
                       onClick={handleRollRandomAvatar}
-                      className="px-2.5 py-1.5 rounded-lg bg-white dark:bg-[#132A4C] border border-slate-200 dark:border-slate-700 text-[11px] font-normal text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-[#1C3A66] flex items-center gap-1 cursor-pointer transition-colors"
+                      className="px-2.5 py-1.5 rounded-lg bg-white dark:bg-[#132A4C] border border-slate-200 dark:border-slate-700 text-[11px] font-normal text-slate-700 dark:text-white hover:bg-slate-100 dark:hover:bg-[#1C3A66] flex items-center gap-1 cursor-pointer transition-colors"
                       title="Roll a random avatar"
                     >
                       <RefreshCw className="w-3 h-3 text-[#00A896]" />
@@ -430,14 +430,14 @@ export const UserProfileModal: React.FC = () => {
                           className={`px-2.5 py-0.5 rounded-full font-normal transition-colors cursor-pointer ${
                             avatarCategory === cat
                               ? 'bg-[#00A896] text-white shadow-2xs'
-                              : 'bg-white dark:bg-[#0D1B3E] text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#1C3A66] border border-slate-200 dark:border-slate-700'
+                              : 'bg-white dark:bg-[#0D1B3E] text-slate-600 dark:text-white hover:bg-slate-100 dark:hover:bg-[#1C3A66] border border-slate-200 dark:border-slate-700'
                           }`}
                         >
                           {cat}
                         </button>
                       ))}
                     </div>
-                    <span className="text-[10px] text-slate-400 hidden sm:inline">
+                    <span className="text-[10px] text-slate-400 dark:text-white hidden sm:inline">
                       Click any avatar to select
                     </span>
                   </div>
@@ -472,7 +472,7 @@ export const UserProfileModal: React.FC = () => {
                               <Check className="w-2.5 h-2.5 stroke-[3]" />
                             </div>
                           )}
-                          <span className="text-[9px] text-slate-500 dark:text-slate-400 truncate max-w-full block leading-none mt-0.5 font-normal">
+                          <span className="text-[9px] text-slate-500 dark:text-white truncate max-w-full block leading-none mt-0.5 font-normal">
                             {item.name}
                           </span>
                         </button>
@@ -489,7 +489,7 @@ export const UserProfileModal: React.FC = () => {
                         value={customSeedInput}
                         onChange={(e) => setCustomSeedInput(e.target.value)}
                         placeholder="Or type a custom name to generate unique avatar (e.g. Einstein, Ada)..."
-                        className="w-full pl-8 pr-3 py-1.5 rounded-lg border border-slate-200 dark:border-[#1C3A66] bg-white dark:bg-[#0D1B3E] text-[11px] text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-[#00A896]"
+                        className="w-full pl-8 pr-3 py-1.5 rounded-lg border border-slate-200 dark:border-[#1C3A66] bg-white dark:bg-[#0D1B3E] text-[11px] text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#00A896]"
                       />
                     </div>
                     <button
@@ -511,7 +511,7 @@ export const UserProfileModal: React.FC = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-normal text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-xs font-normal text-slate-700 dark:text-white mb-1">
                   Full Name (Editable)
                 </label>
                 <div className="relative">
@@ -527,7 +527,7 @@ export const UserProfileModal: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-normal text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-xs font-normal text-slate-700 dark:text-white mb-1">
                   Email Address (Editable)
                 </label>
                 <div className="relative">
@@ -559,7 +559,7 @@ export const UserProfileModal: React.FC = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {/* Grade Dropdown (Grades 6 to 12) */}
                   <div>
-                    <label className="block text-[11px] font-normal text-slate-700 dark:text-slate-300 mb-1">
+                    <label className="block text-[11px] font-normal text-slate-700 dark:text-white mb-1">
                       Current Grade Level (Grades 6–12)
                     </label>
                     <select
@@ -580,7 +580,7 @@ export const UserProfileModal: React.FC = () => {
                   {/* Stream Selection */}
                   {(gradeLevel === 11 || gradeLevel === 12) && (
                     <div>
-                      <label className="block text-[11px] font-normal text-slate-700 dark:text-slate-300 mb-1">
+                      <label className="block text-[11px] font-normal text-slate-700 dark:text-white mb-1">
                         Academic Stream (Grades 11 & 12)
                       </label>
                       <select
@@ -597,7 +597,7 @@ export const UserProfileModal: React.FC = () => {
 
                   {/* Education Board Selection */}
                   <div>
-                    <label className="block text-[11px] font-normal text-slate-700 dark:text-slate-300 mb-1">
+                    <label className="block text-[11px] font-normal text-slate-700 dark:text-white mb-1">
                       Educational Board / Governing Syllabus
                     </label>
                     <select
@@ -615,7 +615,7 @@ export const UserProfileModal: React.FC = () => {
 
                   {/* Language Medium Selection */}
                   <div>
-                    <label className="block text-[11px] font-normal text-slate-700 dark:text-slate-300 mb-1">
+                    <label className="block text-[11px] font-normal text-slate-700 dark:text-white mb-1">
                       Preferred Medium of Instruction
                     </label>
                     <select
@@ -635,7 +635,7 @@ export const UserProfileModal: React.FC = () => {
                 {/* School Autocomplete & Location */}
                 <div className="space-y-3 pt-2">
                   <div>
-                    <label className="block text-[11px] font-normal text-slate-700 dark:text-slate-300 mb-1">
+                    <label className="block text-[11px] font-normal text-slate-700 dark:text-white mb-1">
                       Enrolled School Name & Location (India-Wide Coverage)
                     </label>
                     <SchoolAutocomplete
@@ -656,7 +656,7 @@ export const UserProfileModal: React.FC = () => {
                 {/* Contact & Guardian details */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                   <div>
-                    <label className="block text-[11px] font-normal text-slate-700 dark:text-slate-300 mb-1">
+                    <label className="block text-[11px] font-normal text-slate-700 dark:text-white mb-1">
                       Student Mobile Number
                     </label>
                     <div className="relative">
@@ -672,7 +672,7 @@ export const UserProfileModal: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-normal text-slate-700 dark:text-slate-300 mb-1">
+                    <label className="block text-[11px] font-normal text-slate-700 dark:text-white mb-1">
                       Guardian / Parent Name
                     </label>
                     <div className="relative">
@@ -688,7 +688,7 @@ export const UserProfileModal: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-normal text-slate-700 dark:text-slate-300 mb-1">
+                    <label className="block text-[11px] font-normal text-slate-700 dark:text-white mb-1">
                       Guardian Phone Number
                     </label>
                     <div className="relative">
@@ -704,7 +704,7 @@ export const UserProfileModal: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-normal text-slate-700 dark:text-slate-300 mb-1">
+                    <label className="block text-[11px] font-normal text-slate-700 dark:text-white mb-1">
                       Guardian Email Address
                     </label>
                     <div className="relative">
@@ -737,7 +737,7 @@ export const UserProfileModal: React.FC = () => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[11px] font-normal text-slate-700 dark:text-slate-300 mb-1">
+                    <label className="block text-[11px] font-normal text-slate-700 dark:text-white mb-1">
                       Department Specialization
                     </label>
                     <select
@@ -754,7 +754,7 @@ export const UserProfileModal: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-normal text-slate-700 dark:text-slate-300 mb-1">
+                    <label className="block text-[11px] font-normal text-slate-700 dark:text-white mb-1">
                       Primary Assigned Cohort
                     </label>
                     <select
@@ -771,7 +771,7 @@ export const UserProfileModal: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-normal text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block text-[11px] font-normal text-slate-700 dark:text-white mb-1">
                     Faculty Cabin / Desk Room
                   </label>
                   <input
@@ -821,7 +821,7 @@ export const UserProfileModal: React.FC = () => {
                 <form onSubmit={handlePasswordReset} className="space-y-3">
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
-                      <label className="block text-[11px] font-normal text-slate-600 dark:text-slate-400 mb-1">
+                      <label className="block text-[11px] font-normal text-slate-600 dark:text-white mb-1">
                         Current Password
                       </label>
                       <input
@@ -830,11 +830,11 @@ export const UserProfileModal: React.FC = () => {
                         value={currentPassword}
                         onChange={(e) => setCurrentPassword(e.target.value)}
                         placeholder="••••••••"
-                        className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-[#1C3A66] bg-white dark:bg-[#0D1B3E] text-xs font-normal"
+                        className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-[#1C3A66] bg-white dark:bg-[#0D1B3E] text-xs font-normal text-slate-900 dark:text-white"
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-normal text-slate-600 dark:text-slate-400 mb-1">
+                      <label className="block text-[11px] font-normal text-slate-600 dark:text-white mb-1">
                         New Password
                       </label>
                       <input
@@ -843,11 +843,11 @@ export const UserProfileModal: React.FC = () => {
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
                         placeholder="••••••••"
-                        className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-[#1C3A66] bg-white dark:bg-[#0D1B3E] text-xs font-normal"
+                        className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-[#1C3A66] bg-white dark:bg-[#0D1B3E] text-xs font-normal text-slate-900 dark:text-white"
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-normal text-slate-600 dark:text-slate-400 mb-1">
+                      <label className="block text-[11px] font-normal text-slate-600 dark:text-white mb-1">
                         Confirm New Password
                       </label>
                       <input
@@ -856,7 +856,7 @@ export const UserProfileModal: React.FC = () => {
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         placeholder="••••••••"
-                        className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-[#1C3A66] bg-white dark:bg-[#0D1B3E] text-xs font-normal"
+                        className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-[#1C3A66] bg-white dark:bg-[#0D1B3E] text-xs font-normal text-slate-900 dark:text-white"
                       />
                     </div>
                   </div>
@@ -881,32 +881,32 @@ export const UserProfileModal: React.FC = () => {
                   <GraduationCap className="w-4 h-4" />
                   <span>Student Academic Overview</span>
                 </h4>
-                <span className="text-xs text-slate-500 dark:text-slate-400">
+                <span className="text-xs text-slate-500 dark:text-white">
                   Enrolled: {currentUser?.enrollmentDate || 'Sep 1, 2025'}
                 </span>
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div className="p-3 rounded-2xl bg-slate-50 dark:bg-[#132A4C]/50 border border-slate-200/80 dark:border-[#1C3A66] text-center">
-                  <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-normal">Class Grade</span>
+                  <span className="text-[10px] text-slate-500 dark:text-white block font-normal">Class Grade</span>
                   <span className="text-sm font-normal text-[#00A896]">
                     {currentUser?.grade || '8th Grade'}
                   </span>
                 </div>
                 <div className="p-3 rounded-2xl bg-slate-50 dark:bg-[#132A4C]/50 border border-slate-200/80 dark:border-[#1C3A66] text-center">
-                  <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-normal">Cumulative GPA</span>
+                  <span className="text-[10px] text-slate-500 dark:text-white block font-normal">Cumulative GPA</span>
                   <span className="text-sm font-normal text-emerald-600 dark:text-emerald-400">
                     {currentUser?.gpa || 3.85}
                   </span>
                 </div>
                 <div className="p-3 rounded-2xl bg-slate-50 dark:bg-[#132A4C]/50 border border-slate-200/80 dark:border-[#1C3A66] text-center">
-                  <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-normal">Attendance</span>
+                  <span className="text-[10px] text-slate-500 dark:text-white block font-normal">Attendance</span>
                   <span className="text-sm font-normal text-teal-600 dark:text-teal-400">
                     {currentUser?.attendance || 98}%
                   </span>
                 </div>
                 <div className="p-3 rounded-2xl bg-slate-50 dark:bg-[#132A4C]/50 border border-slate-200/80 dark:border-[#1C3A66] text-center">
-                  <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-normal">Overall Mastery</span>
+                  <span className="text-[10px] text-slate-500 dark:text-white block font-normal">Overall Mastery</span>
                   <span className="text-sm font-normal text-[#00A896]">
                     {currentUser?.overallProgress || 84}%
                   </span>
@@ -915,13 +915,13 @@ export const UserProfileModal: React.FC = () => {
 
               {/* Dynamic Progress Overview */}
               <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#132A4C]/40 border border-slate-200 dark:border-[#1C3A66] space-y-3">
-                <h5 className="text-xs font-normal text-slate-800 dark:text-slate-200 flex items-center justify-between">
+                <h5 className="text-xs font-normal text-slate-800 dark:text-white flex items-center justify-between">
                   <span>Dynamic Subject Progress</span>
-                  <span className="text-[10px] text-slate-500 font-normal">Real-Time Sync</span>
+                  <span className="text-[10px] text-slate-500 dark:text-white/80 font-normal">Real-Time Sync</span>
                 </h5>
                 <div className="space-y-2 text-xs">
                   <div>
-                    <div className="flex justify-between text-[11px] font-normal text-slate-600 dark:text-slate-300 mb-1">
+                    <div className="flex justify-between text-[11px] font-normal text-slate-600 dark:text-white mb-1">
                       <span>Physics (Newton's Laws)</span>
                       <span>{currentUser?.physicsProgress || 75}%</span>
                     </div>
@@ -933,7 +933,7 @@ export const UserProfileModal: React.FC = () => {
                     </div>
                   </div>
                   <div>
-                    <div className="flex justify-between text-[11px] font-normal text-slate-600 dark:text-slate-300 mb-1">
+                    <div className="flex justify-between text-[11px] font-normal text-slate-600 dark:text-white mb-1">
                       <span>Biology & Cell Energy</span>
                       <span>{currentUser?.biologyProgress || 88}%</span>
                     </div>
@@ -945,7 +945,7 @@ export const UserProfileModal: React.FC = () => {
                     </div>
                   </div>
                   <div>
-                    <div className="flex justify-between text-[11px] font-normal text-slate-600 dark:text-slate-300 mb-1">
+                    <div className="flex justify-between text-[11px] font-normal text-slate-600 dark:text-white mb-1">
                       <span>Mathematics & Algebra</span>
                       <span>{currentUser?.mathProgress || 92}%</span>
                     </div>
@@ -961,7 +961,7 @@ export const UserProfileModal: React.FC = () => {
 
               {/* Enrolled Courses */}
               <div>
-                <h5 className="text-xs font-normal text-slate-800 dark:text-slate-200 mb-2">
+                <h5 className="text-xs font-normal text-slate-800 dark:text-white mb-2">
                   Enrolled Course Modules:
                 </h5>
                 <div className="flex flex-wrap gap-2">
@@ -975,7 +975,7 @@ export const UserProfileModal: React.FC = () => {
                   ).map((course, idx) => (
                     <span
                       key={idx}
-                      className="px-2.5 py-1 rounded-xl text-xs font-normal bg-white dark:bg-[#132A4C] border border-slate-200 dark:border-[#1C3A66] text-slate-700 dark:text-slate-300 shadow-2xs"
+                      className="px-2.5 py-1 rounded-xl text-xs font-normal bg-white dark:bg-[#132A4C] border border-slate-200 dark:border-[#1C3A66] text-slate-700 dark:text-white shadow-2xs"
                     >
                       📚 {course}
                     </span>
@@ -995,7 +995,7 @@ export const UserProfileModal: React.FC = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="p-3.5 rounded-2xl bg-[#00A896]/10 dark:bg-[#132A4C]/50 border border-[#00A896]/30 dark:border-[#1C3A66] space-y-1">
-                  <span className="text-[11px] font-normal text-slate-500 dark:text-slate-400 block">
+                  <span className="text-[11px] font-normal text-slate-500 dark:text-white block">
                     Department Specialization
                   </span>
                   <span className="text-sm font-normal text-slate-900 dark:text-white">
@@ -1004,7 +1004,7 @@ export const UserProfileModal: React.FC = () => {
                 </div>
 
                 <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-[#132A4C]/50 border border-slate-200 dark:border-[#1C3A66] space-y-1">
-                  <span className="text-[11px] font-normal text-slate-500 dark:text-slate-400 block">
+                  <span className="text-[11px] font-normal text-slate-500 dark:text-white block">
                     Active Student Cohorts
                   </span>
                   <span className="text-sm font-normal text-slate-900 dark:text-white">
@@ -1015,7 +1015,7 @@ export const UserProfileModal: React.FC = () => {
 
               {/* Assigned Cohorts */}
               <div>
-                <h5 className="text-xs font-normal text-slate-800 dark:text-slate-200 mb-2">
+                <h5 className="text-xs font-normal text-slate-800 dark:text-white mb-2">
                   Assigned Classes & Cohorts:
                 </h5>
                 <div className="flex flex-wrap gap-2">
@@ -1038,7 +1038,7 @@ export const UserProfileModal: React.FC = () => {
 
               {/* Created Lesson Plans list */}
               <div className="p-3 rounded-2xl bg-slate-50 dark:bg-[#132A4C]/40 border border-slate-200 dark:border-[#1C3A66] space-y-2">
-                <div className="flex items-center justify-between text-xs font-normal text-slate-800 dark:text-slate-200">
+                <div className="flex items-center justify-between text-xs font-normal text-slate-800 dark:text-white">
                   <span>Created Lesson Plans ({lessonPlans.length})</span>
                   <span className="text-[#00A896] text-[11px]">AI Curriculum Studio</span>
                 </div>
@@ -1052,7 +1052,7 @@ export const UserProfileModal: React.FC = () => {
                         <span className="font-normal text-slate-900 dark:text-white block">
                           {plan.topic}
                         </span>
-                        <span className="text-[10px] text-slate-500">
+                        <span className="text-[10px] text-slate-500 dark:text-white/80">
                           {plan.grade} &bull; {plan.duration}
                         </span>
                       </div>
@@ -1080,17 +1080,17 @@ export const UserProfileModal: React.FC = () => {
               </div>
 
               <div className="p-3.5 rounded-2xl bg-cyan-50/60 dark:bg-[#132A4C]/50 border border-cyan-200/60 dark:border-[#1C3A66] space-y-1">
-                <span className="text-[11px] font-normal text-slate-500 dark:text-slate-400 block">
+                <span className="text-[11px] font-normal text-slate-500 dark:text-white block">
                   Permissions Scope
                 </span>
-                <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-normal">
+                <p className="text-xs text-slate-700 dark:text-white leading-relaxed font-normal">
                   Authorized for ecosystem-wide CRUD management, real-time proctoring anomaly controls, certificate cryptography, and multi-portal switching.
                 </p>
               </div>
 
               {/* Activity Logs */}
               <div>
-                <h5 className="text-xs font-normal text-slate-800 dark:text-slate-200 mb-2 flex items-center gap-1.5">
+                <h5 className="text-xs font-normal text-slate-800 dark:text-white mb-2 flex items-center gap-1.5">
                   <Activity className="w-3.5 h-3.5 text-cyan-500" />
                   <span>Recent Security & Administrative Activity Logs:</span>
                 </h5>
@@ -1110,7 +1110,7 @@ export const UserProfileModal: React.FC = () => {
                       <span className="text-[10px] font-normal text-cyan-600 dark:text-cyan-400 whitespace-nowrap pt-0.5">
                         {log.timestamp}
                       </span>
-                      <span className="text-slate-700 dark:text-slate-300 font-normal">{log.action}</span>
+                      <span className="text-slate-700 dark:text-white font-normal">{log.action}</span>
                     </div>
                   ))}
                 </div>
@@ -1123,7 +1123,7 @@ export const UserProfileModal: React.FC = () => {
         <div className="p-4 bg-slate-50 dark:bg-[#0D1B3E] border-t border-slate-200 dark:border-[#132A4C] flex justify-end">
           <button
             onClick={() => setIsProfileOpen(false)}
-            className="px-4 py-2 rounded-xl text-xs font-normal bg-slate-200 hover:bg-slate-300 dark:bg-[#132A4C] dark:hover:bg-[#1C3A66] text-slate-800 dark:text-slate-200 transition-colors cursor-pointer"
+            className="px-4 py-2 rounded-xl text-xs font-normal bg-slate-200 hover:bg-slate-300 dark:bg-[#132A4C] dark:hover:bg-[#1C3A66] text-slate-800 dark:text-white transition-colors cursor-pointer"
           >
             Close Profile
           </button>

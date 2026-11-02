@@ -150,7 +150,7 @@ export const ParentWeeklyDigestModal: React.FC<ParentWeeklyDigestModalProps> = (
         </div>
 
         {/* Body Content */}
-        <div className="p-5 sm:p-6 overflow-y-auto space-y-5 text-slate-800 dark:text-slate-200">
+        <div className="p-5 sm:p-6 overflow-y-auto space-y-5 text-slate-800 dark:text-white">
           {/* TAB 1: SPRINT HOURS & ADHERENCE */}
           {activeTab === 'digest' && (
             <div className="space-y-5">
@@ -164,7 +164,7 @@ export const ParentWeeklyDigestModal: React.FC<ParentWeeklyDigestModalProps> = (
                     <h4 className="text-xl font-black text-slate-900 dark:text-white mt-0.5">
                       {completedHours} / {plannedHours} Hours Completed
                     </h4>
-                    <p className="text-xs text-slate-600 dark:text-slate-300 mt-1">
+                    <p className="text-xs text-slate-600 dark:text-white mt-1">
                       Outstanding performance! Student has completed 91.2% of their planned sprint study
                       hours this week.
                     </p>
@@ -175,19 +175,19 @@ export const ParentWeeklyDigestModal: React.FC<ParentWeeklyDigestModalProps> = (
                       <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
                         {adherenceRate}%
                       </div>
-                      <div className="text-[10px] font-bold text-slate-500 uppercase">Adherence</div>
+                      <div className="text-[10px] font-bold text-slate-500 dark:text-white uppercase">Adherence</div>
                     </div>
 
                     <div className="text-center px-4 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
                       <div className="text-2xl font-black text-amber-500">14</div>
-                      <div className="text-[10px] font-bold text-slate-500 uppercase">Day Streak</div>
+                      <div className="text-[10px] font-bold text-slate-500 dark:text-white uppercase">Day Streak</div>
                     </div>
                   </div>
                 </div>
 
                 {/* Progress bar */}
                 <div className="mt-4">
-                  <div className="flex items-center justify-between text-xs font-bold text-slate-600 dark:text-slate-400 mb-1.5">
+                  <div className="flex items-center justify-between text-xs font-bold text-slate-600 dark:text-white mb-1.5">
                     <span>Weekly Sprint Completion Meter</span>
                     <span>{completedHours} hrs done &bull; 2.5 hrs remaining</span>
                   </div>
@@ -202,7 +202,7 @@ export const ParentWeeklyDigestModal: React.FC<ParentWeeklyDigestModalProps> = (
 
               {/* Subject Breakdown Table */}
               <div>
-                <h5 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
+                <h5 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-white mb-2">
                   Subject-by-Subject Sprint Hours Breakdown
                 </h5>
 
@@ -222,7 +222,7 @@ export const ParentWeeklyDigestModal: React.FC<ParentWeeklyDigestModalProps> = (
                             {sb.subject}
                           </span>
                         </div>
-                        <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                        <div className="text-[11px] text-slate-500 dark:text-white mt-0.5">
                           Completed {sb.completed} hrs of {sb.planned} hrs target
                         </div>
                       </div>
@@ -237,7 +237,7 @@ export const ParentWeeklyDigestModal: React.FC<ParentWeeklyDigestModalProps> = (
                             }}
                           />
                         </div>
-                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300 w-12 text-right">
+                        <span className="text-xs font-bold text-slate-700 dark:text-white w-12 text-right">
                           {sb.adherence}%
                         </span>
                       </div>
@@ -252,13 +252,13 @@ export const ParentWeeklyDigestModal: React.FC<ParentWeeklyDigestModalProps> = (
                   <Sparkles className="w-4 h-4 text-blue-500" />
                   <span>Teacher & AI Advisor Remarks for Parent</span>
                 </div>
-                <p className="text-xs text-blue-950 dark:text-blue-200 leading-relaxed">
+                <p className="text-xs text-blue-950 dark:text-blue-100 leading-relaxed">
                   "{currentUser?.name || 'Alex'} has demonstrated outstanding dedication to daily core
                   Mathematics, logging 10.5 consecutive sprint hours without missed days. Recommended
                   focus for the upcoming week: reinforce Kinematics vector decomposition before Wednesday's
                   formative assessment."
                 </p>
-                <div className="mt-2 text-[11px] text-blue-700 dark:text-blue-400 font-semibold">
+                <div className="mt-2 text-[11px] text-blue-700 dark:text-blue-300 font-semibold">
                   &bull; Certified by: Dr. Evelyn Reed (Physics Lead) & Marcus Vance (Math Chair)
                 </div>
               </div>
@@ -270,10 +270,10 @@ export const ParentWeeklyDigestModal: React.FC<ParentWeeklyDigestModalProps> = (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-white">
                     Printable 1-Page Sunday Digest
                   </h4>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-slate-500 dark:text-white">
                     This exact 1-page document is attached to the weekly Sunday email.
                   </p>
                 </div>
@@ -416,13 +416,13 @@ export const ParentWeeklyDigestModal: React.FC<ParentWeeklyDigestModalProps> = (
           {activeTab === 'settings' && (
             <div className="space-y-4">
               <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/80 space-y-3">
-                <h5 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                <h5 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-white">
                   Parent / Guardian Contact Configuration
                 </h5>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                   <div>
-                    <label className="block text-slate-500 mb-1 font-semibold">Parent / Guardian Name</label>
+                    <label className="block text-slate-500 dark:text-white mb-1 font-semibold">Parent / Guardian Name</label>
                     <input
                       type="text"
                       value={parentName}
@@ -431,7 +431,7 @@ export const ParentWeeklyDigestModal: React.FC<ParentWeeklyDigestModalProps> = (
                     />
                   </div>
                   <div>
-                    <label className="block text-slate-500 mb-1 font-semibold">Registered Email Address</label>
+                    <label className="block text-slate-500 dark:text-white mb-1 font-semibold">Registered Email Address</label>
                     <input
                       type="email"
                       value={parentEmail}
@@ -448,7 +448,7 @@ export const ParentWeeklyDigestModal: React.FC<ParentWeeklyDigestModalProps> = (
                       <span className="text-xs font-bold text-slate-900 dark:text-white block">
                         Automatic Sunday Evening Dispatch
                       </span>
-                      <span className="text-[11px] text-slate-500">
+                      <span className="text-[11px] text-slate-500 dark:text-white">
                         Dispatches every Sunday at 07:00 PM IST with the attached 1-page PDF.
                       </span>
                     </div>
@@ -475,8 +475,8 @@ export const ParentWeeklyDigestModal: React.FC<ParentWeeklyDigestModalProps> = (
                   <h4 className="text-xs font-bold text-slate-900 dark:text-white">
                     Send Test Digest Email Now
                   </h4>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                    Trigger an instant sample dispatch to <strong className="text-slate-700 dark:text-slate-300">{parentEmail}</strong> to preview how it arrives in your inbox.
+                  <p className="text-[11px] text-slate-500 dark:text-white mt-0.5">
+                    Trigger an instant sample dispatch to <strong className="text-slate-700 dark:text-white">{parentEmail}</strong> to preview how it arrives in your inbox.
                   </p>
                 </div>
 
@@ -526,7 +526,7 @@ export const ParentWeeklyDigestModal: React.FC<ParentWeeklyDigestModalProps> = (
 
           <button
             onClick={onClose}
-            className="px-4 py-1.5 rounded-xl bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold transition-colors cursor-pointer"
+            className="px-4 py-1.5 rounded-xl bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-white text-xs font-bold transition-colors cursor-pointer"
           >
             Close
           </button>

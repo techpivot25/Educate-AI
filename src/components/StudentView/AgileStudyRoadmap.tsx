@@ -37,6 +37,8 @@ export const AgileStudyRoadmap: React.FC = () => {
     dailyTasks,
     setDailyTasks,
     updateStudyTask,
+    addStudyTask,
+    deleteStudyTask,
     weeklySprints,
     masterChapters,
     generateStudyPlan,
@@ -228,9 +230,13 @@ export const AgileStudyRoadmap: React.FC = () => {
 
   // Delete task
   const handleDeleteTask = (taskId: string) => {
-    setDailyTasks((prev) => prev.filter((t) => t.id !== taskId));
+    if (deleteStudyTask) {
+      deleteStudyTask(taskId);
+    } else {
+      setDailyTasks((prev) => prev.filter((t) => t.id !== taskId));
+      addNotification('Task Removed', 'Study task has been removed from roadmap.', 'info', 'student');
+    }
     setSelectedTask(null);
-    addNotification('Task Removed', 'Study task has been removed from roadmap.', 'info', 'student');
   };
 
   // Add new task with current month date
@@ -259,15 +265,19 @@ export const AgileStudyRoadmap: React.FC = () => {
       color,
     };
 
-    setDailyTasks((prev) => [...prev, newTask]);
+    if (addStudyTask) {
+      addStudyTask(newTask);
+    } else {
+      setDailyTasks((prev) => [...prev, newTask]);
+      addNotification(
+        'Task Added to Roadmap',
+        `Scheduled ${newTask.subject} (${newTask.points} pts) on ${currentMonthName} ${newTask.day}.`,
+        'success',
+        'student'
+      );
+    }
     setIsNewTaskOpen(false);
     setNewTopicFormDefaults();
-    addNotification(
-      'Task Added to Roadmap',
-      `Scheduled ${newTask.subject} (${newTask.points} pts) on ${currentMonthName} ${newTask.day}.`,
-      'success',
-      'student'
-    );
   };
 
   const setNewTopicFormDefaults = () => {
@@ -322,9 +332,9 @@ export const AgileStudyRoadmap: React.FC = () => {
       case 'To Do':
       default:
         return {
-          bg: 'bg-slate-500/15 text-slate-700 dark:text-slate-300 border-slate-500/30',
+          bg: 'bg-slate-500/15 text-slate-700 dark:text-white border-slate-500/30',
           dot: 'bg-slate-400',
-          icon: <Clock className="w-3 h-3 text-slate-500 dark:text-slate-400" />,
+          icon: <Clock className="w-3 h-3 text-slate-500 dark:text-white" />,
           label: 'To Do',
           chipBg: 'bg-[#4F46E5] hover:bg-[#4338ca] text-white',
         };
@@ -406,121 +416,134 @@ export const AgileStudyRoadmap: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
-      {/* 1. TOP HEADER: Title, Date navigation & View mode switcher */}
-      <div className="bg-white dark:bg-[#111827] rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2.5">
+    <div id="agile-roadmap-container" className="space-y-6">
+      {/* 1. TOP HEADER: Clean, Uncluttered Layout matching design specification */}
+      <div className="bg-white dark:bg-[#0E1A2D] rounded-2xl p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
+        {/* ROW 1: Heading on left, Subheading on right */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3.5 border-b border-slate-100 dark:border-slate-800/80">
+          <div className="flex flex-wrap items-center gap-2.5">
             <h1 className="text-xl sm:text-2xl font-light text-slate-900 dark:text-white tracking-wide">
-              Agile Study Roadmap
+              Agile Study <span className="font-semibold text-slate-900 dark:text-white">Roadmap</span>
             </h1>
-            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 flex items-center gap-1">
+            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-50 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 flex items-center gap-1 shadow-2xs">
               <Zap className="w-3 h-3 text-indigo-600 dark:text-indigo-400" />
               Interactive
             </span>
           </div>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-            1.5 hrs Daily Core Mathematics + Rotating Electives & Sprint Tracking
-          </p>
+
+          <div className="text-xs sm:text-sm text-slate-600 dark:text-white font-normal md:text-right leading-snug">
+            <span className="block sm:inline">1.5 hrs Daily Core Mathematics + </span>
+            <span className="block sm:inline font-medium text-slate-900 dark:text-white">Rotating Electives &amp; Sprint Tracking</span>
+          </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-auto">
-          {/* Month Switcher with chevron controls */}
-          <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/80 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs">
-            <button
-              onClick={handlePrevMonth}
-              className="p-1 text-slate-500 hover:text-slate-800 dark:hover:text-white cursor-pointer rounded-md hover:bg-slate-200/60 dark:hover:bg-slate-700 transition-colors"
-              title="Previous Month"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <span className="text-xs font-bold text-slate-800 dark:text-slate-200 min-w-[110px] text-center select-none">
-              {currentMonthName}
-            </span>
-            <button
-              onClick={handleNextMonth}
-              className="p-1 text-slate-500 hover:text-slate-800 dark:hover:text-white cursor-pointer rounded-md hover:bg-slate-200/60 dark:hover:bg-slate-700 transition-colors"
-              title="Next Month"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
+        {/* ROW 2 & ROW 3: Active Month, View Mode Switcher, and Action Controls */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3.5">
+          {/* Active Month & View Modes (Month | Week | Sprint) */}
+          <div className="flex flex-wrap items-center gap-2.5">
+            {/* Month Switcher with chevron controls */}
+            <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-[#132036] px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700/80 shadow-2xs">
+              <button
+                onClick={handlePrevMonth}
+                className="p-1 text-slate-500 dark:text-white hover:text-slate-900 dark:hover:text-white cursor-pointer rounded-lg hover:bg-slate-200/60 dark:hover:bg-slate-700 transition-colors"
+                title="Previous Month"
+                aria-label="Previous Month"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <span className="text-xs sm:text-sm font-bold text-slate-800 dark:text-white min-w-[115px] text-center select-none">
+                {currentMonthName}
+              </span>
+              <button
+                onClick={handleNextMonth}
+                className="p-1 text-slate-500 dark:text-white hover:text-slate-900 dark:hover:text-white cursor-pointer rounded-lg hover:bg-slate-200/60 dark:hover:bg-slate-700 transition-colors"
+                title="Next Month"
+                aria-label="Next Month"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* View switcher: Month | Week | Sprint Kanban */}
+            <div className="flex items-center bg-slate-100 dark:bg-[#132036] p-1 rounded-xl border border-slate-200/60 dark:border-slate-700/80">
+              <button
+                onClick={() => setCalendarViewMode('month')}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  calendarViewMode === 'month'
+                    ? 'bg-white dark:bg-[#1E3A5F] text-slate-900 dark:text-white shadow-xs'
+                    : 'text-slate-500 dark:text-white/80 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                Month
+              </button>
+              <button
+                onClick={() => setCalendarViewMode('week')}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  calendarViewMode === 'week'
+                    ? 'bg-white dark:bg-[#1E3A5F] text-slate-900 dark:text-white shadow-xs'
+                    : 'text-slate-500 dark:text-white/80 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                Week
+              </button>
+              <button
+                onClick={() => setCalendarViewMode('sprint')}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  calendarViewMode === 'sprint'
+                    ? 'bg-white dark:bg-[#1E3A5F] text-slate-900 dark:text-white shadow-xs'
+                    : 'text-slate-500 dark:text-white/80 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <Layers className="w-3.5 h-3.5" />
+                <span>Sprint</span>
+              </button>
+            </div>
           </div>
 
-          {/* View switcher: Month | Week | Sprint Kanban */}
-          <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+          {/* Action Toolbar: Add Task, Offline Pack, Parent Digest, Spreadsheet */}
+          <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+            {/* Add New Task Button */}
             <button
-              onClick={() => setCalendarViewMode('month')}
-              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                calendarViewMode === 'month'
-                  ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
+              onClick={() => {
+                setNewTaskDay(1);
+                setIsNewTaskOpen(true);
+              }}
+              className="px-3.5 py-1.5 rounded-xl bg-[#FF6B00] hover:bg-[#E56000] text-white text-xs font-bold flex items-center gap-1.5 shadow-sm shadow-orange-500/20 cursor-pointer transition-colors"
             >
-              Month
+              <Plus className="w-3.5 h-3.5" />
+              <span>Add Task</span>
             </button>
+
+            {/* Offline Study Pack button */}
             <button
-              onClick={() => setCalendarViewMode('week')}
-              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                calendarViewMode === 'week'
-                  ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
+              onClick={() => setIsOfflineModalOpen(true)}
+              title="Save Study Plan & AI Summaries for Offline Viewing / Low-Bandwidth Mode"
+              className="px-3 py-1.5 rounded-xl bg-teal-50 dark:bg-teal-950/50 hover:bg-teal-100 dark:hover:bg-teal-900/50 text-[#00A896] dark:text-[#4DF0D7] border border-teal-200 dark:border-teal-800 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
             >
-              Week
+              <Download className="w-3.5 h-3.5" />
+              <span>Offline Pack</span>
             </button>
+
+            {/* Parental Weekly Digest button */}
             <button
-              onClick={() => setCalendarViewMode('sprint')}
-              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
-                calendarViewMode === 'sprint'
-                  ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
+              onClick={() => setIsParentDigestOpen(true)}
+              title="Parental Weekly Digest: Completed vs Planned Sprint Hours"
+              className="px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/50 hover:bg-amber-100 dark:hover:bg-amber-900/50 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
             >
-              <Layers className="w-3.5 h-3.5" />
-              Sprint
+              <Mail className="w-3.5 h-3.5" />
+              <span>Parent Digest</span>
+            </button>
+
+            {/* Export Spreadsheet button */}
+            <button
+              onClick={exportStudyPlanSpreadsheet}
+              title="Export 3-Sheet Agile Study Plan (.CSV)"
+              className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 cursor-pointer transition-colors"
+              aria-label="Export Spreadsheet"
+            >
+              <FileSpreadsheet className="w-4 h-4" />
             </button>
           </div>
-
-          {/* Add New Task Button */}
-          <button
-            onClick={() => {
-              setNewTaskDay(1);
-              setIsNewTaskOpen(true);
-            }}
-            className="px-3.5 py-1.5 rounded-xl bg-[#FF6B00] hover:bg-[#E56000] text-white text-xs font-bold flex items-center gap-1.5 shadow-sm shadow-orange-500/20 cursor-pointer transition-colors"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Add Task</span>
-          </button>
-
-          {/* Offline Study Pack button */}
-          <button
-            onClick={() => setIsOfflineModalOpen(true)}
-            title="Save Study Plan & AI Summaries for Offline Viewing / Low-Bandwidth Mode"
-            className="px-3 py-1.5 rounded-xl bg-teal-50 dark:bg-teal-950/50 hover:bg-teal-100 dark:hover:bg-teal-900/50 text-[#00A896] border border-teal-200 dark:border-teal-800 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Offline Pack</span>
-          </button>
-
-          {/* Parental Weekly Digest button */}
-          <button
-            onClick={() => setIsParentDigestOpen(true)}
-            title="Parental Weekly Digest: Completed vs Planned Sprint Hours"
-            className="px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/50 hover:bg-amber-100 dark:hover:bg-amber-900/50 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
-          >
-            <Mail className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Parent Digest</span>
-          </button>
-
-          {/* Export Spreadsheet button */}
-          <button
-            onClick={exportStudyPlanSpreadsheet}
-            title="Export 3-Sheet Agile Study Plan (.CSV)"
-            className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 cursor-pointer transition-colors"
-          >
-            <FileSpreadsheet className="w-4 h-4" />
-          </button>
         </div>
       </div>
 
@@ -535,7 +558,7 @@ export const AgileStudyRoadmap: React.FC = () => {
             className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
               activeStatusFilter === 'ALL'
                 ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-xs ring-2 ring-slate-900/20 dark:ring-white/20'
-                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-white hover:bg-slate-200 dark:hover:bg-slate-700'
             }`}
           >
             <span>All Tasks</span>
@@ -543,7 +566,7 @@ export const AgileStudyRoadmap: React.FC = () => {
               className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${
                 activeStatusFilter === 'ALL'
                   ? 'bg-white/20 dark:bg-slate-900/20 text-white dark:text-slate-900'
-                  : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
+                  : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white'
               }`}
             >
               {totalTasks}
@@ -557,16 +580,16 @@ export const AgileStudyRoadmap: React.FC = () => {
             className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
               activeStatusFilter === 'To Do'
                 ? 'bg-slate-800 text-white dark:bg-slate-200 dark:text-slate-900 shadow-xs ring-2 ring-slate-400/50'
-                : 'bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                : 'bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-white hover:bg-slate-200 dark:hover:bg-slate-700'
             }`}
           >
-            <Clock className="w-3.5 h-3.5 text-slate-400" />
+            <Clock className="w-3.5 h-3.5 text-slate-400 dark:text-white" />
             <span>To Do</span>
             <span
               className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${
                 activeStatusFilter === 'To Do'
                   ? 'bg-white/25 dark:bg-slate-900/20 text-white dark:text-slate-900'
-                  : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
+                  : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white'
               }`}
             >
               {todoCount}
@@ -670,7 +693,7 @@ export const AgileStudyRoadmap: React.FC = () => {
             <button
               type="button"
               onClick={() => setActiveStatusFilter('ALL')}
-              className="text-xs font-bold text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 px-2 py-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-1 transition-colors cursor-pointer"
+              className="text-xs font-bold text-slate-400 hover:text-slate-700 dark:hover:text-white px-2 py-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-1 transition-colors cursor-pointer"
               title="Show all tasks"
             >
               <X className="w-3 h-3" />
@@ -686,7 +709,7 @@ export const AgileStudyRoadmap: React.FC = () => {
           </div>
           <div className="min-w-[130px] sm:min-w-[150px]">
             <div className="flex items-center justify-between text-xs">
-              <span className="font-extrabold text-slate-700 dark:text-slate-300">Sprint Points</span>
+              <span className="font-extrabold text-slate-700 dark:text-white">Sprint Points</span>
               <span className="font-black text-amber-600 dark:text-amber-400">
                 {earnedPoints} / {totalPoints} pts
               </span>
@@ -698,7 +721,7 @@ export const AgileStudyRoadmap: React.FC = () => {
               />
             </div>
           </div>
-          <span className="text-xs font-black text-slate-500 dark:text-slate-400">
+          <span className="text-xs font-black text-slate-500 dark:text-white">
             {totalPoints > 0 ? Math.round((earnedPoints / totalPoints) * 100) : 0}%
           </span>
         </div>
@@ -708,7 +731,7 @@ export const AgileStudyRoadmap: React.FC = () => {
       {calendarViewMode === 'month' && (
         <div className="bg-white dark:bg-[#111827] rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden">
           {/* Day Header Row (Mon, Tue, Wed, Thu, Fri, Sat, Sun) */}
-          <div className="grid grid-cols-7 border-b border-slate-200 dark:border-slate-800 text-center py-2.5 bg-slate-50/70 dark:bg-slate-800/50 text-xs font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+          <div className="grid grid-cols-7 border-b border-slate-200 dark:border-slate-800 text-center py-2.5 bg-slate-50/70 dark:bg-slate-800/50 text-xs font-extrabold text-slate-500 dark:text-white uppercase tracking-wider">
             <div>Mon</div>
             <div>Tue</div>
             <div>Wed</div>
@@ -757,10 +780,10 @@ export const AgileStudyRoadmap: React.FC = () => {
                         className={`p-2 flex flex-col justify-between transition-colors ${
                           isDragTarget
                             ? 'bg-indigo-100/70 dark:bg-indigo-900/50 ring-2 ring-indigo-500 ring-inset'
-                            : 'bg-slate-50/40 dark:bg-slate-900/20 text-slate-400 dark:text-slate-600'
+                            : 'bg-slate-50/40 dark:bg-slate-900/30 text-slate-500 dark:text-white'
                         }`}
                       >
-                        <div className="flex items-center justify-between text-xs font-bold text-slate-400 dark:text-slate-600">
+                        <div className="flex items-center justify-between text-xs font-bold text-slate-500 dark:text-white">
                           <span>{cell.day}</span>
                           <span className="text-[9px] uppercase tracking-wider font-semibold">
                             {cell.type === 'prev' ? 'Prev' : 'Next'}
@@ -771,7 +794,7 @@ export const AgileStudyRoadmap: React.FC = () => {
                             Drop to move
                           </div>
                         ) : (
-                          <span className="text-[10px] text-slate-300 dark:text-slate-700 italic">
+                          <span className="text-[10px] text-slate-400 dark:text-white italic">
                             {cell.type === 'prev' ? 'Prev Month' : 'Next Month'}
                           </span>
                         )}
@@ -834,7 +857,7 @@ export const AgileStudyRoadmap: React.FC = () => {
                               ? 'text-indigo-600 dark:text-indigo-400 font-black'
                               : hasMatchingFilterTasks && activeStatusFilter !== 'ALL'
                               ? 'text-indigo-600 dark:text-indigo-400 font-black'
-                              : 'text-slate-400 dark:text-slate-500'
+                              : 'text-slate-600 dark:text-white'
                           }`}
                         >
                           {dayNum}
@@ -893,7 +916,7 @@ export const AgileStudyRoadmap: React.FC = () => {
                                 {task.topic}
                               </div>
 
-                              {/* Task Status Pill Indicator */}
+                              {/* Task Status Pill Indicator + One-Click Actions */}
                               <div className="mt-1 flex items-center justify-between text-[8px] text-white/90 font-medium">
                                 <span className="flex items-center gap-1">
                                   <span className={`w-1.5 h-1.5 rounded-full ${badge.dot}`} />
@@ -901,20 +924,57 @@ export const AgileStudyRoadmap: React.FC = () => {
                                 </span>
                                 {task.is_core && <span className="text-amber-200">★ Core</span>}
                               </div>
+
+                              {/* One-Click Quick Status Bar */}
+                              <div
+                                className="mt-1.5 pt-1 border-t border-white/20 flex items-center justify-end gap-1 opacity-90 group-hover/card:opacity-100"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {task.status !== 'Completed' && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleQuickStatusChange(task.id, 'Completed')}
+                                    title="Mark Completed (100% weight to Course Completion Tracker)"
+                                    className="px-1 py-0.2 rounded text-[8px] font-black bg-emerald-500 hover:bg-emerald-400 text-white shadow-2xs cursor-pointer transition-transform active:scale-95"
+                                  >
+                                    ✓ Done
+                                  </button>
+                                )}
+                                {task.status !== 'In Progress' && task.status !== 'Completed' && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleQuickStatusChange(task.id, 'In Progress')}
+                                    title="Mark In Progress"
+                                    className="px-1 py-0.2 rounded text-[8px] font-black bg-blue-500 hover:bg-blue-400 text-white shadow-2xs cursor-pointer transition-transform active:scale-95"
+                                  >
+                                    ▶ In Prog
+                                  </button>
+                                )}
+                                {task.status !== 'Revision' && task.status === 'Completed' && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleQuickStatusChange(task.id, 'Revision')}
+                                    title="Move to Revision"
+                                    className="px-1 py-0.2 rounded text-[8px] font-black bg-purple-500 hover:bg-purple-400 text-white shadow-2xs cursor-pointer transition-transform active:scale-95"
+                                  >
+                                    ↺ Revise
+                                  </button>
+                                )}
+                              </div>
                             </div>
                           );
                         })}
 
                         {/* If has tasks but none match current filter */}
                         {hasTasks && visibleTasks.length === 0 && (
-                          <div className="text-[10px] text-slate-400 dark:text-slate-600 italic py-1 text-center">
+                          <div className="text-[10px] text-slate-400 dark:text-white italic py-1 text-center">
                             {dayTasks.length} {dayTasks.length === 1 ? 'task' : 'tasks'} (filtered)
                           </div>
                         )}
 
                         {/* If no scheduled tasks on this day */}
                         {!hasTasks && (
-                          <div className="text-[10px] text-slate-300 dark:text-slate-600 italic py-1">
+                          <div className="text-[10px] text-slate-400 dark:text-white italic py-1">
                             {getEmptyDayLabel(dayNum)}
                           </div>
                         )}
@@ -922,7 +982,7 @@ export const AgileStudyRoadmap: React.FC = () => {
 
                       {/* Day Footer info */}
                       {visibleTasks.length > 0 && (
-                        <div className="text-[9px] text-slate-400 dark:text-slate-500 font-semibold text-right">
+                        <div className="text-[9px] text-slate-500 dark:text-white font-semibold text-right">
                           {visibleTasks.reduce((s, t) => s + (t.duration_hrs || 1.5), 0)}h
                         </div>
                       )}
@@ -945,7 +1005,7 @@ export const AgileStudyRoadmap: React.FC = () => {
                   <Calendar className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                   Sprint Week Schedule: {currentMonthName} (Days 8 to 14)
                 </h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                <p className="text-xs text-slate-500 dark:text-white mt-0.5">
                   Drag tasks between days to rebalance workload. Guaranteed 1.5h core mathematics and electives.
                 </p>
               </div>
@@ -993,7 +1053,7 @@ export const AgileStudyRoadmap: React.FC = () => {
                     >
                       <div>
                         <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-700">
-                          <span className={`text-xs font-black ${isDragTarget ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-800 dark:text-slate-200'}`}>
+                          <span className={`text-xs font-black ${isDragTarget ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-800 dark:text-white'}`}>
                             Day {dayNum}
                           </span>
                           <div className="flex items-center gap-1">
@@ -1007,7 +1067,7 @@ export const AgileStudyRoadmap: React.FC = () => {
                                 setNewTaskDay(dayNum);
                                 setIsNewTaskOpen(true);
                               }}
-                              className="text-slate-400 hover:text-indigo-600 cursor-pointer"
+                              className="text-slate-400 hover:text-indigo-600 dark:hover:text-white cursor-pointer"
                               title={`Add task for Day ${dayNum}`}
                             >
                               <Plus className="w-3.5 h-3.5" />
@@ -1051,14 +1111,14 @@ export const AgileStudyRoadmap: React.FC = () => {
                           })}
 
                           {dayTasks.length === 0 && (
-                            <div className="text-xs text-slate-400 dark:text-slate-500 italic py-4 text-center">
+                            <div className="text-xs text-slate-400 dark:text-white italic py-4 text-center">
                               {getEmptyDayLabel(dayNum)}
                             </div>
                           )}
                         </div>
                       </div>
 
-                      <div className="pt-2 text-[10px] font-semibold text-slate-400 dark:text-slate-500">
+                      <div className="pt-2 text-[10px] font-semibold text-slate-400 dark:text-white">
                         Target: 1.5h core practice
                       </div>
                     </div>
@@ -1079,7 +1139,7 @@ export const AgileStudyRoadmap: React.FC = () => {
                   <Layers className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                   Agile Sprint Kanban Board ({currentMonthName})
                 </h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                <p className="text-xs text-slate-500 dark:text-white mt-0.5">
                   Drag tasks between columns or click to advance through sprint cycles and earn study story points.
                 </p>
               </div>
@@ -1125,11 +1185,11 @@ export const AgileStudyRoadmap: React.FC = () => {
                       <div className="flex items-center justify-between pb-2.5 border-b border-slate-200 dark:border-slate-700">
                         <div className="flex items-center gap-1.5">
                           <span className={`w-2.5 h-2.5 rounded-full ${column.dot}`} />
-                          <span className="text-xs font-black text-slate-800 dark:text-slate-200">
+                          <span className="text-xs font-black text-slate-800 dark:text-white">
                             {column.label}
                           </span>
                         </div>
-                        <span className="text-xs font-extrabold bg-white dark:bg-slate-700 px-2 py-0.5 rounded-full text-slate-700 dark:text-slate-300 shadow-xs">
+                        <span className="text-xs font-extrabold bg-white dark:bg-slate-700 px-2 py-0.5 rounded-full text-slate-700 dark:text-white shadow-xs">
                           {columnTasks.length}
                         </span>
                       </div>
@@ -1163,11 +1223,11 @@ export const AgileStudyRoadmap: React.FC = () => {
                                 </span>
                               </div>
 
-                              <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 line-clamp-2">
+                              <p className="text-xs text-slate-600 dark:text-white mt-1 line-clamp-2">
                                 {task.topic}
                               </p>
 
-                              <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[10px] text-slate-400">
+                              <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[10px] text-slate-400 dark:text-slate-200">
                                 <span>Day {task.day} · {task.duration_hrs}h</span>
                                 {task.is_core && (
                                   <span className="text-indigo-600 dark:text-indigo-400 font-bold">Core</span>
@@ -1218,14 +1278,14 @@ export const AgileStudyRoadmap: React.FC = () => {
                         })}
 
                         {columnTasks.length === 0 && (
-                          <div className="text-xs text-slate-400 dark:text-slate-500 italic py-8 text-center border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl">
+                          <div className="text-xs text-slate-400 dark:text-white italic py-8 text-center border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl">
                             No tasks in {column.label}
                           </div>
                         )}
                       </div>
                     </div>
 
-                    <div className="pt-2 text-[10px] font-extrabold text-slate-400 dark:text-slate-500 text-right">
+                    <div className="pt-2 text-[10px] font-extrabold text-slate-400 dark:text-white text-right">
                       Total: {colPoints} pts
                     </div>
                   </div>
@@ -1237,31 +1297,31 @@ export const AgileStudyRoadmap: React.FC = () => {
       )}
 
       {/* 6. ACTION FOOTER BAR: Quick links & Recalculate */}
-      <div className="flex flex-wrap items-center justify-between gap-3 pt-1 text-xs text-slate-500 dark:text-slate-400">
+      <div className="flex flex-wrap items-center justify-between gap-3 pt-1 text-xs text-slate-500 dark:text-white">
         <div className="flex flex-wrap items-center gap-4">
           <span className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-[#4F46E5]" />
-            <span className="font-semibold text-slate-700 dark:text-slate-300">Core Math (1.5h)</span>
+            <span className="font-semibold text-slate-700 dark:text-white">Core Math (1.5h)</span>
           </span>
           <span className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-[#0284C7]" />
-            <span className="font-semibold text-slate-700 dark:text-slate-300">Physics Lab</span>
+            <span className="font-semibold text-slate-700 dark:text-white">Physics Lab</span>
           </span>
           <span className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-[#0EA5E9]" />
-            <span className="font-semibold text-slate-700 dark:text-slate-300">History Reading</span>
+            <span className="font-semibold text-slate-700 dark:text-white">History Reading</span>
           </span>
           <span className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-            <span className="font-semibold text-slate-700 dark:text-slate-300">Completed</span>
+            <span className="font-semibold text-slate-700 dark:text-white">Completed</span>
           </span>
           <span className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-            <span className="font-semibold text-slate-700 dark:text-slate-300">On Hold</span>
+            <span className="font-semibold text-slate-700 dark:text-white">On Hold</span>
           </span>
           <span className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-purple-500" />
-            <span className="font-semibold text-slate-700 dark:text-slate-300">Revision</span>
+            <span className="font-semibold text-slate-700 dark:text-white">Revision</span>
           </span>
         </div>
 
@@ -1289,7 +1349,7 @@ export const AgileStudyRoadmap: React.FC = () => {
                   <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
                     {selectedTask.subject}
                   </span>
-                  <span className="text-xs font-semibold text-slate-400">
+                  <span className="text-xs font-semibold text-slate-400 dark:text-white">
                     Day {selectedTask.day} · {selectedTask.date}
                   </span>
                 </div>
@@ -1299,7 +1359,7 @@ export const AgileStudyRoadmap: React.FC = () => {
               </div>
               <button
                 onClick={() => setSelectedTask(null)}
-                className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer"
+                className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-700 dark:hover:text-white cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1308,7 +1368,7 @@ export const AgileStudyRoadmap: React.FC = () => {
             <form onSubmit={handleSaveTask} className="space-y-4">
               {/* Topic / Title */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-white mb-1">
                   Topic / Task Description
                 </label>
                 <input
@@ -1322,7 +1382,7 @@ export const AgileStudyRoadmap: React.FC = () => {
 
               {/* Status Picker: 5 Choices (In Progress, On Hold, Completed, Revision, To Do) */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
+                <label className="block text-xs font-bold text-slate-700 dark:text-white mb-2">
                   Select Status
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -1342,7 +1402,7 @@ export const AgileStudyRoadmap: React.FC = () => {
                       className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 border transition-all cursor-pointer ${
                         editStatus === option.status
                           ? `${option.activeBg} shadow-xs font-black`
-                          : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
+                          : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-white border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
                       }`}
                     >
                       {option.icon}
@@ -1356,11 +1416,11 @@ export const AgileStudyRoadmap: React.FC = () => {
               <div className="bg-slate-50 dark:bg-slate-800/60 rounded-2xl p-4 border border-slate-200 dark:border-slate-700">
                 <div className="flex items-center justify-between">
                   <div>
-                    <label className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                    <label className="text-xs font-bold text-slate-800 dark:text-white flex items-center gap-1.5">
                       <Award className="w-4 h-4 text-amber-500" />
                       Study Points (XP)
                     </label>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    <p className="text-[11px] text-slate-500 dark:text-white mt-0.5">
                       Sprint story points awarded when marked Completed
                     </p>
                   </div>
@@ -1370,7 +1430,7 @@ export const AgileStudyRoadmap: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setEditPoints((prev) => Math.max(5, prev - 5))}
-                      className="w-8 h-8 rounded-lg bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 flex items-center justify-center font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 cursor-pointer"
+                      className="w-8 h-8 rounded-lg bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 flex items-center justify-center font-bold text-slate-700 dark:text-white hover:bg-slate-100 cursor-pointer"
                     >
                       -
                     </button>
@@ -1386,7 +1446,7 @@ export const AgileStudyRoadmap: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setEditPoints((prev) => Math.min(100, prev + 5))}
-                      className="w-8 h-8 rounded-lg bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 flex items-center justify-center font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 cursor-pointer"
+                      className="w-8 h-8 rounded-lg bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 flex items-center justify-center font-bold text-slate-700 dark:text-white hover:bg-slate-100 cursor-pointer"
                     >
                       +
                     </button>
@@ -1395,7 +1455,7 @@ export const AgileStudyRoadmap: React.FC = () => {
 
                 {/* Quick Presets */}
                 <div className="flex items-center gap-1.5 mt-3 pt-2.5 border-t border-slate-200/80 dark:border-slate-700/80 text-[11px]">
-                  <span className="text-slate-400 font-medium mr-1">Presets:</span>
+                  <span className="text-slate-400 dark:text-white font-medium mr-1">Presets:</span>
                   {[10, 15, 20, 25, 30, 50].map((pts) => (
                     <button
                       key={pts}
@@ -1404,7 +1464,7 @@ export const AgileStudyRoadmap: React.FC = () => {
                       className={`px-2 py-0.5 rounded-md font-bold transition-colors cursor-pointer ${
                         editPoints === pts
                           ? 'bg-amber-500 text-white'
-                          : 'bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:bg-amber-50'
+                          : 'bg-white dark:bg-slate-700 text-slate-700 dark:text-white border border-slate-200 dark:border-slate-600 hover:bg-amber-50'
                       }`}
                     >
                       {pts}p
@@ -1416,7 +1476,7 @@ export const AgileStudyRoadmap: React.FC = () => {
               {/* Duration (hrs) */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-white mb-1">
                     Duration (hours)
                   </label>
                   <input
@@ -1431,10 +1491,10 @@ export const AgileStudyRoadmap: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-white mb-1">
                     Core Subject
                   </label>
-                  <div className="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between">
+                  <div className="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm font-semibold text-slate-700 dark:text-white flex items-center justify-between">
                     <span>{selectedTask.is_core ? 'Yes (Daily Core)' : 'Elective'}</span>
                     {selectedTask.is_core && <span className="text-amber-500">★</span>}
                   </div>
@@ -1443,7 +1503,7 @@ export const AgileStudyRoadmap: React.FC = () => {
 
               {/* Study Notes */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-white mb-1">
                   Revision Notes / Formula References
                 </label>
                 <textarea
@@ -1493,7 +1553,7 @@ export const AgileStudyRoadmap: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setSelectedTask(null)}
-                    className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 cursor-pointer"
+                    className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
                   >
                     Cancel
                   </button>
@@ -1523,13 +1583,13 @@ export const AgileStudyRoadmap: React.FC = () => {
                 <h3 className="text-lg font-light text-slate-900 dark:text-white tracking-wide">
                   Schedule New Study Task
                 </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                <p className="text-xs text-slate-500 dark:text-white mt-0.5">
                   Add task to Day {newTaskDay} in October 2026 roadmap.
                 </p>
               </div>
               <button
                 onClick={() => setIsNewTaskOpen(false)}
-                className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-700 cursor-pointer"
+                className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-700 dark:hover:text-white cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1538,7 +1598,7 @@ export const AgileStudyRoadmap: React.FC = () => {
             <form onSubmit={handleCreateNewTask} className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-white mb-1">
                     Day of Month (1 - 31)
                   </label>
                   <input
@@ -1553,7 +1613,7 @@ export const AgileStudyRoadmap: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-white mb-1">
                     Subject
                   </label>
                   <select
@@ -1572,7 +1632,7 @@ export const AgileStudyRoadmap: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-white mb-1">
                   Topic / Lesson Title
                 </label>
                 <input
@@ -1587,7 +1647,7 @@ export const AgileStudyRoadmap: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-white mb-1">
                     Initial Status
                   </label>
                   <select
@@ -1604,7 +1664,7 @@ export const AgileStudyRoadmap: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-white mb-1">
                     Study Points (XP)
                   </label>
                   <input
@@ -1627,7 +1687,7 @@ export const AgileStudyRoadmap: React.FC = () => {
                   onChange={(e) => setNewTaskIsCore(e.target.checked)}
                   className="rounded text-indigo-600 focus:ring-indigo-500"
                 />
-                <label htmlFor="newCoreCheckbox" className="text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
+                <label htmlFor="newCoreCheckbox" className="text-xs font-semibold text-slate-700 dark:text-white cursor-pointer">
                   Mark as Core Daily Practice (Guaranteed Daily Sprint block)
                 </label>
               </div>
@@ -1636,7 +1696,7 @@ export const AgileStudyRoadmap: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsNewTaskOpen(false)}
-                  className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 cursor-pointer"
+                  className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
                 >
                   Cancel
                 </button>
