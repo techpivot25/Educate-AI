@@ -66,7 +66,7 @@ const MainContent: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col font-sans transition-colors bg-[#F5F7FF] dark:bg-[#12131C] text-[#1F1F24] dark:text-[#F1F1F6]">
+    <div className={`min-h-screen flex flex-col font-sans transition-colors bg-[#F5F7FF] dark:bg-[#12131C] text-[#1F1F24] dark:text-[#F1F1F6] ${currentRole === 'admin' ? 'admin-panel-lolipop' : ''}`}>
       <QuotaDefenseBanner />
       {/* Student and Teacher Panels feature their own full-height dark navy sidebar and header matching the student theme */}
       {currentRole !== 'student' && currentRole !== 'teacher' && <GlobalHeader />}

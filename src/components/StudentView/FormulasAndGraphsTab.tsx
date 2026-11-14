@@ -1,11 +1,9 @@
 import React, { useState } from 'react';
 import { ChemistryAtomicChart } from './ChemistryAtomicChart';
+import { SubjectIcon } from '../common/SubjectIcon';
 import {
   Binary,
-  Cpu,
   Atom,
-  Clock,
-  Zap,
   Compass,
   Search,
   BookOpen,
@@ -815,12 +813,12 @@ export const FormulasAndGraphsTab: React.FC<{
   const [copiedFormulaId, setCopiedFormulaId] = useState<string | null>(null);
   const [selectedDiagramModal, setSelectedDiagramModal] = useState<DiagramModel | null>(null);
 
-  const subjects: { id: SubjectCategory; label: string; icon: React.ReactNode; color: string }[] = [
-    { id: 'Mathematics', label: 'Mathematics', icon: <Binary className="w-4 h-4" />, color: 'text-indigo-500' },
-    { id: 'Physics', label: 'Physics', icon: <Zap className="w-4 h-4" />, color: 'text-sky-500' },
-    { id: 'Chemistry', label: 'Chemistry', icon: <Atom className="w-4 h-4" />, color: 'text-emerald-500' },
-    { id: 'History & Civics', label: 'History & Civics', icon: <Clock className="w-4 h-4" />, color: 'text-amber-500' },
-    { id: 'Biology', label: 'Biology', icon: <Cpu className="w-4 h-4" />, color: 'text-teal-500' },
+  const subjects: { id: SubjectCategory; label: string }[] = [
+    { id: 'Mathematics', label: 'Mathematics' },
+    { id: 'Physics', label: 'Physics' },
+    { id: 'Chemistry', label: 'Chemistry' },
+    { id: 'History & Civics', label: 'History & Civics' },
+    { id: 'Biology', label: 'Biology' },
   ];
 
   // Filtering formulas
@@ -901,13 +899,13 @@ export const FormulasAndGraphsTab: React.FC<{
                 <button
                   key={sub.id}
                   onClick={() => setSelectedSubject(sub.id)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap ${
+                  className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-lollipop-regular transition-all cursor-pointer whitespace-nowrap border ${
                     isSelected
-                      ? 'bg-[#4F46E5] text-white shadow-sm shadow-[#4F46E5]/25'
-                      : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-700'
+                      ? 'bg-emerald-50/90 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800 shadow-xs'
+                      : 'bg-slate-50/80 dark:bg-slate-800 text-slate-700 dark:text-white border-transparent hover:bg-slate-100 dark:hover:bg-slate-700'
                   }`}
                 >
-                  <span className={isSelected ? 'text-white' : sub.color}>{sub.icon}</span>
+                  <SubjectIcon subject={sub.id} size="sm" />
                   <span>{sub.label}</span>
                 </button>
               );
@@ -1013,22 +1011,22 @@ export const FormulasAndGraphsTab: React.FC<{
                 className="bg-white dark:bg-[#111827] rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs hover:shadow-md transition-all overflow-hidden flex flex-col"
               >
                 {/* Header */}
-                <div className="p-4 sm:p-5 pb-3 border-b border-slate-100 dark:border-slate-800 flex items-start justify-between gap-3">
+                <div className="p-4 sm:p-5 pb-3.5 border-b border-slate-100 dark:border-slate-800 flex items-start justify-between gap-3">
                   <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-[#4F46E5] dark:text-[#818CF8]">
+                    <div className="flex flex-wrap items-center gap-2.5">
+                      <span className="text-xs sm:text-sm font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-[#4F46E5] dark:text-[#818CF8]">
                         {diag.diagramType}
                       </span>
-                      <span className="text-[11px] text-slate-500 dark:text-white font-medium">{diag.topic}</span>
+                      <span className="text-sm text-slate-700 dark:text-white font-medium">{diag.topic}</span>
                     </div>
-                    <h3 className="font-light text-base text-slate-900 dark:text-white mt-1">
+                    <h3 className="font-normal text-lg sm:text-xl text-slate-900 dark:text-white mt-1.5">
                       {diag.title}
                     </h3>
                   </div>
                   <button
                     onClick={() => setSelectedDiagramModal(diag)}
                     title="Expand Fullscreen View"
-                    className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-600 dark:text-white cursor-pointer transition-colors"
+                    className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-600 dark:text-white cursor-pointer transition-colors"
                   >
                     <Maximize2 className="w-4 h-4" />
                   </button>
@@ -1040,23 +1038,23 @@ export const FormulasAndGraphsTab: React.FC<{
                 </div>
 
                 {/* Diagram Description & Key Labels */}
-                <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between space-y-3 bg-slate-50/50 dark:bg-slate-900/50">
-                  <p className="text-xs text-slate-600 dark:text-white leading-relaxed">
+                <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between space-y-4 bg-slate-50/50 dark:bg-slate-900/50">
+                  <p className="text-sm sm:text-base text-slate-700 dark:text-white leading-relaxed">
                     {diag.description}
                   </p>
 
-                  <div className="space-y-1.5 pt-2 border-t border-slate-200/60 dark:border-slate-800">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-white">
+                  <div className="space-y-2.5 pt-3 border-t border-slate-200/60 dark:border-slate-800">
+                    <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-600 dark:text-white block">
                       Component Breakdown & Annotations:
                     </span>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                       {diag.labels.map((lbl, idx) => (
                         <div
                           key={idx}
-                          className="p-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700 text-[11px]"
+                          className="p-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/70 dark:border-slate-700"
                         >
-                          <div className="font-bold text-slate-900 dark:text-white">{lbl.text}</div>
-                          <div className="text-[10px] text-slate-500 dark:text-white/80 mt-0.5">{lbl.detail}</div>
+                          <div className="text-sm font-bold text-slate-900 dark:text-white">{lbl.text}</div>
+                          <div className="text-xs sm:text-sm text-slate-600 dark:text-white/90 mt-1 leading-snug">{lbl.detail}</div>
                         </div>
                       ))}
                     </div>
@@ -1076,7 +1074,7 @@ export const FormulasAndGraphsTab: React.FC<{
               <Binary className="w-5 h-5 text-[#4F46E5]" />
               <span>{selectedSubject} Formulas & Equations ({filteredFormulas.length})</span>
             </h2>
-            <span className="text-xs text-slate-500 dark:text-white">Board-compliant derivation variables & worked examples</span>
+            <span className="text-xs sm:text-sm text-slate-500 dark:text-white">Board-compliant derivation variables & worked examples</span>
           </div>
 
           {filteredFormulas.length === 0 ? (
@@ -1085,7 +1083,7 @@ export const FormulasAndGraphsTab: React.FC<{
               <h3 className="text-base font-light text-slate-800 dark:text-white">
                 No formulas match "{searchTerm}"
               </h3>
-              <p className="text-xs text-slate-500 dark:text-white mt-1">
+              <p className="text-sm text-slate-500 dark:text-white mt-1">
                 Try searching for another keyword or switch subjects above.
               </p>
             </div>
@@ -1100,15 +1098,15 @@ export const FormulasAndGraphsTab: React.FC<{
                   <div className="space-y-2">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-white">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-white">
                             {f.topic}
                           </span>
-                          <span className="text-[10px] text-slate-400 dark:text-white font-medium">
+                          <span className="text-xs text-slate-500 dark:text-white font-medium">
                             Grades {f.gradeLevels.join(', ')}
                           </span>
                         </div>
-                        <h3 className="font-light text-base text-slate-900 dark:text-white mt-1">
+                        <h3 className="font-normal text-lg text-slate-900 dark:text-white mt-1.5">
                           {f.name}
                         </h3>
                       </div>
@@ -1125,12 +1123,12 @@ export const FormulasAndGraphsTab: React.FC<{
                         {copiedFormulaId === f.id ? (
                           <>
                             <CheckCircle className="w-3.5 h-3.5" />
-                            <span className="text-[10px]">Copied</span>
+                            <span className="text-xs">Copied</span>
                           </>
                         ) : (
                           <>
                             <Copy className="w-3.5 h-3.5" />
-                            <span className="text-[10px] hidden sm:inline">Copy</span>
+                            <span className="text-xs hidden sm:inline">Copy</span>
                           </>
                         )}
                       </button>
@@ -1138,35 +1136,35 @@ export const FormulasAndGraphsTab: React.FC<{
 
                     {/* Prominent Formula Equation Display */}
                     <div className="p-4 rounded-xl bg-slate-950 text-white font-mono text-center shadow-inner space-y-1">
-                      <div className="text-base sm:text-lg font-bold text-indigo-300 tracking-wide select-all">
+                      <div className="text-lg sm:text-xl font-bold text-indigo-300 tracking-wide select-all">
                         {f.expression}
                       </div>
-                      <div className="text-[10px] text-slate-300 dark:text-white">Standard Formula Expression</div>
+                      <div className="text-xs text-slate-300 dark:text-white">Standard Formula Expression</div>
                     </div>
 
                     {/* Description */}
-                    <p className="text-xs text-slate-600 dark:text-white leading-relaxed">
+                    <p className="text-sm text-slate-700 dark:text-white leading-relaxed">
                       {f.description}
                     </p>
                   </div>
 
                   {/* Variables & Units Breakdown */}
-                  <div className="space-y-3 pt-3 border-t border-slate-100 dark:border-slate-800 text-xs">
+                  <div className="space-y-3 pt-3 border-t border-slate-100 dark:border-slate-800 text-sm">
                     <div>
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-white block mb-1.5">
+                      <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-white block mb-2">
                         Variables & Units:
                       </span>
-                      <div className="space-y-1">
+                      <div className="space-y-1.5">
                         {f.variables.map((v, i) => (
-                          <div key={i} className="flex items-baseline justify-between text-[11px] gap-2">
+                          <div key={i} className="flex items-baseline justify-between text-xs sm:text-sm gap-2">
                             <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">
                               {v.symbol}
                             </span>
-                            <span className="text-slate-600 dark:text-white flex-1 truncate">
+                            <span className="text-slate-700 dark:text-white flex-1 truncate">
                               {v.meaning}
                             </span>
                             {v.units && (
-                              <span className="text-[10px] font-mono text-slate-400 dark:text-white shrink-0">
+                              <span className="text-xs font-mono text-slate-500 dark:text-white shrink-0">
                                 [{v.units}]
                               </span>
                             )}
@@ -1177,19 +1175,19 @@ export const FormulasAndGraphsTab: React.FC<{
 
                     {/* Example Problem if available */}
                     {f.exampleProblem && (
-                      <div className="p-2.5 rounded-xl bg-indigo-50/60 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/40 text-[11px]">
+                      <div className="p-3 rounded-xl bg-indigo-50/60 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/40 text-xs sm:text-sm">
                         <span className="font-bold text-[#4F46E5] dark:text-[#818CF8] block">
                           Worked Example:
                         </span>
-                        <p className="text-slate-700 dark:text-white mt-0.5">
+                        <p className="text-slate-700 dark:text-white mt-0.5 leading-relaxed">
                           {f.exampleProblem}
                         </p>
                       </div>
                     )}
 
                     {/* Key Takeaway */}
-                    <div className="flex items-start gap-1.5 text-[11px] text-slate-500 dark:text-white">
-                      <Info className="w-3.5 h-3.5 text-indigo-500 shrink-0 mt-0.5" />
+                    <div className="flex items-start gap-2 text-xs sm:text-sm text-slate-600 dark:text-white">
+                      <Info className="w-4 h-4 text-indigo-500 shrink-0 mt-0.5" />
                       <span>{f.keyTakeaway}</span>
                     </div>
                   </div>
@@ -1206,10 +1204,10 @@ export const FormulasAndGraphsTab: React.FC<{
           <div className="bg-white dark:bg-[#111827] rounded-3xl max-w-4xl w-full p-6 space-y-4 shadow-2xl border border-slate-200 dark:border-slate-800 animate-in zoom-in-95">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
               <div>
-                <span className="text-xs font-bold text-[#4F46E5] uppercase tracking-wider">
+                <span className="text-sm font-bold text-[#4F46E5] uppercase tracking-wider">
                   {selectedDiagramModal.category} &bull; {selectedDiagramModal.diagramType}
                 </span>
-                <h3 className="text-xl font-light text-slate-900 dark:text-white tracking-wide">
+                <h3 className="text-2xl font-normal text-slate-900 dark:text-white tracking-wide mt-0.5">
                   {selectedDiagramModal.title}
                 </h3>
               </div>
@@ -1225,15 +1223,15 @@ export const FormulasAndGraphsTab: React.FC<{
               {selectedDiagramModal.svgVisual}
             </div>
 
-            <p className="text-xs sm:text-sm text-slate-600 dark:text-white">
+            <p className="text-sm sm:text-base text-slate-700 dark:text-white leading-relaxed">
               {selectedDiagramModal.description}
             </p>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2 border-t border-slate-100 dark:border-slate-800">
               {selectedDiagramModal.labels.map((lbl, idx) => (
-                <div key={idx} className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 text-xs">
-                  <div className="font-bold text-slate-900 dark:text-white">{lbl.text}</div>
-                  <div className="text-slate-500 dark:text-white/80 text-[11px]">{lbl.detail}</div>
+                <div key={idx} className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800">
+                  <div className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">{lbl.text}</div>
+                  <div className="text-slate-600 dark:text-white/90 text-xs sm:text-sm mt-0.5">{lbl.detail}</div>
                 </div>
               ))}
             </div>

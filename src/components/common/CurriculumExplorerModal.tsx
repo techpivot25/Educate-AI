@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
+import { EducationBoard } from '../../types';
+import { ALL_EDUCATION_BOARDS } from '../../data/curriculumData';
 import {
   BookOpen,
   X,
@@ -13,6 +15,7 @@ import {
   Award,
   ArrowRight,
   Lightbulb,
+  Globe,
 } from 'lucide-react';
 
 export const CurriculumExplorerModal: React.FC = () => {
@@ -24,29 +27,35 @@ export const CurriculumExplorerModal: React.FC = () => {
     setTeacherSubjectContext,
     sendTutorMessage,
     currentRole,
+    currentBoard,
   } = useApp();
 
   const [selectedGradeTab, setSelectedGradeTab] = useState<number | 'all'>('all');
+  const [selectedBoardTab, setSelectedBoardTab] = useState<EducationBoard | 'all'>((currentBoard as EducationBoard) || 'CBSE');
   const [selectedCategoryTab, setSelectedCategoryTab] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedSubjectDetail, setSelectedSubjectDetail] = useState<any | null>(null);
+  const [showAllResults, setShowAllResults] = useState(false);
 
   if (!isCurriculumModalOpen) return null;
 
   // Filter list
   const filteredCurriculum = curriculumList.filter((item) => {
     if (selectedGradeTab !== 'all' && item.grade !== selectedGradeTab) return false;
+    if (selectedBoardTab !== 'all' && item.board && item.board !== 'ALL' && item.board !== selectedBoardTab) return false;
     if (selectedCategoryTab !== 'all' && item.category !== selectedCategoryTab) return false;
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       const matchName = item.subjectName.toLowerCase().includes(q);
       const matchCode = item.code.toLowerCase().includes(q);
+      const matchBoard = (item.board || '').toLowerCase().includes(q);
       const matchDesc = item.description.toLowerCase().includes(q);
       const matchTopics = item.sampleTopics.some((t) => t.toLowerCase().includes(q));
-      if (!matchName && !matchCode && !matchDesc && !matchTopics) return false;
+      if (!matchName && !matchCode && !matchBoard && !matchDesc && !matchTopics) return false;
     }
     return true;
   });
+
+  const visibleCurriculum = showAllResults ? filteredCurriculum : filteredCurriculum.slice(0, 40);
 
   const grades = [6, 7, 8, 9, 10, 11, 12];
   const categories = ['STEM', 'Language Arts', 'Humanities', 'Arts & Electives'];
@@ -124,13 +133,52 @@ export const CurriculumExplorerModal: React.FC = () => {
             ))}
           </div>
 
+          {/* Board Pills */}
+          <div className="flex flex-wrap items-center gap-1.5 text-xs">
+            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 mr-1 flex items-center gap-1">
+              <Globe className="w-3.5 h-3.5 text-indigo-500" /> Education Board:
+            </span>
+            <button
+              onClick={() => {
+                setSelectedBoardTab('all');
+                setShowAllResults(false);
+              }}
+              className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                selectedBoardTab === 'all'
+                  ? 'bg-emerald-600 text-white shadow-xs'
+                  : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100'
+              }`}
+            >
+              All Boards (11)
+            </button>
+            {ALL_EDUCATION_BOARDS.map((b) => (
+              <button
+                key={b}
+                onClick={() => {
+                  setSelectedBoardTab(b);
+                  setShowAllResults(false);
+                }}
+                className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                  selectedBoardTab === b
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100'
+                }`}
+              >
+                {b}
+              </button>
+            ))}
+          </div>
+
           {/* Category Pills */}
           <div className="flex flex-wrap items-center gap-1.5 text-xs">
             <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 mr-1 flex items-center gap-1">
               <Layers className="w-3.5 h-3.5" /> Subject Category:
             </span>
             <button
-              onClick={() => setSelectedCategoryTab('all')}
+              onClick={() => {
+                setSelectedCategoryTab('all');
+                setShowAllResults(false);
+              }}
               className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
                 selectedCategoryTab === 'all'
                   ? 'bg-cyan-600 text-white shadow-xs'
@@ -142,7 +190,10 @@ export const CurriculumExplorerModal: React.FC = () => {
             {categories.map((c) => (
               <button
                 key={c}
-                onClick={() => setSelectedCategoryTab(c)}
+                onClick={() => {
+                  setSelectedCategoryTab(c);
+                  setShowAllResults(false);
+                }}
                 className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
                   selectedCategoryTab === c
                     ? 'bg-cyan-600 text-white shadow-xs'
@@ -159,10 +210,10 @@ export const CurriculumExplorerModal: React.FC = () => {
         <div className="flex-1 overflow-y-auto p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
           {filteredCurriculum.length === 0 ? (
             <div className="col-span-2 py-12 text-center text-slate-500 dark:text-slate-400 text-xs">
-              No curriculum entries matched your criteria. Try adjusting the search query or grade filter.
+              No curriculum entries matched your criteria. Try adjusting the search query, board, or grade filter.
             </div>
           ) : (
-            filteredCurriculum.map((item) => {
+            visibleCurriculum.map((item) => {
               const isStem = item.category === 'STEM';
               const isEla = item.category === 'Language Arts';
               const isHis = item.category === 'Humanities';
@@ -174,9 +225,12 @@ export const CurriculumExplorerModal: React.FC = () => {
                 >
                   <div className="space-y-2">
                     <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5 flex-wrap">
                         <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
                           {item.gradeLabel}
+                        </span>
+                        <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                          {!item.board || item.board === 'ALL' ? 'All Boards' : item.board}
                         </span>
                         <span className="text-[10px] font-mono text-slate-400 font-semibold">
                           {item.code}
@@ -253,12 +307,22 @@ export const CurriculumExplorerModal: React.FC = () => {
               );
             })
           )}
+          {!showAllResults && filteredCurriculum.length > 40 && (
+            <div className="col-span-1 md:col-span-2 py-3 text-center">
+              <button
+                onClick={() => setShowAllResults(true)}
+                className="px-4 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 font-bold text-xs cursor-pointer"
+              >
+                Show all {filteredCurriculum.length} curriculum courses
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Modal Footer */}
         <div className="p-4 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs">
           <span className="text-slate-500 dark:text-slate-400">
-            Showing {filteredCurriculum.length} of {curriculumList.length} course frameworks
+            Showing {visibleCurriculum.length} of {filteredCurriculum.length} matched courses ({curriculumList.length} total)
           </span>
           <button
             onClick={() => setIsCurriculumModalOpen(false)}

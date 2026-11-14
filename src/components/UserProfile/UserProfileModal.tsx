@@ -1,7 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 import { processAvatarImage } from '../../utils/imageUtils';
-import { EducationBoard, LanguageMedium } from '../../types';
+import { DBSubject, EducationBoard, LanguageMedium } from '../../types';
+import {
+  BOARD_LABELS,
+  getLocalizedSubjectName,
+  formatEnrolledCourseEntry,
+  isSubjectEnrolled,
+} from '../../data/curriculumData';
 import { SchoolAutocomplete } from '../common/SchoolAutocomplete';
 import { SchoolLocationMap } from '../common/SchoolLocationMap';
 import {
@@ -107,9 +113,14 @@ export const UserProfileModal: React.FC = () => {
     isProfileOpen,
     setIsProfileOpen,
     lessonPlans,
-    currentRole,
     setGlobalLanguage,
     setCurrentBoard,
+    subjectsDB,
+    topicsDB,
+    activeGrades,
+    activeCategories,
+    currentBoard,
+    globalLanguage,
   } = useApp();
 
   const role = currentUser?.role || 'student';
@@ -167,6 +178,11 @@ export const UserProfileModal: React.FC = () => {
   const [teacherCabin, setTeacherCabin] = useState(currentUser?.cabin || 'Lab 3B - Science Wing');
   const [teacherAssignedClass, setTeacherAssignedClass] = useState(currentUser?.assignedCohorts?.[0] || 'Class 7B - Science');
 
+  const [selectedCourses, setSelectedCourses] = useState<string[]>(
+    currentUser?.enrolledCourses || []
+  );
+  const [subjectCategoryFilter, setSubjectCategoryFilter] = useState<string>('ALL');
+
   // Sync state whenever modal opens or currentUser updates
   useEffect(() => {
     if (currentUser) {
@@ -179,8 +195,13 @@ export const UserProfileModal: React.FC = () => {
           ? currentUser.grade_level
           : parseInt(String(currentUser.grade || '8').replace(/\D/g, '')) || 8
       );
-      if (currentUser.education_board) setEducationBoard(currentUser.education_board as EducationBoard);
-      if (currentUser.preferred_language) setLanguageMedium(currentUser.preferred_language as LanguageMedium);
+      setEducationBoard(
+        ((currentUser.education_board as EducationBoard) || currentBoard || 'CBSE')
+      );
+      setLanguageMedium(
+        ((currentUser.preferred_language as LanguageMedium) || globalLanguage || 'en')
+      );
+      setSelectedCourses(currentUser.enrolledCourses || []);
       if (currentUser.school_name) {
         setSchoolData({
           id: currentUser.school_id,
@@ -198,7 +219,54 @@ export const UserProfileModal: React.FC = () => {
       if (currentUser.cabin) setTeacherCabin(currentUser.cabin);
       if (currentUser.assignedCohorts?.[0]) setTeacherAssignedClass(currentUser.assignedCohorts[0]);
     }
-  }, [currentUser, isProfileOpen]);
+  }, [currentUser, isProfileOpen, currentBoard, globalLanguage]);
+
+  // Live Admin-managed curriculum subjects filtered for student's selected grade & board
+  const availableGradeBoardSubjects = useMemo(() => {
+    return subjectsDB.filter((s) => {
+      if (s.status !== 'ACTIVE') return false;
+      if (s.grade_level !== gradeLevel) return false;
+      if (s.board && s.board !== 'ALL' && s.board !== educationBoard) return false;
+      if (activeCategories.length > 0 && s.category && !activeCategories.includes(s.category)) return false;
+      return true;
+    });
+  }, [subjectsDB, gradeLevel, educationBoard, activeCategories]);
+
+  const displayedProfileSubjects = useMemo(() => {
+    if (subjectCategoryFilter === 'ALL') return availableGradeBoardSubjects;
+    return availableGradeBoardSubjects.filter((s) => (s.category || 'STEM') === subjectCategoryFilter);
+  }, [availableGradeBoardSubjects, subjectCategoryFilter]);
+
+  const gradeOptions = useMemo(() => {
+    const set = new Set<number>(activeGrades.length > 0 ? activeGrades : [6, 7, 8, 9, 10, 11, 12]);
+    set.add(gradeLevel);
+    return Array.from(set).sort((a, b) => a - b);
+  }, [activeGrades, gradeLevel]);
+
+  const toggleCourseSelection = (subj: DBSubject) => {
+    const localized = getLocalizedSubjectName(subj.name, educationBoard);
+    const entry = formatEnrolledCourseEntry(localized, subj.code);
+    const alreadySelected = isSubjectEnrolled(subj, selectedCourses, educationBoard);
+
+    if (alreadySelected) {
+      setSelectedCourses((prev) =>
+        prev.filter((item) => !isSubjectEnrolled(subj, [item], educationBoard))
+      );
+    } else {
+      setSelectedCourses((prev) => (prev.includes(entry) ? prev : [...prev, entry]));
+    }
+  };
+
+  const handleSelectAllAvailable = () => {
+    const entries = availableGradeBoardSubjects.map((s) =>
+      formatEnrolledCourseEntry(getLocalizedSubjectName(s.name, educationBoard), s.code)
+    );
+    setSelectedCourses(entries);
+  };
+
+  const handleClearSelectedCourses = () => {
+    setSelectedCourses([]);
+  };
 
   // Filtered preset avatars based on selected category
   const filteredAvatars = useMemo(() => {
@@ -233,6 +301,7 @@ export const UserProfileModal: React.FC = () => {
       grade_level: gradeLevel,
       education_board: educationBoard,
       preferred_language: languageMedium,
+      enrolledCourses: selectedCourses,
       school_id: schoolData.id,
       school_name: schoolData.name,
       school_address: schoolData.address,
@@ -557,23 +626,32 @@ export const UserProfileModal: React.FC = () => {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {/* Grade Dropdown (Grades 6 to 12) */}
+                  {/* Grade Dropdown (Dynamic Admin Active Grades) */}
                   <div>
                     <label className="block text-[11px] font-normal text-slate-700 dark:text-white mb-1">
-                      Current Grade Level (Grades 6–12)
+                      Current Grade Level (Admin Curriculum Grades)
                     </label>
                     <select
                       value={gradeLevel}
                       onChange={(e) => setGradeLevel(Number(e.target.value))}
                       className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-[#1C3A66] bg-white dark:bg-[#132A4C]/60 text-xs font-normal text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#00A896] cursor-pointer"
                     >
-                      <option value={6}>Grade 6 (Middle School)</option>
-                      <option value={7}>Grade 7 (Middle School)</option>
-                      <option value={8}>Grade 8 (Secondary Foundations)</option>
-                      <option value={9}>Grade 9 (Secondary High School)</option>
-                      <option value={10}>Grade 10 (Secondary Board Exam Prep)</option>
-                      <option value={11}>Grade 11 (Senior Secondary Stream)</option>
-                      <option value={12}>Grade 12 (Senior Secondary Final Prep)</option>
+                      {gradeOptions.map((g) => (
+                        <option key={g} value={g}>
+                          Grade {g}{' '}
+                          {g <= 7
+                            ? '(Middle School)'
+                            : g === 8
+                            ? '(Secondary Foundations)'
+                            : g === 9
+                            ? '(Secondary High School)'
+                            : g === 10
+                            ? '(Secondary Board Exam Prep)'
+                            : g === 11
+                            ? '(Senior Secondary Stream)'
+                            : '(Senior Secondary Final Prep)'}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
@@ -630,6 +708,117 @@ export const UserProfileModal: React.FC = () => {
                       ))}
                     </select>
                   </div>
+                </div>
+
+                {/* LIVE ADMIN CURRICULUM SUBJECT SELECTION */}
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#132A4C]/40 border border-slate-200/80 dark:border-[#1C3A66] space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                      <h5 className="text-xs font-normal text-slate-900 dark:text-white flex items-center gap-1.5">
+                        <Layers className="w-3.5 h-3.5 text-[#00A896]" />
+                        <span>
+                          Select Subjects for Grade {gradeLevel} &bull; {BOARD_LABELS[educationBoard] || educationBoard}
+                        </span>
+                      </h5>
+                      <p className="text-[10px] text-slate-500 dark:text-white/80 mt-0.5">
+                        Live synced with Admin Curriculum ({availableGradeBoardSubjects.length} subjects available, {selectedCourses.length} selected)
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={handleSelectAllAvailable}
+                        className="px-2.5 py-1 rounded-lg bg-[#00A896]/15 hover:bg-[#00A896]/25 text-[#00A896] text-[10px] font-normal border border-[#00A896]/30 cursor-pointer transition-colors"
+                      >
+                        Select All ({availableGradeBoardSubjects.length})
+                      </button>
+                      {selectedCourses.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={handleClearSelectedCourses}
+                          className="px-2 py-1 rounded-lg bg-white dark:bg-[#0D1B3E] hover:text-rose-500 text-slate-500 dark:text-white/80 text-[10px] font-normal border border-slate-200 dark:border-[#1C3A66] cursor-pointer transition-colors"
+                        >
+                          Clear
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Category Filter Tabs */}
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {(['ALL', ...(activeCategories.length > 0 ? activeCategories : ['STEM', 'Language Arts', 'Humanities', 'Arts & Electives'])]).map((cat) => (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => setSubjectCategoryFilter(cat)}
+                        className={`px-2.5 py-0.5 rounded-full text-[10px] font-normal transition-colors cursor-pointer ${
+                          subjectCategoryFilter === cat
+                            ? 'bg-[#00A896] text-white shadow-2xs'
+                            : 'bg-white dark:bg-[#0D1B3E] text-slate-600 dark:text-white border border-slate-200 dark:border-[#1C3A66] hover:bg-slate-100 dark:hover:bg-[#1C3A66]'
+                        }`}
+                      >
+                        {cat === 'ALL' ? 'All Domains' : cat}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Subject Selection Checklist Grid */}
+                  {displayedProfileSubjects.length === 0 ? (
+                    <p className="text-[11px] text-slate-500 dark:text-white/80 py-2">
+                      No active subjects found in this domain for Grade {gradeLevel} ({educationBoard}). Ask Admin to publish subjects or switch domain filter.
+                    </p>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-52 overflow-y-auto pr-1">
+                      {displayedProfileSubjects.map((subj) => {
+                        const isSelected = isSubjectEnrolled(subj, selectedCourses, educationBoard);
+                        const localizedName = getLocalizedSubjectName(subj.name, educationBoard);
+                        const topicCount = topicsDB.filter(
+                          (t) => t.subject_id === subj.id && t.status === 'ACTIVE'
+                        ).length;
+
+                        return (
+                          <button
+                            key={subj.id}
+                            type="button"
+                            onClick={() => toggleCourseSelection(subj)}
+                            className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex items-start justify-between gap-2 ${
+                              isSelected
+                                ? 'bg-[#00A896]/10 dark:bg-[#00A896]/20 border-[#00A896] ring-1 ring-[#00A896]/40'
+                                : 'bg-white dark:bg-[#0D1B3E] border-slate-200 dark:border-[#1C3A66] hover:border-[#00A896]/50'
+                            }`}
+                          >
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-xs font-normal text-slate-900 dark:text-white truncate">
+                                  {localizedName}
+                                </span>
+                              </div>
+                              <div className="flex flex-wrap items-center gap-1.5 mt-0.5 text-[10px] text-slate-500 dark:text-white/80">
+                                <span>{subj.code || `GR-${subj.grade_level}`}</span>
+                                <span>&bull;</span>
+                                <span>{topicCount} {topicCount === 1 ? 'Topic' : 'Topics'}</span>
+                                {subj.board && subj.board !== 'ALL' && (
+                                  <>
+                                    <span>&bull;</span>
+                                    <span className="text-[#00A896]">{subj.board}</span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                            <span
+                              className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 mt-0.5 border ${
+                                isSelected
+                                  ? 'bg-[#00A896] border-[#00A896] text-white'
+                                  : 'border-slate-300 dark:border-slate-600 text-transparent'
+                              }`}
+                            >
+                              <Check className="w-3 h-3 stroke-[3]" />
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
 
                 {/* School Autocomplete & Location */}
@@ -961,26 +1150,40 @@ export const UserProfileModal: React.FC = () => {
 
               {/* Enrolled Courses */}
               <div>
-                <h5 className="text-xs font-normal text-slate-800 dark:text-white mb-2">
-                  Enrolled Course Modules:
-                </h5>
-                <div className="flex flex-wrap gap-2">
-                  {(
-                    currentUser?.enrolledCourses || [
-                      'Physics (PHY-101)',
-                      'Biology (BIO-201)',
-                      'Mathematics (MTH-102)',
-                      'Computer Science (CSC-301)',
-                    ]
-                  ).map((course, idx) => (
-                    <span
-                      key={idx}
-                      className="px-2.5 py-1 rounded-xl text-xs font-normal bg-white dark:bg-[#132A4C] border border-slate-200 dark:border-[#1C3A66] text-slate-700 dark:text-white shadow-2xs"
-                    >
-                      📚 {course}
-                    </span>
-                  ))}
+                <div className="flex items-center justify-between mb-2">
+                  <h5 className="text-xs font-normal text-slate-800 dark:text-white">
+                    Enrolled Course Modules ({selectedCourses.length}):
+                  </h5>
+                  <span className="text-[10px] text-[#00A896] font-normal">
+                    Grade {gradeLevel} &bull; {educationBoard}
+                  </span>
                 </div>
+                {selectedCourses.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {selectedCourses.map((course, idx) => (
+                      <span
+                        key={idx}
+                        className="px-2.5 py-1 rounded-xl text-xs font-normal bg-white dark:bg-[#132A4C] border border-slate-200 dark:border-[#1C3A66] text-slate-700 dark:text-white shadow-2xs flex items-center gap-1.5"
+                      >
+                        <span>📚 {course}</span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setSelectedCourses((prev) => prev.filter((_, i) => i !== idx))
+                          }
+                          className="text-slate-400 hover:text-rose-500 cursor-pointer"
+                          title="Remove subject (remember to click Save Details)"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-500 dark:text-white/80 italic">
+                    No subjects selected yet. Choose subjects in "Academic & Curriculum Configuration" above and click Save Details.
+                  </p>
+                )}
               </div>
             </div>
           )}

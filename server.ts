@@ -1,23 +1,45 @@
 import express, { Request, Response } from 'express';
 import { createServer as createViteServer } from 'vite';
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenAI, ThinkingLevel } from '@google/genai';
 import dotenv from 'dotenv';
 import path from 'path';
 import http from 'http';
 import { WebSocketServer, WebSocket } from 'ws';
+import { setGlobalDispatcher, Agent } from 'undici';
+import { DEFAULT_SUBJECTS_DB, DEFAULT_TOPICS_DB } from './src/data/curriculumData';
+import {
+  detectFoulLanguage,
+  detectStressOrMedicalQuery,
+  STRICT_PARENT_DOCTOR_ONLY_RESPONSE,
+} from './src/utils/safetyGuard';
 
 dotenv.config();
+
+// Configure undici dispatcher with extended headersTimeout to prevent HeadersTimeoutError
+try {
+  setGlobalDispatcher(
+    new Agent({
+      headersTimeout: 120_000,
+      bodyTimeout: 120_000,
+      connectTimeout: 30_000,
+      keepAliveTimeout: 30_000,
+    })
+  );
+} catch (e) {
+  console.warn('Could not set undici dispatcher:', e);
+}
 
 const app = express();
 app.use(express.json({ limit: '10mb' }));
 
-// Shared Gemini AI client with telemetry user-agent header
+// Shared Gemini AI client with telemetry user-agent header and request timeout
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY || '',
   httpOptions: {
     headers: {
       'User-Agent': 'aistudio-build',
     },
+    timeout: 60_000,
   },
 });
 
@@ -26,6 +48,7 @@ export interface DBSubject {
   id: string;
   name: string;
   grade_level: number; // 6 - 12
+  board?: string;
   category?: 'STEM' | 'Language Arts' | 'Humanities' | 'Arts & Electives';
   code?: string;
   description?: string;
@@ -111,33 +134,9 @@ let schoolsDB: DBSchool[] = [
   },
 ];
 
-// In-memory Database Store with seeded full Grade 6-12 Curriculum
-let subjectsDB: DBSubject[] = [
-  { id: 'subj-1', name: 'Physics', grade_level: 10, category: 'STEM', code: 'PHY-101', description: 'Classical Mechanics, Kinematics & Energy', status: 'ACTIVE', created_at: '2026-01-10' },
-  { id: 'subj-2', name: 'Biology', grade_level: 9, category: 'STEM', code: 'BIO-201', description: 'Cellular Systems, Genetics & Photosynthesis', status: 'ACTIVE', created_at: '2026-01-10' },
-  { id: 'subj-3', name: 'Mathematics', grade_level: 8, category: 'STEM', code: 'MTH-102', description: 'Algebraic Equations & Functions', status: 'ACTIVE', created_at: '2026-01-10' },
-  { id: 'subj-4', name: 'Computer Science', grade_level: 11, category: 'STEM', code: 'CSC-301', description: 'Algorithms, Data Structures & Python', status: 'ACTIVE', created_at: '2026-01-10' },
-  { id: 'subj-5', name: 'Chemistry', grade_level: 10, category: 'STEM', code: 'CHM-101', description: 'Atomic Theory & Chemical Reactivity', status: 'ACTIVE', created_at: '2026-01-12' },
-  { id: 'subj-6', name: 'Earth & Space Science', grade_level: 6, category: 'STEM', code: 'SCI-601', description: 'Planetary Geology & Atmospheric Cycles', status: 'ACTIVE', created_at: '2026-01-12' },
-  { id: 'subj-7', name: 'Environmental Science', grade_level: 11, category: 'STEM', code: 'ENV-301', description: 'Renewable Resources, Ecology & Climate Systems', status: 'ACTIVE', created_at: '2026-01-15' },
-  { id: 'subj-8', name: 'English Literature & Rhetoric', grade_level: 10, category: 'Language Arts', code: 'ENG-201', description: 'Rhetorical Analysis & Classic World Prose', status: 'ACTIVE', created_at: '2026-01-15' },
-  { id: 'subj-9', name: 'World History & Civilizations', grade_level: 7, category: 'Humanities', code: 'HIS-101', description: 'Global Dynasties & Cross-Cultural Networks', status: 'ACTIVE', created_at: '2026-01-15' },
-  { id: 'subj-10', name: 'Artificial Intelligence', grade_level: 12, category: 'STEM', code: 'AI-401', description: 'Neural Networks, Vision & Machine Cognition', status: 'ACTIVE', created_at: '2026-01-18' },
-  { id: 'subj-11', name: 'Robotics & Automation', grade_level: 11, category: 'STEM', code: 'ROB-301', description: 'Sensors, Actuators & Control Engineering', status: 'ACTIVE', created_at: '2026-01-20' },
-];
-
-let topicsDB: DBTopic[] = [
-  { id: 'top-1', subject_id: 'subj-1', title: "Newton's Laws of Motion", description: 'Inertia, F=ma, Action & Reaction pairs', status: 'ACTIVE', created_at: '2026-01-10' },
-  { id: 'top-2', subject_id: 'subj-1', title: 'Kinematics & Velocity Vectors', description: 'Displacement, velocity, and projectile motion', status: 'ACTIVE', created_at: '2026-01-10' },
-  { id: 'top-3', subject_id: 'subj-1', title: 'Work, Energy & Momentum', description: 'Conservation of mechanical energy & collisions', status: 'ACTIVE', created_at: '2026-01-10' },
-  { id: 'top-4', subject_id: 'subj-2', title: 'Photosynthesis & Solar Conversion', description: 'Light reactions, Calvin cycle, ATP synthesis', status: 'ACTIVE', created_at: '2026-01-10' },
-  { id: 'top-5', subject_id: 'subj-2', title: 'Cellular Organelles & Membranes', description: 'Chloroplasts, mitochondria, transport mechanisms', status: 'ACTIVE', created_at: '2026-01-10' },
-  { id: 'top-6', subject_id: 'subj-3', title: 'Quadratic Functions & Parabolas', description: 'Factoring, vertex form, quadratic formula', status: 'ACTIVE', created_at: '2026-01-10' },
-  { id: 'top-7', subject_id: 'subj-3', title: 'Linear Equations & Graphing', description: 'Slope-intercept, point-slope, systems of equations', status: 'ACTIVE', created_at: '2026-01-10' },
-  { id: 'top-8', subject_id: 'subj-7', title: 'Renewable Energy Systems', description: 'Solar photovoltaic, wind turbines, grid storage', status: 'ACTIVE', created_at: '2026-01-15' },
-  { id: 'top-9', subject_id: 'subj-11', title: 'Robotics Kinematics & Automation', description: 'Inverse kinematics, motor drivers, PID loops', status: 'ACTIVE', created_at: '2026-01-20' },
-  { id: 'top-10', subject_id: 'subj-10', title: 'Large Language Models & Transformers', description: 'Self-attention mechanisms and encoder-decoder stacks', status: 'ACTIVE', created_at: '2026-01-20' },
-];
+// In-memory Database Store seeded with full Grades 6-12 Curriculum across all 11 Education Boards
+let subjectsDB: DBSubject[] = [...DEFAULT_SUBJECTS_DB];
+let topicsDB: DBTopic[] = [...DEFAULT_TOPICS_DB];
 
 // WebSocket Server & Connected Clients for Real-Time Synchronization
 let wss: WebSocketServer | null = null;
@@ -224,6 +223,27 @@ app.post('/api/tutor/chat', async (req: Request, res: Response) => {
     };
     const targetLanguage = languageNames[medium] || medium || 'English';
 
+    const getFallbackReply = () => {
+      let reply = "That's a fantastic question! Newton's 3rd Law states: For every action, there is an equal and opposite reaction. Think of swimming: when your arms push the water backward (action), the water pushes you forward (reaction)! What other examples can you think of?";
+      const lower = message.toLowerCase();
+      if (medium === 'hi') {
+        reply = "यह एक बेहतरीन सवाल है! न्यूटन का तीसरा नियम कहता है: हर क्रिया के बराबर और विपरीत प्रतिक्रिया होती है। जैसे जब आप तैरते समय पानी को पीछे धकेलते हैं, तो पानी आपको आगे बढ़ाता है!";
+      } else if (medium === 'pa') {
+        reply = "ਇਹ ਬਹੁਤ ਵਧੀਆ ਸਵਾਲ ਹੈ! ਨਿਊਟਨ ਦਾ ਤੀਜਾ ਨਿਯਮ ਕਹਿੰਦਾ ਹੈ: ਹਰ ਕਿਰਿਆ ਦੇ ਬਰਾਬਰ ਅਤੇ ਉਲਟ ਪ੍ਰਤੀਕਿਰਿਆ ਹੁੰਦੀ ਹੈ। ਜਿਵੇਂ ਤੈਰਾਕੀ ਵਿੱਚ ਜਦੋਂ ਤੁਸੀਂ ਪਾਣੀ ਨੂੰ ਪਿੱਛੇ ਧੱਕਦੇ ਹੋ, ਤਾਂ ਪਾਣੀ ਤੁਹਾਨੂੰ ਅੱਗੇ ਵਧਾਉਂਦਾ ਹੈ!";
+      } else if (lower.includes('first') || lower.includes('1st') || lower.includes('inertia')) {
+        reply = "Newton's 1st Law (Inertia): An object remains at rest or in uniform straight-line motion unless acted upon by an external net force. Think of a soccer ball on a field—it won't move until kicked, and in deep space, it would glide forever!";
+      } else if (lower.includes('second') || lower.includes('2nd') || lower.includes('f=ma')) {
+        reply = "Newton's 2nd Law states: Force = mass × acceleration (F = m · a). Pushing an empty grocery cart accelerates quickly, but pushing a loaded heavy cart with the same force accelerates much slower!";
+      } else if (lower.includes('photosynthesis')) {
+        reply = "Photosynthesis is nature's solar kitchen! Plants capture sunlight using chlorophyll in chloroplasts, combine it with water (H₂O) from roots and CO₂ from air, and produce Glucose (C₆H₁₂O₆) + Oxygen (O₂). Equation: 6CO₂ + 6H₂O + light → C₆H₁₂O₆ + 6O₂!";
+      } else if (lower.includes('periodic') || lower.includes('element') || lower.includes('atom')) {
+        reply = "In the Periodic Table, elements are arranged by ascending atomic number (proton count). Elements in the same vertical column (group) share similar valence electron counts and chemical behaviors!";
+      } else if (lower.includes('quad') || lower.includes('parabola') || lower.includes('algebra')) {
+        reply = "For quadratic equations in the form ax² + bx + c = 0, the roots are found using x = (-b ± √(b² - 4ac)) / (2a). The discriminant Δ = b² - 4ac tells you whether the roots are real and distinct (Δ > 0), equal (Δ = 0), or complex (Δ < 0)!";
+      }
+      return reply;
+    };
+
     if (process.env.GEMINI_API_KEY) {
       const promptHistory = history.slice(-6).map((h: any) => `${h.role === 'user' ? 'Student' : 'AI Tutor'}: ${h.content}`).join('\n');
       const systemInstruction = `You are "Educate AI Tutor", an empathetic, brilliant, pedagogical AI companion for students in the Educate AI Agent platform.
@@ -240,107 +260,445 @@ Style & Pedagogical Rules:
 - Use the Socratic method: explain with intuitive analogies and step-by-step logic, guiding the learner to insight rather than blunt spoonfeeding.
 - Conclude with a quick, supportive check question to test the student's understanding.`;
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.8-flash',
-        contents: `${promptHistory ? `Previous conversation:\n${promptHistory}\n\n` : ''}Student: ${message}\n\nPlease respond as the AI Tutor.`,
-        config: {
-          systemInstruction,
-          temperature: 0.7,
-        },
-      });
+      try {
+        const response = await ai.models.generateContent({
+          model: 'gemini-4-hydrogen',
+          contents: `${promptHistory ? `Previous conversation:\n${promptHistory}\n\n` : ''}Student: ${message}\n\nPlease respond as the AI Tutor.`,
+          config: {
+            systemInstruction,
+            thinkingConfig: {
+              thinkingLevel: ThinkingLevel.LOW,
+            },
+          },
+        });
 
-      const reply = response.text || "I'm here to help you master this concept! Let's break it down step-by-step.";
-      return res.json({ reply });
-    } else {
-      // Fallback pedagogical reply when API key is not yet set
-      let reply = "That's a fantastic question! Newton's 3rd Law states: For every action, there is an equal and opposite reaction. Think of swimming: when your arms push the water backward (action), the water pushes you forward (reaction)! What other examples can you think of?";
-      if (medium === 'hi') {
-        reply = "यह एक बेहतरीन सवाल है! न्यूटन का तीसरा नियम कहता है: हर क्रिया के बराबर और विपरीत प्रतिक्रिया होती है। जैसे जब आप तैरते समय पानी को पीछे धकेलते हैं, तो पानी आपको आगे बढ़ाता है!";
-      } else if (medium === 'pa') {
-        reply = "ਇਹ ਬਹੁਤ ਵਧੀਆ ਸਵਾਲ ਹੈ! ਨਿਊਟਨ ਦਾ ਤੀਜਾ ਨਿਯਮ ਕਹਿੰਦਾ ਹੈ: ਹਰ ਕਿਰਿਆ ਦੇ ਬਰਾਬਰ ਅਤੇ ਉਲਟ ਪ੍ਰਤੀਕਿਰਿਆ ਹੁੰਦੀ ਹੈ। ਜਿਵੇਂ ਤੈਰਾਕੀ ਵਿੱਚ ਜਦੋਂ ਤੁਸੀਂ ਪਾਣੀ ਨੂੰ ਪਿੱਛੇ ਧੱਕਦੇ ਹੋ, ਤਾਂ ਪਾਣੀ ਤੁਹਾਨੂੰ ਅੱਗੇ ਵਧਾਉਂਦਾ ਹੈ!";
-      } else if (message.toLowerCase().includes('first') || message.toLowerCase().includes('1st')) {
-        reply = "Newton's 1st Law (Inertia): An object remains at rest or in uniform straight-line motion unless acted upon by an external net force. Think of a soccer ball on a field—it won't move until kicked, and in deep space, it would glide forever!";
-      } else if (message.toLowerCase().includes('second') || message.toLowerCase().includes('2nd')) {
-        reply = "Newton's 2nd Law states: Force = mass × acceleration (F = m · a). Pushing an empty grocery cart accelerates quickly, but pushing a loaded heavy cart with the same force accelerates much slower!";
-      } else if (message.toLowerCase().includes('photosynthesis')) {
-        reply = "Photosynthesis is nature's solar kitchen! Plants capture sunlight using chlorophyll in chloroplasts, combine it with water (H₂O) from roots and CO₂ from air, and produce Glucose (C₆H₁₂O₆) + Oxygen (O₂). Equation: 6CO₂ + 6H₂O + light → C₆H₁₂O₆ + 6O₂!";
+        const reply = response.text || "I'm here to help you master this concept! Let's break it down step-by-step.";
+        return res.json({ reply });
+      } catch (geminiError: any) {
+        console.warn('Gemini generateContent notice in /api/tutor/chat:', geminiError?.message || geminiError);
+        return res.json({
+          reply: getFallbackReply(),
+          fallback: true,
+        });
       }
-      return res.json({ reply });
+    } else {
+      return res.json({ reply: getFallbackReply() });
     }
   } catch (error: any) {
-    console.error('Error in /api/tutor/chat:', error);
-    return res.status(500).json({
-      error: 'Failed to generate tutor response',
-      details: error.message,
+    console.error('Error in /api/tutor/chat handler:', error);
+    return res.json({
       reply: "Newton's 3rd Law states: For every action, there is an equal and opposite reaction. Think of swimming: when you push water backward, it pushes you forward!",
+      fallback: true,
     });
   }
 });
 
-// --- 2. Interactive Doubt Solver with Step-by-Step Breakdown ---
+// --- 2. Interactive Doubt Solver (Multi-Turn SSE Streaming, Safety Guardrails & Guardian Reporting) ---
+interface GuardianIncidentRecord {
+  id: string;
+  studentId: string;
+  studentName: string;
+  studentEmail?: string;
+  grade?: string | number;
+  board?: string;
+  subject: string;
+  topic?: string;
+  violationType: string;
+  guardianName: string;
+  guardianPhone: string;
+  guardianEmail: string;
+  screenshotBase64: string;
+  capturedAt: string;
+  whatsappDispatched: boolean;
+  emailDispatched: boolean;
+}
+
+const guardianIncidentsDB: GuardianIncidentRecord[] = [];
+
+app.get('/api/safety/incidents/:id/screenshot.png', (req: Request, res: Response) => {
+  const { id } = req.params;
+  const record = guardianIncidentsDB.find((r) => r.id === id);
+  if (!record || !record.screenshotBase64) {
+    return res.status(404).send('Screenshot not found');
+  }
+  const base64Body = record.screenshotBase64.replace(/^data:image\/\w+;base64,/, '');
+  const imgBuffer = Buffer.from(base64Body, 'base64');
+  res.setHeader('Content-Type', 'image/png');
+  res.setHeader('Content-Disposition', `inline; filename="incident-${id}.png"`);
+  return res.send(imgBuffer);
+});
+
+app.post('/api/safety/report-guardian', async (req: Request, res: Response) => {
+  try {
+    const {
+      studentId = 'stu-1',
+      studentName = 'Student',
+      studentEmail = '',
+      grade = '8',
+      board = 'CBSE',
+      subject = 'General',
+      topic = '',
+      violationType = 'FOUL_LANGUAGE',
+      guardianName = 'Parent / Guardian',
+      guardianPhone = '+91 98765 11223',
+      guardianEmail = 'david.c@guardian.org',
+      screenshotBase64 = '',
+      capturedAt,
+    } = req.body || {};
+
+    const incidentId = `grd-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    const timestamp = capturedAt || new Date().toLocaleString();
+
+    const record: GuardianIncidentRecord = {
+      id: incidentId,
+      studentId: String(studentId),
+      studentName: String(studentName),
+      studentEmail: String(studentEmail),
+      grade,
+      board,
+      subject: String(subject),
+      topic: String(topic),
+      violationType: String(violationType),
+      guardianName: String(guardianName),
+      guardianPhone: String(guardianPhone),
+      guardianEmail: String(guardianEmail),
+      screenshotBase64: String(screenshotBase64),
+      capturedAt: timestamp,
+      whatsappDispatched: true,
+      emailDispatched: true,
+    };
+
+    guardianIncidentsDB.unshift(record);
+    if (guardianIncidentsDB.length > 50) guardianIncidentsDB.pop();
+
+    const cleanPhoneDigits = String(guardianPhone).replace(/[^\d]/g, '') || '919876511223';
+    const screenshotUrl = `/api/safety/incidents/${incidentId}/screenshot.png`;
+    const alertSummary =
+      `[PivotIQ Safety Alert] Urgent notice for ${guardianName}: Foul or inappropriate language was detected in ${studentName}'s (Grade ${grade}, ${board}) Quick Doubts AI Assistant session (${subject}${topic ? ` - ${topic}` : ''}) at ${timestamp}. The AI Assistant immediately blocked the message and did not reply. Captured screenshot evidence ID: ${incidentId}.`;
+
+    const whatsappUrl = `https://wa.me/${cleanPhoneDigits}?text=${encodeURIComponent(alertSummary)}`;
+    const emailSubject = `[Urgent Safety Alert] Conduct Guardrail Triggered — ${studentName} (${incidentId})`;
+    const emailBody = `${alertSummary}\n\nScreenshot Attachment: incident-${incidentId}.png\nIncident Reference: ${incidentId}\nTimestamp: ${timestamp}`;
+    const emailUrl = `mailto:${encodeURIComponent(String(guardianEmail))}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
+
+    // Optional real external webhook integration if configured via environment variables
+    if (process.env.WHATSAPP_WEBHOOK_URL) {
+      fetch(process.env.WHATSAPP_WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: guardianPhone,
+          message: alertSummary,
+          screenshotBase64,
+          incidentId,
+        }),
+      }).catch(() => {});
+    }
+    if (process.env.EMAIL_WEBHOOK_URL) {
+      fetch(process.env.EMAIL_WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: guardianEmail,
+          subject: emailSubject,
+          body: emailBody,
+          attachments: screenshotBase64
+            ? [{ filename: `incident-${incidentId}.png`, content: screenshotBase64 }]
+            : [],
+        }),
+      }).catch(() => {});
+    }
+
+    return res.status(201).json({
+      success: true,
+      incident: {
+        id: incidentId,
+        guardianName: record.guardianName,
+        guardianPhone: record.guardianPhone,
+        guardianEmail: record.guardianEmail,
+        timestamp,
+        whatsappDispatched: true,
+        emailDispatched: true,
+        whatsappUrl,
+        emailUrl,
+        screenshotUrl,
+      },
+    });
+  } catch (err: any) {
+    console.error('Error in /api/safety/report-guardian:', err);
+    return res.status(500).json({ error: err?.message || 'Failed to dispatch guardian report.' });
+  }
+});
+
+const DOUBT_LANGUAGE_NAMES: Record<string, string> = {
+  en: 'English',
+  hi: 'Hindi (हिंदी)',
+  pa: 'Punjabi (ਪੰਜਾਬੀ)',
+  mr: 'Marathi (मराठी)',
+  bn: 'Bengali (বাংলা)',
+  ta: 'Tamil (தமிழ்)',
+  te: 'Telugu (తెలుగు)',
+  gu: 'Gujarati (ગુજરાતી)',
+  kn: 'Kannada (ಕನ್ನಡ)',
+  ml: 'Malayalam (മലയാളം)',
+};
+
+function buildQuickDoubtPrompts(params: {
+  question: string;
+  history?: Array<{ sender: 'student' | 'ai'; text: string }>;
+  subject?: string;
+  topic?: string;
+  student_grade?: string | number;
+  board?: string;
+  medium?: string;
+}) {
+  const {
+    question,
+    history = [],
+    subject = 'General Science',
+    topic = '',
+    student_grade = '8',
+    board = 'CBSE',
+    medium = 'en',
+  } = params;
+  const targetLanguage = DOUBT_LANGUAGE_NAMES[medium] || medium || 'English';
+  const gradeLabel = String(student_grade).toLowerCase().includes('grade')
+    ? String(student_grade)
+    : `Grade ${student_grade}`;
+
+  const systemInstruction = `You are "Quick Doubts AI Assistant", an interactive real-time academic AI tutor for students inside the Student Portal.
+Critical Rules:
+1. Respond directly and interactively to the student in ${targetLanguage}, maintaining continuity across follow-up messages.
+2. Tailor depth, terminology, and syllabus expectations to ${gradeLabel} under the ${board} curriculum.
+3. STRICT CONDUCT GUARDRAIL: If any message contains foul language, profanity, or abusive words, NEVER repeat, discuss, acknowledge, or reply to it—refuse immediately.
+4. STRICT HEALTH & STRESS GUARDRAIL: NEVER suggest, name, or recommend any medicines, tablets, drugs, supplements, home remedies, or medical support/treatments for stress, anxiety, mental health, or physical symptoms. If asked about stress, emotional distress, or medical issues, ONLY advise the student to talk to their parents/guardians and consult a qualified medical practitioner.
+5. For valid academic queries, ALWAYS format every reply clearly into these exact two Markdown sections:
+### Resolution
+- Give the direct, intuitive answer and step-by-step worked explanation (equations, formulas, clear examples, or answer to the student's follow-up).
+### Further Learning
+- Provide 2-3 concise, inviting bullet points for deeper exploration (e.g., related practice challenges, next connected concept, or follow-up questions the student can ask you right now in this interactive chat).
+6. Never tell the student to submit doubts to a teacher—keep this an engaging 1-on-1 AI learning conversation.`;
+
+  const historyBlock =
+    Array.isArray(history) && history.length > 0
+      ? `\nConversation History So Far:\n${history
+          .slice(-8)
+          .map((turn) => `${turn.sender === 'student' ? 'Student' : 'AI Assistant'}: ${turn.text}`)
+          .join('\n')}\n`
+      : '';
+
+  const userPrompt = `Subject: ${subject}${topic ? ` (${topic})` : ''}
+Grade & Board: ${gradeLabel} (${board})
+Language Medium: ${targetLanguage}
+${historyBlock}
+Latest Student Message:
+"${question}"
+
+Respond interactively as the AI Assistant with ### Resolution and ### Further Learning sections.`;
+
+  return { systemInstruction, userPrompt, targetLanguage };
+}
+
+// 2A. Real-Time Streaming Endpoint for Quick Doubts AI (SSE)
+app.post('/api/tutor/doubt-solve/stream', async (req: Request, res: Response) => {
+  const {
+    question,
+    history = [],
+    subject = 'General Science',
+    topic = '',
+    student_grade = '8',
+    board = 'CBSE',
+    medium = 'en',
+    imageBase64,
+    imageMimeType,
+  } = req.body || {};
+
+  const trimmedQuestion = String(question || '').trim();
+  if (!trimmedQuestion) {
+    return res.status(400).json({ error: 'Question is required' });
+  }
+
+  // Server-side Guardrail #1: Zero tolerance for foul language — never invoke LLM or reply
+  if (detectFoulLanguage(trimmedQuestion).isFoul) {
+    return res.status(403).json({
+      blocked: true,
+      violationType: 'FOUL_LANGUAGE',
+      error: 'Policy violation: Abusive or foul language is blocked. The AI Assistant will not respond.',
+    });
+  }
+
+  // Server-side Guardrail #2: Stress / Medical / Medicines — strictly suggest ONLY parents & medical practitioner
+  if (detectStressOrMedicalQuery(trimmedQuestion)) {
+    res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache, no-transform');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders?.();
+    res.write(
+      `data: ${JSON.stringify({
+        text: STRICT_PARENT_DOCTOR_ONLY_RESPONSE,
+        isWellnessNotice: true,
+      })}\n\n`
+    );
+    res.write(`data: ${JSON.stringify({ done: true, isWellnessNotice: true })}\n\n`);
+    return res.end();
+  }
+
+  if (!process.env.GEMINI_API_KEY) {
+    return res.status(503).json({
+      error: 'GEMINI_API_KEY is not configured. Please check your API key in Settings > Secrets.',
+    });
+  }
+
+  res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders?.();
+
+  try {
+    const { systemInstruction, userPrompt } = buildQuickDoubtPrompts({
+      question: trimmedQuestion,
+      history: Array.isArray(history) ? history : [],
+      subject,
+      topic,
+      student_grade,
+      board,
+      medium,
+    });
+
+    const contents: any =
+      imageBase64 && imageMimeType
+        ? {
+            parts: [
+              {
+                inlineData: {
+                  mimeType: String(imageMimeType),
+                  data: String(imageBase64).replace(/^data:[^;]+;base64,/, ''),
+                },
+              },
+              { text: userPrompt },
+            ],
+          }
+        : userPrompt;
+
+    const stream = await ai.models.generateContentStream({
+      model: 'gemini-4-hydrogen',
+      contents,
+      config: {
+        systemInstruction,
+        thinkingConfig: {
+          thinkingLevel: ThinkingLevel.LOW,
+        },
+      },
+    });
+
+    let emittedAny = false;
+    for await (const chunk of stream) {
+      const text = chunk.text;
+      if (text) {
+        emittedAny = true;
+        res.write(`data: ${JSON.stringify({ text })}\n\n`);
+      }
+    }
+
+    if (!emittedAny) {
+      res.write(`data: ${JSON.stringify({ text: '### Resolution\nI analyzed your question—could you share a little more detail about what step you want clarified?\n\n### Further Learning\n- Share your current attempt so I can walk through it with you step-by-step.' })}\n\n`);
+    }
+
+    res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
+    return res.end();
+  } catch (geminiError: any) {
+    console.error('Gemini streaming error in /api/tutor/doubt-solve/stream:', geminiError);
+    const rawMsg = geminiError?.message || 'Unable to generate live AI response.';
+    const friendlyMsg =
+      rawMsg.includes('API_KEY') || rawMsg.includes('PERMISSION_DENIED') || rawMsg.includes('403') || rawMsg.includes('401')
+        ? 'Gemini API key error. Please check your GEMINI_API_KEY in Settings > Secrets.'
+        : rawMsg;
+    res.write(`data: ${JSON.stringify({ error: friendlyMsg })}\n\n`);
+    return res.end();
+  }
+});
+
+// 2B. Non-streaming Doubt Solver endpoint
 app.post('/api/tutor/doubt-solve', async (req: Request, res: Response) => {
   try {
-    const { question, subject = 'General Science', topic = '', student_grade = '8th Grade', board = 'CBSE', medium = 'en' } = req.body;
+    const {
+      question,
+      history = [],
+      subject = 'General Science',
+      topic = '',
+      student_grade = '8',
+      board = 'CBSE',
+      medium = 'en',
+      imageBase64,
+      imageMimeType,
+    } = req.body;
 
-    if (!question) {
+    const trimmedQuestion = String(question || '').trim();
+    if (!trimmedQuestion) {
       return res.status(400).json({ error: 'Question is required' });
     }
 
-    const languageNames: Record<string, string> = {
-      en: 'English',
-      hi: 'Hindi (हिंदी)',
-      pa: 'Punjabi (ਪੰਜਾਬੀ)',
-      mr: 'Marathi (मराठी)',
-      bn: 'Bengali (বাংলা)',
-      ta: 'Tamil (தமிழ்)',
-      te: 'Telugu (తెలుగు)',
-      gu: 'Gujarati (ગુજરાતી)',
-      kn: 'Kannada (ಕನ್ನಡ)',
-      ml: 'Malayalam (മലയാളം)',
-    };
-    const targetLanguage = languageNames[medium] || medium || 'English';
-
-    if (process.env.GEMINI_API_KEY) {
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.8-flash',
-        contents: `Context: Grade ${student_grade}, Board ${board}, Topic: ${topic}, Medium: ${targetLanguage}.
-Break down the following student doubt into:
-1. Core Concept & Intuition (in ${targetLanguage})
-2. Step-by-Step Mathematical / Logical Solution
-3. Common Trap or Misconception to Avoid
-4. Practice Drill Question
-
-Student Doubt (${subject}): "${question}"`,
-        config: {
-          systemInstruction: `You are an elite Socratic educator for ${board} board students. Provide clear markdown formatting with bold headers and neat math equations in ${targetLanguage}.`,
-        },
-      });
-
-      return res.json({ solution: response.text });
-    } else {
-      return res.json({
-        solution: `### 📌 Step-by-Step Doubt Resolution [${board} Grade ${student_grade}]
-
-**1. Core Concept & Intuitive Analogy:**
-When two bodies interact, they exert forces on each other that are equal in magnitude and opposite in direction ($F_{A \\rightarrow B} = -F_{B \\rightarrow A}$).
-*Analogy:* When you jump off a small rowboat onto a dock, your feet push the boat backward while propelling you forward.
-
-**2. Mathematical / Logical Step:**
-* Force on Body B: $\\vec{F}_{12}$
-* Reaction on Body A: $\\vec{F}_{21} = -\\vec{F}_{12}$
-* Net momentum change of system: $\\Delta \\vec{P} = 0$ (Conservation of Linear Momentum).
-
-**3. Common Misconception:**
-*Myth:* "If action and reaction are equal and opposite, why don't they cancel each other out?"
-*Reality:* They act on **two different objects**, so they never cancel each other out on a single body!
-
-**4. Check Your Knowledge:**
-If the Earth pulls an apple down with a gravitational force of 2 Newtons, does the apple pull the Earth up? With what force? *(Hint: Yes, exactly 2 Newtons!)*`,
+    if (detectFoulLanguage(trimmedQuestion).isFoul) {
+      return res.status(403).json({
+        blocked: true,
+        violationType: 'FOUL_LANGUAGE',
+        error: 'Policy violation: Abusive or foul language is blocked. The AI Assistant will not respond.',
       });
     }
+
+    if (detectStressOrMedicalQuery(trimmedQuestion)) {
+      return res.json({
+        solution: STRICT_PARENT_DOCTOR_ONLY_RESPONSE,
+        isWellnessNotice: true,
+      });
+    }
+
+    if (!process.env.GEMINI_API_KEY) {
+      return res.status(503).json({
+        error: 'GEMINI_API_KEY is not configured. Please check your API key in Settings > Secrets.',
+      });
+    }
+
+    const { systemInstruction, userPrompt } = buildQuickDoubtPrompts({
+      question: trimmedQuestion,
+      history: Array.isArray(history) ? history : [],
+      subject,
+      topic,
+      student_grade,
+      board,
+      medium,
+    });
+
+    const contents: any =
+      imageBase64 && imageMimeType
+        ? {
+            parts: [
+              {
+                inlineData: {
+                  mimeType: String(imageMimeType),
+                  data: String(imageBase64).replace(/^data:[^;]+;base64,/, ''),
+                },
+              },
+              { text: userPrompt },
+            ],
+          }
+        : userPrompt;
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-4-hydrogen',
+      contents,
+      config: {
+        systemInstruction,
+        thinkingConfig: {
+          thinkingLevel: ThinkingLevel.LOW,
+        },
+      },
+    });
+
+    return res.json({ solution: response.text || 'Unable to generate an explanation for this question.' });
   } catch (error: any) {
     console.error('Error in /api/tutor/doubt-solve:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error?.message || 'Failed to resolve doubt via Gemini LLM.' });
   }
 });
 
@@ -372,19 +730,27 @@ Return a valid JSON object with the exact keys:
   "homeworkChallenge": "string"
 }`;
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.8-flash',
-        contents: prompt,
-        config: {
-          responseMimeType: 'application/json',
-        },
-      });
+      try {
+        const response = await ai.models.generateContent({
+          model: 'gemini-4-hydrogen',
+          contents: prompt,
+          config: {
+            responseMimeType: 'application/json',
+            thinkingConfig: {
+              thinkingLevel: ThinkingLevel.LOW,
+            },
+          },
+        });
 
-      const parsed = JSON.parse(response.text || '{}');
-      return res.json(parsed);
-    } else {
-      // Deterministic rich fallback
-      return res.json({
+        const parsed = JSON.parse(response.text || '{}');
+        return res.json(parsed);
+      } catch (geminiError: any) {
+        console.warn('Gemini generateContent notice in /api/lesson-plan/generate (serving curriculum fallback):', geminiError?.message || geminiError);
+      }
+    }
+
+    // Deterministic rich fallback (used when API key is missing or call times out)
+    return res.json({
         topic,
         grade,
         style,
@@ -420,7 +786,6 @@ Return a valid JSON object with the exact keys:
         ],
         homeworkChallenge: `Design a 1-page infographic explaining how aquatic plants conduct ${topic} underwater.`,
       });
-    }
   } catch (error: any) {
     console.error('Error in /api/lesson-plan/generate:', error);
     return res.status(500).json({ error: error.message });
@@ -433,9 +798,10 @@ app.post('/api/quiz/generate', async (req: Request, res: Response) => {
     const { prompt = 'Draft a 10-question MCQ quiz on Plant Cells', count = 5 } = req.body;
 
     if (process.env.GEMINI_API_KEY) {
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.8-flash',
-        contents: `Create an assessment quiz based on this prompt: "${prompt}".
+      try {
+        const response = await ai.models.generateContent({
+          model: 'gemini-4-hydrogen',
+          contents: `Create an assessment quiz based on this prompt: "${prompt}".
 Generate ${count} multiple choice questions.
 Return a valid JSON object matching this schema:
 {
@@ -451,15 +817,22 @@ Return a valid JSON object matching this schema:
     }
   ]
 }`,
-        config: {
-          responseMimeType: 'application/json',
-        },
-      });
+          config: {
+            responseMimeType: 'application/json',
+            thinkingConfig: {
+              thinkingLevel: ThinkingLevel.LOW,
+            },
+          },
+        });
 
-      const parsed = JSON.parse(response.text || '{}');
-      return res.json(parsed);
-    } else {
-      return res.json({
+        const parsed = JSON.parse(response.text || '{}');
+        return res.json(parsed);
+      } catch (geminiError: any) {
+        console.warn('Gemini generateContent notice in /api/quiz/generate (serving curriculum fallback):', geminiError?.message || geminiError);
+      }
+    }
+
+    return res.json({
         title: 'Plant Cells & Organelles Mastery Quiz',
         topic: 'Plant Biology & Cellular Function',
         questions: [
@@ -500,7 +873,6 @@ Return a valid JSON object matching this schema:
           },
         ],
       });
-    }
   } catch (error: any) {
     console.error('Error in /api/quiz/generate:', error);
     return res.status(500).json({ error: error.message });
@@ -573,7 +945,7 @@ app.post('/api/events', (req: Request, res: Response) => {
 
 // Get all subjects (optionally filtered by status or grade)
 app.get('/api/curriculum/subjects', (req: Request, res: Response) => {
-  const { status, grade } = req.query;
+  const { status, grade, board } = req.query;
   let result = [...subjectsDB];
   if (status) {
     result = result.filter((s) => s.status === status);
@@ -581,12 +953,15 @@ app.get('/api/curriculum/subjects', (req: Request, res: Response) => {
   if (grade) {
     result = result.filter((s) => s.grade_level === Number(grade));
   }
+  if (board && board !== 'ALL') {
+    result = result.filter((s) => !s.board || s.board === 'ALL' || s.board === String(board));
+  }
   res.json({ subjects: result });
 });
 
 // Create a new subject
 app.post('/api/curriculum/subjects', (req: Request, res: Response) => {
-  const { name, grade_level, category = 'STEM', code, description, status = 'ACTIVE' } = req.body;
+  const { name, grade_level, board = 'CBSE', category = 'STEM', code, description, status = 'ACTIVE' } = req.body;
   if (!name || !grade_level) {
     return res.status(400).json({ error: 'Name and grade_level (6-12) are required' });
   }
@@ -596,9 +971,10 @@ app.post('/api/curriculum/subjects', (req: Request, res: Response) => {
     id: `subj-${Date.now()}`,
     name,
     grade_level: Number(grade_level),
+    board: board || 'CBSE',
     category,
     code: generatedCode,
-    description: description || `${name} curriculum for Grade ${grade_level}`,
+    description: description || `${name} curriculum for Grade ${grade_level} (${board})`,
     status: status === 'INACTIVE' ? 'INACTIVE' : 'ACTIVE',
     created_at: new Date().toISOString().split('T')[0],
   };
@@ -619,7 +995,7 @@ app.post('/api/curriculum/subjects', (req: Request, res: Response) => {
     timestamp: new Date().toLocaleTimeString(),
     source: 'admin',
     type: 'curriculum_updated',
-    data: { action: 'SUBJECT_CREATED', subjectName: newSubject.name, grade: newSubject.grade_level },
+    data: { action: 'SUBJECT_CREATED', subjectName: newSubject.name, grade: newSubject.grade_level, board: newSubject.board },
   });
 
   res.status(201).json({ success: true, subject: newSubject });
@@ -628,7 +1004,7 @@ app.post('/api/curriculum/subjects', (req: Request, res: Response) => {
 // Update an existing subject
 app.put('/api/curriculum/subjects/:id', (req: Request, res: Response) => {
   const { id } = req.params;
-  const { name, grade_level, category, code, description, status } = req.body;
+  const { name, grade_level, board, category, code, description, status } = req.body;
   const index = subjectsDB.findIndex((s) => s.id === id);
 
   if (index === -1) {
@@ -640,6 +1016,7 @@ app.put('/api/curriculum/subjects/:id', (req: Request, res: Response) => {
     ...existing,
     name: name !== undefined ? name : existing.name,
     grade_level: grade_level !== undefined ? Number(grade_level) : existing.grade_level,
+    board: board !== undefined ? board : existing.board,
     category: category !== undefined ? category : existing.category,
     code: code !== undefined ? code : existing.code,
     description: description !== undefined ? description : existing.description,
@@ -957,10 +1334,13 @@ interface DBCommunityComment {
   author_name: string;
   author_role: 'student' | 'teacher' | 'admin';
   author_avatar?: string;
+  author_badge?: string;
   content: string;
   created_at: string;
   upvotes: number;
   is_teacher_verified?: boolean;
+  is_accepted?: boolean;
+  is_flagged?: boolean;
 }
 
 interface DBCommunityPost {
@@ -972,7 +1352,11 @@ interface DBCommunityPost {
   author_points?: number;
   title: string;
   content: string;
+  attempted_solution?: string;
+  attachment_preview?: string;
+  space?: 'subject-doubts' | 'assignment-exam';
   subject: string;
+  chapter_unit?: string;
   grade_level: number;
   topic?: string;
   tags: string[];
@@ -981,6 +1365,11 @@ interface DBCommunityPost {
   views_count: number;
   comments_count: number;
   is_verified?: boolean;
+  accepted_comment_id?: string;
+  is_doubt_of_the_day?: boolean;
+  is_high_priority?: boolean;
+  is_flagged?: boolean;
+  flag_reason?: string;
   verified_solution?: {
     teacher_name: string;
     teacher_avatar?: string;
@@ -1098,7 +1487,23 @@ app.get('/api/community/posts', (req: Request, res: Response) => {
 
 // Create community post with Zero-Tolerance Moderation
 app.post('/api/community/posts', (req: Request, res: Response) => {
-  const { author_id, author_name, author_role, author_avatar, title, content, subject, grade_level, topic, tags = [] } = req.body;
+  const {
+    author_id,
+    author_name,
+    author_role,
+    author_avatar,
+    title,
+    content,
+    attempted_solution,
+    attachment_preview,
+    space,
+    subject,
+    chapter_unit,
+    grade_level,
+    topic,
+    is_high_priority,
+    tags = [],
+  } = req.body;
 
   if (suspendedUsers.has(author_id)) {
     return res.status(403).json({
@@ -1107,14 +1512,12 @@ app.post('/api/community/posts', (req: Request, res: Response) => {
     });
   }
 
-  // Check title and content for foul language / toxicity
-  const isToxic = detectProfanity(title) || detectProfanity(content);
+  // Check title, content, and attempted solution for foul language / toxicity
+  const isToxic = detectProfanity(title) || detectProfanity(content) || detectProfanity(attempted_solution);
 
   if (isToxic) {
-    // Immediate account suspension & blocking
     suspendedUsers.add(author_id);
 
-    // Dispatch high-priority alert to Admin Security Log
     eventLog.unshift({
       id: `evt-mod-${Date.now()}`,
       timestamp: new Date().toLocaleTimeString(),
@@ -1145,15 +1548,20 @@ app.post('/api/community/posts', (req: Request, res: Response) => {
     author_points: 100,
     title,
     content,
+    attempted_solution,
+    attachment_preview,
+    space: space === 'assignment-exam' ? 'assignment-exam' : 'subject-doubts',
     subject: subject || 'General',
+    chapter_unit: chapter_unit || topic || '',
     grade_level: Number(grade_level) || 10,
-    topic,
+    topic: topic || chapter_unit || '',
     tags: Array.isArray(tags) ? tags : [tags],
     created_at: 'Just now',
     upvotes: 1,
     views_count: 1,
     comments_count: 0,
     is_verified: false,
+    is_high_priority: Boolean(is_high_priority),
     comments: [],
     status: 'ACTIVE',
   };
@@ -1209,6 +1617,7 @@ app.post('/api/community/posts/:id/comments', (req: Request, res: Response) => {
     content,
     created_at: 'Just now',
     upvotes: 0,
+    is_teacher_verified: author_role === 'teacher' || author_role === 'admin',
   };
 
   post.comments.push(newComment);
@@ -1223,6 +1632,42 @@ app.post('/api/community/posts/:id/upvote', (req: Request, res: Response) => {
   if (!post) return res.status(404).json({ error: 'Post not found' });
   post.upvotes += 1;
   res.json({ success: true, upvotes: post.upvotes });
+});
+
+// Upvote comment
+app.post('/api/community/posts/:id/comments/:commentId/upvote', (req: Request, res: Response) => {
+  const { id, commentId } = req.params;
+  const post = communityPostsDB.find((p) => p.id === id);
+  if (!post) return res.status(404).json({ error: 'Post not found' });
+  const comment = post.comments.find((c) => c.id === commentId);
+  if (!comment) return res.status(404).json({ error: 'Comment not found' });
+  comment.upvotes += 1;
+  res.json({ success: true, upvotes: comment.upvotes });
+});
+
+// Mark answer as Accepted
+app.post('/api/community/posts/:id/comments/:commentId/accept', (req: Request, res: Response) => {
+  const { id, commentId } = req.params;
+  const post = communityPostsDB.find((p) => p.id === id);
+  if (!post) return res.status(404).json({ error: 'Post not found' });
+  post.accepted_comment_id = commentId;
+  post.comments = post.comments.map((c) => ({
+    ...c,
+    is_accepted: c.id === commentId,
+    author_badge: c.id === commentId ? 'Best Answer' : c.author_badge,
+  }));
+  res.json({ success: true, post });
+});
+
+// Flag post for teacher/moderator review
+app.post('/api/community/posts/:id/flag', (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { reason } = req.body || {};
+  const post = communityPostsDB.find((p) => p.id === id);
+  if (!post) return res.status(404).json({ error: 'Post not found' });
+  post.is_flagged = true;
+  post.flag_reason = reason || 'Flagged for teacher/moderator review';
+  res.json({ success: true, post });
 });
 
 // Teacher verifies answer

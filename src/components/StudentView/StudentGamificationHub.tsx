@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Flame,
   Zap,
@@ -158,14 +159,19 @@ export const StudentGamificationHub: React.FC = () => {
       </div>
 
       {/* =========================================================================
-          INTERACTIVE DUOLINGO-STYLE GAMIFICATION MODAL
+          INTERACTIVE DUOLINGO-STYLE GAMIFICATION MODAL (Portaled to document.body)
           ========================================================================= */}
-      {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/70 backdrop-blur-sm animate-in fade-in duration-200">
+      {isOpen &&
+        typeof document !== 'undefined' &&
+        createPortal(
           <div
-            className="relative w-full max-w-xl bg-white dark:bg-[#0E1A2D] rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col max-h-[92vh]"
-            onClick={(e) => e.stopPropagation()}
+            onClick={() => setIsOpen(false)}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-slate-900/70 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-200"
           >
+            <div
+              className="relative w-full max-w-xl my-auto bg-white dark:bg-[#0E1A2D] rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+              onClick={(e) => e.stopPropagation()}
+            >
             {/* Header banner with playful flame & XP gradient */}
             <div className="relative p-6 bg-gradient-to-br from-[#0D1B3E] via-[#162746] to-[#0A1526] text-white border-b border-slate-800 overflow-hidden">
               {/* Decorative background glows */}
@@ -528,18 +534,22 @@ export const StudentGamificationHub: React.FC = () => {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Confetti celebration banner when bonus claimed */}
-      {confettiActive && (
-        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-60 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white px-6 py-2.5 rounded-2xl shadow-2xl flex items-center gap-2 animate-bounce">
-          <Sparkles className="w-5 h-5 text-white" />
-          <span className="text-sm font-black tracking-wide">
-            +25 XP Streak Bonus Claimed! Momentum Unstoppable! 🔥
-          </span>
-        </div>
-      )}
+      {confettiActive &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[110] bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white px-6 py-2.5 rounded-2xl shadow-2xl flex items-center gap-2 animate-bounce">
+            <Sparkles className="w-5 h-5 text-white" />
+            <span className="text-sm font-black tracking-wide">
+              +25 XP Streak Bonus Claimed! Momentum Unstoppable! 🔥
+            </span>
+          </div>,
+          document.body
+        )}
     </>
   );
 };

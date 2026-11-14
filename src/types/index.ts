@@ -103,6 +103,50 @@ export interface StudentDoubt {
   solution?: string;
 }
 
+export interface GuardianEscalationReceipt {
+  id: string;
+  guardianName: string;
+  guardianPhone: string;
+  guardianEmail: string;
+  timestamp: string;
+  whatsappDispatched: boolean;
+  emailDispatched: boolean;
+  whatsappUrl: string;
+  emailUrl: string;
+  screenshotDataUrl?: string;
+  screenshotUrl?: string;
+}
+
+export interface QuickDoubtChatTurn {
+  id: string;
+  sender: 'student' | 'ai';
+  text: string;
+  timestamp: string;
+  imagePreview?: string;
+  isBlockedViolation?: boolean;
+  isWellnessNotice?: boolean;
+  guardianReport?: GuardianEscalationReceipt;
+}
+
+export interface QuickDoubtItem {
+  id: string;
+  subject: string;
+  topic?: string;
+  question: string;
+  answer: string;
+  status: 'streaming' | 'resolved' | 'error' | 'blocked';
+  createdAt: string;
+  gradeLevel?: number | string;
+  board?: string;
+  language?: string;
+  imagePreview?: string;
+  errorMessage?: string;
+  blockedViolation?: boolean;
+  isWellnessNotice?: boolean;
+  guardianReport?: GuardianEscalationReceipt;
+  messages?: QuickDoubtChatTurn[];
+}
+
 export interface LessonPlanActivity {
   name: string;
   duration: string;
@@ -246,6 +290,7 @@ export interface DBSubject {
   id: string;
   name: string;
   grade_level: number; // 6 to 12
+  board?: EducationBoard | 'ALL';
   category?: 'STEM' | 'Language Arts' | 'Humanities' | 'Arts & Electives';
   code?: string;
   description?: string;
@@ -266,6 +311,7 @@ export interface CurriculumItem {
   id: string;
   grade: number; // 6 to 12
   gradeLabel: string;
+  board?: EducationBoard | 'ALL';
   category: 'STEM' | 'Language Arts' | 'Humanities' | 'Arts & Electives';
   subjectName: string;
   code: string;
@@ -303,16 +349,26 @@ export interface MeetingInvite {
   dispatched_emails?: string[];
 }
 
+export type ForumSpace =
+  | 'subject-doubts'
+  | 'assignment-exam'
+  | 'unanswered'
+  | 'study-groups'
+  | 'resources';
+
 export interface CommunityComment {
   id: string;
   author_id: string;
   author_name: string;
   author_role: UserRole;
   author_avatar?: string;
+  author_badge?: string;
   content: string;
   created_at: string;
   upvotes: number;
   is_teacher_verified?: boolean;
+  is_accepted?: boolean;
+  is_flagged?: boolean;
 }
 
 export interface CommunityPost {
@@ -324,7 +380,11 @@ export interface CommunityPost {
   author_points?: number;
   title: string;
   content: string;
+  attempted_solution?: string;
+  attachment_preview?: string;
+  space?: 'subject-doubts' | 'assignment-exam';
   subject: string;
+  chapter_unit?: string;
   grade_level: number;
   topic?: string;
   tags: string[];
@@ -333,6 +393,11 @@ export interface CommunityPost {
   views_count: number;
   comments_count: number;
   is_verified?: boolean;
+  accepted_comment_id?: string;
+  is_doubt_of_the_day?: boolean;
+  is_high_priority?: boolean;
+  is_flagged?: boolean;
+  flag_reason?: string;
   verified_solution?: {
     teacher_name: string;
     teacher_avatar?: string;
@@ -343,12 +408,51 @@ export interface CommunityPost {
   status: 'ACTIVE' | 'FLAGGED_BLOCKED';
 }
 
+export interface ForumStudyGroupMessage {
+  id: string;
+  author_name: string;
+  author_role: UserRole;
+  content: string;
+  created_at: string;
+}
+
+export interface ForumStudyGroup {
+  id: string;
+  name: string;
+  subject: string;
+  chapter_unit: string;
+  grade_level: number;
+  availability: string;
+  focus_goal: string;
+  host_name: string;
+  members: string[];
+  max_members: number;
+  next_session: string;
+  messages: ForumStudyGroupMessage[];
+}
+
+export interface ForumResourceItem {
+  id: string;
+  title: string;
+  resource_type: 'Notes' | 'Previous Paper' | 'Revision Material' | 'Recommended Video';
+  subject: string;
+  chapter_unit: string;
+  grade_level: number;
+  author_name: string;
+  author_role: UserRole;
+  description: string;
+  url?: string;
+  helpful_count: number;
+  created_at: string;
+}
+
 export type StudyTaskStatus = 'To Do' | 'In Progress' | 'On Hold' | 'Completed' | 'Revision';
 
 export interface DailyStudyTask {
   id: string;
   day: number;
   date: string;
+  study_time?: string; // e.g. '16:30' (24h HH:MM)
   subject: string;
   topic: string;
   duration_hrs: number;
@@ -357,6 +461,8 @@ export interface DailyStudyTask {
   points?: number; // Story points / XP reward
   notes?: string;
   color: string;
+  created_at?: string;
+  status_updated_at?: string;
 }
 
 export interface WeeklySprintAllocation {

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useTheme } from '../../context/ThemeContext';
 import { PivotIQLogo } from '../common/PivotIQLogo';
+import { CommunityDoubtForum } from '../StudentView/CommunityDoubtForum';
 import {
   Briefcase,
   FileText,
@@ -34,6 +35,7 @@ import {
   Edit3,
   Search,
   Check,
+  MessageSquare,
 } from 'lucide-react';
 
 export const TeacherView: React.FC = () => {
@@ -59,7 +61,9 @@ export const TeacherView: React.FC = () => {
     resolveDoubt,
     subjectsDB,
     topicsDB,
+    currentBoard,
     setEcosystemOverviewMode,
+    communityPosts,
   } = useApp();
 
   const { theme, toggleTheme } = useTheme();
@@ -133,6 +137,12 @@ export const TeacherView: React.FC = () => {
     { id: 'quizzes', label: 'Assessment Creator', icon: <CheckCircle2 className="w-4 h-4" />, badge: `${quizzes.length}` },
     { id: 'classes', label: 'Class Analytics & KPIs', icon: <TrendingUp className="w-4 h-4" /> },
     { id: 'roster', label: 'Student Roster & Proctor', icon: <Users className="w-4 h-4" />, badge: '6 Live' },
+    {
+      id: 'community',
+      label: 'Community Forum',
+      icon: <MessageSquare className="w-4 h-4" />,
+      badge: `${communityPosts.filter((p) => !p.accepted_comment_id && !p.is_verified).length} Open`,
+    },
     { id: 'curriculum', label: 'Grades 6-12 Curriculum', icon: <BookOpen className="w-4 h-4" /> },
   ];
 
@@ -464,6 +474,10 @@ export const TeacherView: React.FC = () => {
             3. MAIN BODY WORKSPACE (with Student Panel dark/light navy aesthetic)
             ========================================================================= */}
         <div className="p-4 sm:p-6 lg:p-8 space-y-6 flex-1">
+          {teacherNav === 'community' ? (
+            <CommunityDoubtForum isModeratorView />
+          ) : (
+          <>
           {/* TOP CONTEXT SELECTION & ASSISTED PREVIEW BAR */}
           <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
             {/* FACULTY PROFILE CARD */}
@@ -563,9 +577,9 @@ export const TeacherView: React.FC = () => {
                     }}
                     className="px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#0D1B3E] text-xs font-normal text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#00A896] cursor-pointer shadow-2xs max-w-xs"
                   >
-                    <optgroup label="Real-Time Admin Curriculum">
+                    <optgroup label={`Real-Time Admin Curriculum (${currentBoard || 'CBSE'})`}>
                       {subjectsDB
-                        .filter((s) => s.status === 'ACTIVE')
+                        .filter((s) => s.status === 'ACTIVE' && (!s.board || s.board === 'ALL' || s.board === (currentBoard || 'CBSE')))
                         .map((subj) => (
                           <option key={subj.id} value={`Grade ${subj.grade_level} ${subj.name}`}>
                             [Grade {subj.grade_level} {subj.name}]
@@ -1004,6 +1018,8 @@ export const TeacherView: React.FC = () => {
               </table>
             </div>
           </div>
+          </>
+          )}
         </div>
       </div>
 

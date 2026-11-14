@@ -12,6 +12,8 @@ import {
 } from 'recharts';
 import { useApp } from '../../context/AppContext';
 import { useTheme } from '../../context/ThemeContext';
+import { getLocalizedSubjectName, formatEnrolledCourseEntry } from '../../data/curriculumData';
+import { SubjectIcon } from '../common/SubjectIcon';
 import {
   BookOpen,
   TrendingUp,
@@ -68,35 +70,62 @@ const doesTaskMatchCourse = (taskSubject: string, courseName: string, courseCode
     return normCourse.includes('bio');
   }
   if (normTask.includes('computer') || normTask.includes('code') || normTask.includes('program') || normTask.includes('python')) {
-    return normCourse.includes('computer') || normCode.includes('csc');
+    return normCourse.includes('computer') || normCode.includes('csc') || normCode.includes('cmp');
   }
   if (normTask.includes('history') || normTask.includes('social') || normTask.includes('civic')) {
-    return normCourse.includes('history') || normCourse.includes('social') || normCode.includes('his') || normCode.includes('hst');
+    return normCourse.includes('history') || normCourse.includes('social') || normCode.includes('his') || normCode.includes('hst') || normCode.includes('sst');
+  }
+  if (normTask.includes('geog')) {
+    return normCourse.includes('geog') || normCode.includes('geo');
   }
   if (normTask.includes('english') || normTask.includes('lit')) {
-    return normCourse.includes('english') || normCode.includes('eng');
+    return normCourse.includes('english') || normCode.includes('eng') || normCode.includes('enl');
+  }
+  if (normTask.includes('hindi') || normTask.includes('sanskrit') || normTask.includes('regional') || normTask.includes('foreign')) {
+    return normCourse.includes(normTask.split(' ')[0]);
   }
   return false;
 };
 
 export const CourseProgressTracker: React.FC = () => {
-  const { currentUser, dailyTasks, setStudentNav, sendTutorMessage } = useApp();
+  const {
+    currentUser,
+    dailyTasks,
+    setStudentNav,
+    sendTutorMessage,
+    subjectsDB,
+    currentBoard,
+    activeCategories,
+    setIsProfileOpen,
+  } = useApp();
   const { theme } = useTheme();
-  const [viewMode, setViewMode] = useState<'chart' | 'list'>('chart');
+  const [viewMode, setViewMode] = useState<'chart' | 'list'>('list');
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
+
+  const studentGradeLevel =
+    typeof currentUser?.grade_level === 'number'
+      ? currentUser.grade_level
+      : parseInt(String(currentUser?.grade || '10').replace(/\D/g, '')) || 10;
 
   // Dynamically compute completion percentages directly from dailyTasks in Agile Study Roadmap
   const coursesData: CourseProgressItem[] = useMemo(() => {
-    const rawCourses = currentUser?.enrolledCourses && currentUser.enrolledCourses.length > 0
-      ? currentUser.enrolledCourses
-      : [
-          'Algebra I (MTH-101)',
-          'Physics II (PHY-201)',
-          'World History (HIS-101)',
-          'Chemistry (CHM-101)',
-          'English Literature (ENG-201)',
-          'Biology (BIO-201)',
-        ];
+    const liveFallbackCourses = subjectsDB
+      .filter((s) => {
+        if (s.status !== 'ACTIVE') return false;
+        if (s.grade_level !== studentGradeLevel) return false;
+        if (s.board && s.board !== 'ALL' && s.board !== currentBoard) return false;
+        if (activeCategories.length > 0 && s.category && !activeCategories.includes(s.category)) {
+          return false;
+        }
+        return true;
+      })
+      .slice(0, 6)
+      .map((s) => formatEnrolledCourseEntry(getLocalizedSubjectName(s.name, currentBoard), s.code));
+
+    const rawCourses =
+      currentUser?.enrolledCourses && currentUser.enrolledCourses.length > 0
+        ? currentUser.enrolledCourses
+        : liveFallbackCourses;
 
     // Colors aligned to PivotIQ theme (#00A896 primary and harmonic teals/cyan)
     const colorPalette = [
@@ -201,7 +230,7 @@ export const CourseProgressTracker: React.FC = () => {
         nextTaskTopic,
       };
     });
-  }, [currentUser, dailyTasks]);
+  }, [currentUser, dailyTasks, subjectsDB, studentGradeLevel, currentBoard, activeCategories]);
 
   // Overall aggregate completion stats
   const averageCompletion = useMemo(() => {
@@ -243,17 +272,17 @@ export const CourseProgressTracker: React.FC = () => {
       return (
         <div className="bg-white dark:bg-[#0E1A2D] p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xl text-xs space-y-2.5 max-w-xs transition-colors">
           <div className="flex items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-2">
-            <span className="font-semibold text-slate-900 dark:text-white truncate">
+            <span className="font-normal text-slate-900 dark:text-white truncate">
               {data.name}
             </span>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#00A896]/15 text-[#00A896] dark:bg-[#00A896]/20 shrink-0">
+            <span className="text-[10px] font-normal px-2 py-0.5 rounded-full bg-[#00A896]/15 text-[#00A896] dark:bg-[#00A896]/20 shrink-0">
               {data.code}
             </span>
           </div>
 
           <div className="flex items-baseline justify-between">
             <span className="text-slate-500 dark:text-white">Current Completion:</span>
-            <span className="text-sm font-bold text-[#00A896]">
+            <span className="text-sm font-normal text-[#00A896]">
               {data.completion}%
             </span>
           </div>
@@ -283,18 +312,18 @@ export const CourseProgressTracker: React.FC = () => {
           <div className="grid grid-cols-2 gap-2 pt-1 text-[11px] text-slate-600 dark:text-white">
             <div>
               <span className="text-slate-400 dark:text-white block text-[10px]">Total Units:</span>
-              <span className="dark:text-white font-medium">{data.completedUnits} / {data.totalUnits} Done</span>
+              <span className="dark:text-white font-normal">{data.completedUnits} / {data.totalUnits} Done</span>
             </div>
             <div>
               <span className="text-slate-400 dark:text-white block text-[10px]">Academic Mark:</span>
-              <span className="font-bold text-slate-900 dark:text-white">{data.grade}</span>
+              <span className="font-normal text-slate-900 dark:text-white">{data.grade}</span>
             </div>
           </div>
 
           <div className="pt-1.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[10px]">
             <span className="text-slate-400 dark:text-white">Status:</span>
             <span
-              className={`px-1.5 py-0.5 rounded font-bold ${
+              className={`px-1.5 py-0.5 rounded font-normal ${
                 data.status === 'Completed'
                   ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400'
                   : data.status === 'On Track'
@@ -312,12 +341,12 @@ export const CourseProgressTracker: React.FC = () => {
   };
 
   return (
-    <div className="bg-white dark:bg-[#0E1A2D] rounded-2xl p-5 sm:p-6 border border-slate-200/90 dark:border-slate-800/80 shadow-xs space-y-5 transition-colors">
+    <div className="font-lollipop-regular bg-white dark:bg-[#0E1A2D] rounded-2xl p-5 sm:p-6 border border-slate-200/90 dark:border-slate-800/80 shadow-xs space-y-5 transition-colors h-full flex flex-col justify-between">
       {/* Top Header Row with Title, Live Agile Sync Badge, and View Switcher */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
         <div>
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-[#00A896]/10 text-[#00A896] flex items-center justify-center font-normal">
+            <div className="w-8 h-8 rounded-xl bg-[#00A896]/10 text-[#00A896] flex items-center justify-center font-normal shrink-0">
               <BarChart3 className="w-4 h-4" />
             </div>
             <div>
@@ -326,12 +355,12 @@ export const CourseProgressTracker: React.FC = () => {
                   Enrolled Course Completion Tracker
                 </h3>
                 {/* Live Agile Sync Indicator */}
-                <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-[10px] font-bold text-emerald-700 dark:text-emerald-300">
+                <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-[10px] font-normal text-emerald-700 dark:text-emerald-300 whitespace-nowrap">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
                   <span>Agile Roadmap Live Sync</span>
                 </div>
               </div>
-              <p className="text-xs text-slate-500 dark:text-white mt-0.5">
+              <p className="text-xs font-normal text-slate-500 dark:text-white mt-0.5">
                 Visual progress tracking bars powered by Recharts • Dynamically recalculates as you update task statuses on the Agile Board
               </p>
             </div>
@@ -339,28 +368,28 @@ export const CourseProgressTracker: React.FC = () => {
         </div>
 
         {/* Action Controls & View Toggle */}
-        <div className="flex items-center gap-2 self-start sm:self-auto">
-          <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl text-xs">
+        <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+          <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl text-xs whitespace-nowrap">
             <button
               onClick={() => setViewMode('chart')}
-              className={`px-3 py-1 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 font-bold ${
+              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 font-normal whitespace-nowrap shrink-0 ${
                 viewMode === 'chart'
                   ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-2xs'
                   : 'text-slate-500 dark:text-white/80 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
-              <BarChart3 className="w-3.5 h-3.5 text-[#00A896]" />
+              <BarChart3 className="w-3.5 h-3.5 text-[#00A896] shrink-0" />
               <span>Chart Bar</span>
             </button>
             <button
               onClick={() => setViewMode('list')}
-              className={`px-3 py-1 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 font-bold ${
+              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 font-normal whitespace-nowrap shrink-0 ${
                 viewMode === 'list'
                   ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-2xs'
                   : 'text-slate-500 dark:text-white/80 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
-              <Layers className="w-3.5 h-3.5 text-[#00A896]" />
+              <Layers className="w-3.5 h-3.5 text-[#00A896] shrink-0" />
               <span>Course Cards</span>
             </button>
           </div>
@@ -369,16 +398,16 @@ export const CourseProgressTracker: React.FC = () => {
 
       {/* KPI Metric Summary Badges */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-[#132A4C]/50 border border-slate-200/80 dark:border-[#1C3A66] space-y-1">
+        <div className="p-3.5 rounded-xl bg-slate-200/55 dark:bg-[#132A4C]/70 border border-slate-200/90 dark:border-[#1C3A66] space-y-1">
           <div className="flex items-center justify-between text-slate-500 dark:text-white text-xs">
             <span>Overall Completion</span>
             <TrendingUp className="w-3.5 h-3.5 text-[#00A896]" />
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-xl font-bold text-slate-900 dark:text-white">
+            <span className="text-xl font-normal text-slate-900 dark:text-white">
               {averageCompletion}%
             </span>
-            <span className="text-[11px] font-bold text-[#00A896]">Live Tracked</span>
+            <span className="text-[11px] font-normal text-[#00A896]">Live Tracked</span>
           </div>
           <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-1.5 overflow-hidden">
             <div
@@ -388,46 +417,55 @@ export const CourseProgressTracker: React.FC = () => {
           </div>
         </div>
 
-        <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-[#132A4C]/50 border border-slate-200/80 dark:border-[#1C3A66] space-y-1">
+        <div className="p-3.5 rounded-xl bg-slate-200/55 dark:bg-[#132A4C]/70 border border-slate-200/90 dark:border-[#1C3A66] space-y-1">
           <div className="flex items-center justify-between text-slate-500 dark:text-white text-xs">
             <span>Agile Roadmap Tasks</span>
             <Zap className="w-3.5 h-3.5 text-amber-400" />
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-xl font-bold text-slate-900 dark:text-white">
+            <span className="text-xl font-normal text-slate-900 dark:text-white">
               {totalAgileTasksCompleted} / {totalAgileTasksPlanned}
             </span>
-            <span className="text-[11px] text-slate-500 dark:text-white">Done</span>
+            <span className="text-[11px] font-normal text-slate-500 dark:text-white">Done</span>
           </div>
           <p className="text-[10px] text-slate-400 dark:text-white">Real-Time Board Sync</p>
         </div>
 
-        <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-[#132A4C]/50 border border-slate-200/80 dark:border-[#1C3A66] space-y-1">
+        <div className="p-3.5 rounded-xl bg-slate-200/55 dark:bg-[#132A4C]/70 border border-slate-200/90 dark:border-[#1C3A66] space-y-1">
           <div className="flex items-center justify-between text-slate-500 dark:text-white text-xs">
             <span>Mastery Milestone</span>
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-xl font-bold text-slate-900 dark:text-white">
+            <span className="text-xl font-normal text-slate-900 dark:text-white">
               {completedCoursesCount} of {coursesData.length}
             </span>
-            <span className="text-[11px] font-bold text-emerald-500 dark:text-emerald-400">&gt;90%</span>
+            <span className="text-[11px] font-normal text-emerald-500 dark:text-emerald-400">&gt;90%</span>
           </div>
           <p className="text-[10px] text-slate-400 dark:text-white">Ready for Certification</p>
         </div>
 
-        <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-[#132A4C]/50 border border-slate-200/80 dark:border-[#1C3A66] space-y-1">
+        <div className="p-3.5 rounded-xl bg-slate-200/55 dark:bg-[#132A4C]/70 border border-slate-200/90 dark:border-[#1C3A66] space-y-1">
           <div className="flex items-center justify-between text-slate-500 dark:text-white text-xs">
             <span>Active Courses</span>
             <BookOpen className="w-3.5 h-3.5 text-blue-400" />
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-xl font-bold text-slate-900 dark:text-white">
+            <span className="text-xl font-normal text-slate-900 dark:text-white">
               {coursesData.length}
             </span>
-            <span className="text-[11px] text-slate-500 dark:text-white">Subjects</span>
+            <span className="text-[11px] font-normal text-slate-500 dark:text-white">Subjects</span>
           </div>
-          <p className="text-[10px] text-slate-400 dark:text-white">CBSE/ICSE Aligned</p>
+          <div className="flex items-center justify-between text-[10px]">
+            <span className="text-slate-400 dark:text-white">{currentBoard} Aligned</span>
+            <button
+              type="button"
+              onClick={() => setIsProfileOpen(true)}
+              className="text-[#00A896] hover:underline font-normal cursor-pointer"
+            >
+              Select
+            </button>
+          </div>
         </div>
       </div>
 
@@ -435,19 +473,19 @@ export const CourseProgressTracker: React.FC = () => {
       {selectedCourse && (
         <div className="p-3 sm:p-4 rounded-xl bg-teal-50/70 dark:bg-[#0C2A2D] border border-teal-200 dark:border-teal-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs animate-fadeIn">
           <div className="flex items-center gap-3">
-            <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: selectedCourse.color }} />
+            <SubjectIcon subject={selectedCourse.name} size="md" />
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-bold text-slate-900 dark:text-white">{selectedCourse.name}</span>
-                <span className="text-[10px] px-1.5 py-0.2 rounded font-bold bg-teal-100 dark:bg-teal-900 text-[#00A896] dark:text-[#4DF0D7]">
+                <span className="font-normal text-slate-900 dark:text-white">{selectedCourse.name}</span>
+                <span className="text-[10px] px-1.5 py-0.2 rounded font-normal bg-teal-100 dark:bg-teal-900 text-[#00A896] dark:text-[#4DF0D7]">
                   {selectedCourse.completion}% Completed
                 </span>
-                <span className="text-[10px] text-slate-500 dark:text-white font-medium">
+                <span className="text-[10px] text-slate-500 dark:text-white font-normal">
                   Mark: {selectedCourse.grade}
                 </span>
               </div>
               <p className="text-[11px] text-slate-600 dark:text-white mt-0.5">
-                Agile Roadmap: <strong className="text-teal-700 dark:text-teal-300">{selectedCourse.agileCompletedTasks} of {selectedCourse.agileTotalTasks} tasks completed</strong> ({selectedCourse.agileInProgressTasks} in flight, {selectedCourse.agileTodoTasks} to do). Next: {selectedCourse.nextTaskTopic}
+                Agile Roadmap: <span className="font-normal text-teal-700 dark:text-teal-300">{selectedCourse.agileCompletedTasks} of {selectedCourse.agileTotalTasks} tasks completed</span> ({selectedCourse.agileInProgressTasks} in flight, {selectedCourse.agileTodoTasks} to do). Next: {selectedCourse.nextTaskTopic}
               </p>
             </div>
           </div>
@@ -458,7 +496,7 @@ export const CourseProgressTracker: React.FC = () => {
                 setStudentNav('ai-tutor');
                 sendTutorMessage(`I want to practice more on ${selectedCourse.name}.`);
               }}
-              className="px-2.5 py-1.5 rounded-lg bg-[#00A896] text-white font-bold text-[11px] hover:bg-teal-600 transition-colors cursor-pointer"
+              className="px-2.5 py-1.5 rounded-lg bg-[#00A896] text-white font-normal text-[11px] hover:bg-teal-600 transition-colors cursor-pointer"
             >
               Practice AI Drill
             </button>
@@ -534,7 +572,7 @@ export const CourseProgressTracker: React.FC = () => {
                     position="right"
                     fill={isDark ? '#F1F5F9' : '#1E293B'}
                     fontSize={11}
-                    fontWeight={700}
+                    fontWeight={400}
                     formatter={(val: any) => `${val}%`}
                   />
                 </Bar>
@@ -555,11 +593,11 @@ export const CourseProgressTracker: React.FC = () => {
                       : 'hover:bg-slate-50 dark:hover:bg-slate-800/60'
                   }`}
                 >
-                  <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: c.color }} />
-                  <span className="text-[11px] font-medium text-slate-700 dark:text-white truncate max-w-[120px]">
+                  <SubjectIcon subject={c.name} size="xs" />
+                  <span className="text-[11px] font-normal text-slate-700 dark:text-white truncate max-w-[120px]">
                     {c.name}
                   </span>
-                  <span className="text-[10px] font-bold text-[#00A896]">
+                  <span className="text-[10px] font-normal text-[#00A896]">
                     {c.completion}%
                   </span>
                 </button>
@@ -568,7 +606,7 @@ export const CourseProgressTracker: React.FC = () => {
 
             <button
               onClick={() => setStudentNav('my-courses')}
-              className="text-xs font-bold text-[#00A896] hover:underline flex items-center gap-1 cursor-pointer"
+              className="text-xs font-normal text-[#00A896] hover:underline flex items-center gap-1 cursor-pointer"
             >
               <span>Explore All Modules</span>
               <ArrowUpRight className="w-3.5 h-3.5" />
@@ -577,7 +615,7 @@ export const CourseProgressTracker: React.FC = () => {
         </div>
       ) : (
         /* Detailed Course Progress Cards View with Live Agile Telemetry */
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
           {coursesData.map((course) => (
             <div
               key={course.id}
@@ -590,20 +628,20 @@ export const CourseProgressTracker: React.FC = () => {
             >
               <div className="flex items-start justify-between gap-2">
                 <div>
-                  <h4 className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: course.color }} />
+                  <h4 className="text-xs font-normal text-slate-900 dark:text-white flex items-center gap-2">
+                    <SubjectIcon subject={course.name} size="md" />
                     <span>{course.name}</span>
                   </h4>
-                  <span className="text-[10px] text-slate-500 dark:text-white block mt-0.5">
+                  <span className="text-[10px] font-normal text-slate-500 dark:text-white block mt-0.5">
                     {course.code} &bull; {course.completedUnits} of {course.totalUnits} Units Finished
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
-                  <span className="text-xs font-bold text-[#00A896]">
+                  <span className="text-xs font-normal text-[#00A896]">
                     {course.completion}%
                   </span>
                   <span
-                    className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                    className={`text-[9px] font-normal px-1.5 py-0.5 rounded ${
                       course.status === 'Completed'
                         ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400'
                         : 'bg-teal-100 dark:bg-teal-950/60 text-teal-700 dark:text-teal-400'
@@ -624,18 +662,18 @@ export const CourseProgressTracker: React.FC = () => {
 
               {/* Agile Roadmap Live Telemetry pill */}
               <div className="flex items-center justify-between text-[10px] py-1 px-2 rounded-lg bg-white/70 dark:bg-slate-800/60 border border-slate-200/50 dark:border-slate-700/50">
-                <span className="text-slate-600 dark:text-white font-medium flex items-center gap-1">
+                <span className="text-slate-600 dark:text-white font-normal flex items-center gap-1">
                   <Zap className="w-3 h-3 text-amber-500" />
                   Agile Roadmap:
                 </span>
-                <span className="font-bold text-[#00A896]">
+                <span className="font-normal text-[#00A896]">
                   {course.agileCompletedTasks}/{course.agileTotalTasks} Tasks Done
                 </span>
               </div>
 
               {/* Action Buttons */}
               <div className="flex items-center justify-between pt-1">
-                <span className="text-[10px] text-slate-400 dark:text-white truncate max-w-[200px]" title={course.nextTaskTopic}>
+                <span className="text-[10px] font-normal text-slate-400 dark:text-white truncate max-w-[200px]" title={course.nextTaskTopic}>
                   Next: {course.nextTaskTopic}
                 </span>
                 <button
@@ -644,7 +682,7 @@ export const CourseProgressTracker: React.FC = () => {
                     setStudentNav('ai-tutor');
                     sendTutorMessage(`I want to practice more on ${course.name}.`);
                   }}
-                  className="text-[11px] font-bold text-[#00A896] hover:text-teal-600 dark:hover:text-teal-300 flex items-center gap-1 cursor-pointer shrink-0"
+                  className="text-[11px] font-normal text-[#00A896] hover:text-teal-600 dark:hover:text-teal-300 flex items-center gap-1 cursor-pointer shrink-0"
                 >
                   <span>Practice Drill</span>
                   <ArrowUpRight className="w-3 h-3" />

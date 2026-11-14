@@ -1,13 +1,21 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useTheme } from '../../context/ThemeContext';
+import {
+  BOARD_LABELS,
+  getLocalizedSubjectName,
+  formatEnrolledCourseEntry,
+  isSubjectEnrolled,
+} from '../../data/curriculumData';
 import { FormulasAndGraphsTab } from './FormulasAndGraphsTab';
 import { AgileStudyRoadmap } from './AgileStudyRoadmap';
 import { CourseProgressTracker } from './CourseProgressTracker';
 import { StudentGamificationHub } from './StudentGamificationHub';
 import { OfflineStudyPackModal } from './OfflineStudyPackModal';
 import { ParentWeeklyDigestModal } from './ParentWeeklyDigestModal';
+import { CommunityDoubtForum } from './CommunityDoubtForum';
 import { PivotIQLogo } from '../common/PivotIQLogo';
+import { SubjectIcon } from '../common/SubjectIcon';
 import {
   GraduationCap,
   BookOpen,
@@ -69,8 +77,18 @@ import {
   Bell,
   User as UserIcon,
   CheckCheck,
+  Copy,
+  Trash2,
+  Loader2,
+  Lock,
+  ChevronUp,
+  ShieldAlert,
+  HeartHandshake,
+  Phone,
+  CornerDownRight,
 } from 'lucide-react';
-import { EducationBoard, LanguageMedium, StudentNavTab, Quiz, DigitalCertificate } from '../../types';
+import { EducationBoard, LanguageMedium, StudentNavTab, Quiz, DigitalCertificate, QuickDoubtItem, QuickDoubtChatTurn, GuardianEscalationReceipt } from '../../types';
+import { parseQuickDoubtResponse } from '../../utils/safetyGuard';
 
 const SUPPORTED_BOARDS: { value: EducationBoard; label: string }[] = [
   { value: 'CBSE', label: 'CBSE (National NCERT)' },
@@ -107,17 +125,23 @@ export const StudentView: React.FC = () => {
     chatMessages,
     isAiTyping,
     sendTutorMessage,
-    doubts,
-    addDoubt,
+    quickDoubts,
+    askQuickDoubtAI,
+    continueQuickDoubtChat,
+    deleteQuickDoubt,
+    clearQuickDoubts,
     quizzes,
     certificates,
     currentUser,
+    updateCurrentUser,
     setCurrentRole,
     logout,
     setIsProfileOpen,
     setIsCurriculumModalOpen,
     subjectsDB,
     topicsDB,
+    activeGrades,
+    activeCategories,
     currentBoard,
     setCurrentBoard,
     globalLanguage,
@@ -128,8 +152,6 @@ export const StudentView: React.FC = () => {
     exportStudyPlanSpreadsheet,
     activeStudentMeeting,
     dismissStudentMeetingAlert,
-    communityPosts,
-    upvoteCommunityPost,
     subscriptionState,
     notifications,
     activeBroadcastQuiz,
@@ -148,23 +170,35 @@ export const StudentView: React.FC = () => {
     ? currentUser.grade_level
     : parseInt(String(currentUser?.grade || '10').replace(/\D/g, '')) || 10;
 
-  const [gradeOverride, setGradeOverride] = useState(false);
   const [activeGradeFilter, setActiveGradeFilter] = useState<number>(studentGradeLevel);
 
   useEffect(() => {
-    if (!gradeOverride) {
-      setActiveGradeFilter(studentGradeLevel);
-    }
-  }, [studentGradeLevel, gradeOverride]);
+    setActiveGradeFilter(studentGradeLevel);
+  }, [studentGradeLevel]);
 
-  // Interactive Quick Doubts Input State
+  // Skills Passport filtering states
+  const [coursesScopeFilter, setCoursesScopeFilter] = useState<'ALL' | 'ENROLLED'>('ALL');
+  const [coursesCategoryFilter, setCoursesCategoryFilter] = useState<string>('ALL');
+
+  // Interactive Quick Doubts AI Assistant State (Subject + Topic + Real-time LLM)
   const [sidebarDoubtText, setSidebarDoubtText] = useState('');
+  const [sidebarDoubtSubject, setSidebarDoubtSubject] = useState('Physics');
+  const [sidebarDoubtTopic, setSidebarDoubtTopic] = useState('');
+  const [sidebarCustomTopic, setSidebarCustomTopic] = useState('');
+  const [sidebarImageData, setSidebarImageData] = useState<{ base64: string; mimeType: string; preview: string } | null>(null);
   const [isSidebarSubmitting, setIsSidebarSubmitting] = useState(false);
+  const [expandedQuickDoubtId, setExpandedQuickDoubtId] = useState<string | null>(null);
+  const [copiedDoubtId, setCopiedDoubtId] = useState<string | null>(null);
+  const [threadReplyInputs, setThreadReplyInputs] = useState<Record<string, string>>({});
+  const [replyingThreadId, setReplyingThreadId] = useState<string | null>(null);
 
   // AI Tutor & Floating Widget States
   const [inputMessage, setInputMessage] = useState('');
   const [quickDoubtText, setQuickDoubtText] = useState('');
   const [quickDoubtSubject, setQuickDoubtSubject] = useState('Physics');
+  const [quickDoubtTopic, setQuickDoubtTopic] = useState('');
+  const [quickCustomTopic, setQuickCustomTopic] = useState('');
+  const [quickImageData, setQuickImageData] = useState<{ base64: string; mimeType: string; preview: string } | null>(null);
   const [isSubmittingDoubt, setIsSubmittingDoubt] = useState(false);
   const [isQuickDoubtsOpen, setIsQuickDoubtsOpen] = useState(false);
 
@@ -174,14 +208,24 @@ export const StudentView: React.FC = () => {
 
   // Practice Quizzes Interactive States
   const [activeQuizId, setActiveQuizId] = useState<string | null>(null);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<{ [qIndex: number]: number }>({});
   const [quizSubmitted, setQuizSubmitted] = useState(false);
+  const [isReviewingAnswers, setIsReviewingAnswers] = useState(false);
   const [quizResult, setQuizResult] = useState<{
     score: number;
     correctCount: number;
     totalQuestions: number;
     certificateIssued?: DigitalCertificate;
   } | null>(null);
+
+  useEffect(() => {
+    setCurrentQuestionIndex(0);
+    setSelectedAnswers({});
+    setQuizSubmitted(false);
+    setQuizResult(null);
+    setIsReviewingAnswers(false);
+  }, [activeQuizId]);
 
   // Interactive Grade Review & Certificate Modal State
   const [activeCertModal, setActiveCertModal] = useState<DigitalCertificate | null>(null);
@@ -197,24 +241,500 @@ export const StudentView: React.FC = () => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages, isAiTyping]);
 
-  // Dynamic Grade-Filtered Subjects
-  const filteredSubjects = subjectsDB.filter((s) => {
-    if (s.status !== 'ACTIVE') return false;
-    const targetGrade = gradeOverride ? activeGradeFilter : studentGradeLevel;
-    return s.grade_level === targetGrade;
-  });
+  // Dynamic Grade, Board & Category-Filtered Subjects from Live Admin Curriculum
+  const filteredSubjects = useMemo(() => {
+    return subjectsDB.filter((s) => {
+      if (s.status !== 'ACTIVE') return false;
+      if (s.grade_level !== activeGradeFilter) return false;
+      if (s.board && s.board !== 'ALL' && s.board !== currentBoard) return false;
+      if (activeCategories.length > 0 && s.category && !activeCategories.includes(s.category)) return false;
+      return true;
+    });
+  }, [subjectsDB, activeGradeFilter, currentBoard, activeCategories]);
 
-  const displaySubjects = filteredSubjects.length > 0
-    ? filteredSubjects
-    : subjectsDB.filter((s) => s.status === 'ACTIVE');
+  const displaySubjects = useMemo(() => {
+    if (filteredSubjects.length > 0) return filteredSubjects;
+    return subjectsDB.filter(
+      (s) => s.status === 'ACTIVE' && (!s.board || s.board === 'ALL' || s.board === currentBoard)
+    );
+  }, [filteredSubjects, subjectsDB, currentBoard]);
+
+  const gradeOptions = useMemo(() => {
+    const set = new Set<number>(activeGrades.length > 0 ? activeGrades : [6, 7, 8, 9, 10, 11, 12]);
+    set.add(activeGradeFilter);
+    return Array.from(set).sort((a, b) => a - b);
+  }, [activeGrades, activeGradeFilter]);
+
+  useEffect(() => {
+    if (displaySubjects.length > 0) {
+      const names = displaySubjects.map((s) => getLocalizedSubjectName(s.name, currentBoard));
+      if (!names.includes(quickDoubtSubject)) setQuickDoubtSubject(names[0]);
+      if (!names.includes(sidebarDoubtSubject)) setSidebarDoubtSubject(names[0]);
+    }
+  }, [displaySubjects, currentBoard, quickDoubtSubject, sidebarDoubtSubject]);
+
+  // Live Curriculum Topics filtered by selected Subject for Quick Doubts AI
+  const getTopicsForSubjectName = (subjectName: string) => {
+    const matchedSubjects = subjectsDB.filter((s) => {
+      if (s.status !== 'ACTIVE') return false;
+      const localized = getLocalizedSubjectName(s.name, currentBoard);
+      return (
+        localized.toLowerCase() === subjectName.toLowerCase() ||
+        s.name.toLowerCase() === subjectName.toLowerCase()
+      );
+    });
+    const exactGradeSubject =
+      matchedSubjects.find((s) => s.grade_level === activeGradeFilter) || matchedSubjects[0];
+    if (!exactGradeSubject) return [];
+    return topicsDB.filter((t) => t.subject_id === exactGradeSubject.id && t.status === 'ACTIVE');
+  };
+
+  const sidebarTopicsForSubject = useMemo(
+    () => getTopicsForSubjectName(sidebarDoubtSubject),
+    [subjectsDB, topicsDB, sidebarDoubtSubject, activeGradeFilter, currentBoard]
+  );
+
+  const floatingTopicsForSubject = useMemo(
+    () => getTopicsForSubjectName(quickDoubtSubject),
+    [subjectsDB, topicsDB, quickDoubtSubject, activeGradeFilter, currentBoard]
+  );
+
+  useEffect(() => {
+    if (sidebarTopicsForSubject.length > 0) {
+      const titles = sidebarTopicsForSubject.map((t) => t.title);
+      if (sidebarDoubtTopic !== '__custom__' && !titles.includes(sidebarDoubtTopic)) {
+        setSidebarDoubtTopic(titles[0]);
+      }
+    } else if (sidebarDoubtTopic !== '__custom__') {
+      setSidebarDoubtTopic('');
+    }
+  }, [sidebarTopicsForSubject]);
+
+  useEffect(() => {
+    if (floatingTopicsForSubject.length > 0) {
+      const titles = floatingTopicsForSubject.map((t) => t.title);
+      if (quickDoubtTopic !== '__custom__' && !titles.includes(quickDoubtTopic)) {
+        setQuickDoubtTopic(titles[0]);
+      }
+    } else if (quickDoubtTopic !== '__custom__') {
+      setQuickDoubtTopic('');
+    }
+  }, [floatingTopicsForSubject]);
+
+  useEffect(() => {
+    if (quickDoubts.length > 0 && !expandedQuickDoubtId) {
+      setExpandedQuickDoubtId(quickDoubts[0].id);
+    }
+  }, [quickDoubts, expandedQuickDoubtId]);
+
+  const handleToggleSubjectEnrollment = (sub: typeof displaySubjects[number]) => {
+    const existing = currentUser?.enrolledCourses || [];
+    const localized = getLocalizedSubjectName(sub.name, currentBoard);
+    const entry = formatEnrolledCourseEntry(localized, sub.code);
+    const enrolled = isSubjectEnrolled(sub, existing, currentBoard);
+
+    const updatedCourses = enrolled
+      ? existing.filter((item) => !isSubjectEnrolled(sub, [item], currentBoard))
+      : existing.includes(entry)
+      ? existing
+      : [...existing, entry];
+
+    updateCurrentUser({ enrolledCourses: updatedCourses });
+  };
+
+  const handleQuickDoubtImageSelect = (
+    file: File | undefined,
+    setter: React.Dispatch<React.SetStateAction<{ base64: string; mimeType: string; preview: string } | null>>
+  ) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const result = ev.target?.result as string;
+      if (result) {
+        setter({
+          base64: result,
+          mimeType: file.type || 'image/png',
+          preview: result,
+        });
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleCopyDoubtAnswer = (id: string, text: string) => {
+    navigator.clipboard?.writeText(text).catch(() => {});
+    setCopiedDoubtId(id);
+    setTimeout(() => {
+      setCopiedDoubtId((prev) => (prev === id ? null : prev));
+    }, 1800);
+  };
+
+  // Renders clean formatted LLM markdown paragraphs, headers, bold phrases & bullet lists
+  const renderFormattedQuickAnswer = (text: string) => {
+    if (!text) return null;
+    const lines = text.split('\n');
+    const renderInline = (lineText: string) => {
+      const parts = lineText.split(/(\*\*[^*]+\*\*|`[^`]+`)/g);
+      return parts.map((part, idx) => {
+        if (part.startsWith('**') && part.endsWith('**')) {
+          return (
+            <strong key={idx} className="font-bold text-slate-900 dark:text-white">
+              {part.slice(2, -2)}
+            </strong>
+          );
+        }
+        if (part.startsWith('`') && part.endsWith('`')) {
+          return (
+            <code
+              key={idx}
+              className="px-1 py-0.5 rounded bg-slate-200/70 dark:bg-slate-700/70 text-[11px] font-mono text-indigo-700 dark:text-teal-300"
+            >
+              {part.slice(1, -1)}
+            </code>
+          );
+        }
+        return <React.Fragment key={idx}>{part}</React.Fragment>;
+      });
+    };
+
+    return (
+      <div className="space-y-1.5 text-xs leading-relaxed text-slate-700 dark:text-slate-100">
+        {lines.map((rawLine, idx) => {
+          const line = rawLine.trim();
+          if (!line) return <div key={idx} className="h-1" />;
+          if (/^(-{3,}|\*{3,}|_{3,})$/.test(line)) {
+            return <hr key={idx} className="my-2 border-slate-200/80 dark:border-slate-700/70" />;
+          }
+          if (/^#{1,6}\s+/.test(line)) {
+            const cleanHeading = line.replace(/^#{1,6}\s+/, '');
+            return (
+              <h4 key={idx} className="text-xs text-[#FF6B00] pt-1">
+                {renderInline(cleanHeading)}
+              </h4>
+            );
+          }
+          if (line.startsWith('* ') || line.startsWith('- ') || line.startsWith('• ')) {
+            return (
+              <div key={idx} className="flex items-start gap-2 pl-1">
+                <span className="text-[#00A896] mt-0.5">&bull;</span>
+                <span>{renderInline(line.slice(2))}</span>
+              </div>
+            );
+          }
+          return <p key={idx}>{renderInline(line)}</p>;
+        })}
+      </div>
+    );
+  };
+
+    const renderGuardianAlertBox = (receipt: GuardianEscalationReceipt) => {
+      const imgSrc = receipt.screenshotDataUrl || receipt.screenshotUrl;
+      return (
+        <div className="mt-2 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800/80 space-y-2 text-[11px]">
+          <div className="flex items-start gap-2">
+            <ShieldAlert className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+            <div className="space-y-0.5 min-w-0 flex-1">
+              <p className="font-bold text-rose-800 dark:text-rose-200">
+                Conduct Guardrail Triggered — Guardian Immediately Notified
+              </p>
+              <p className="text-rose-700/90 dark:text-rose-300/90 leading-snug">
+                The AI Assistant did not reply to or accept abusive/foul language. An automated visual screenshot was captured and alerted to <strong>{receipt.guardianName}</strong>.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-[10px]">
+            <div className="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg bg-white/80 dark:bg-slate-900/60 border border-rose-200/70 dark:border-rose-800/50">
+              <span className="flex items-center gap-1 text-emerald-700 dark:text-emerald-300 font-semibold truncate">
+                <Phone className="w-3 h-3 shrink-0" />
+                WhatsApp Sent: {receipt.guardianPhone}
+              </span>
+              <a
+                href={receipt.whatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-emerald-600 dark:text-emerald-400 underline shrink-0"
+              >
+                Open
+              </a>
+            </div>
+            <div className="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg bg-white/80 dark:bg-slate-900/60 border border-rose-200/70 dark:border-rose-800/50">
+              <span className="flex items-center gap-1 text-indigo-700 dark:text-indigo-300 font-semibold truncate">
+                <Mail className="w-3 h-3 shrink-0" />
+                Email Sent: {receipt.guardianEmail}
+              </span>
+              <a
+                href={receipt.emailUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-indigo-600 dark:text-indigo-400 underline shrink-0"
+              >
+                Open
+              </a>
+            </div>
+          </div>
+
+          {imgSrc && (
+            <div className="pt-1 space-y-1">
+              <div className="flex items-center justify-between text-[10px] text-rose-700 dark:text-rose-300">
+                <span>Captured Screenshot Evidence ({receipt.id})</span>
+                <a
+                  href={imgSrc}
+                  download={`safety-alert-${receipt.id}.png`}
+                  className="inline-flex items-center gap-1 font-semibold underline hover:text-rose-900 dark:hover:text-white"
+                >
+                  <Download className="w-3 h-3" />
+                  Download PNG
+                </a>
+              </div>
+              <img
+                src={imgSrc}
+                alt="Captured incident screenshot sent to guardian"
+                className="w-full max-h-36 object-contain rounded-lg border border-rose-200 dark:border-rose-800 bg-slate-900"
+              />
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    const handleSendThreadFollowUp = async (doubtId: string, overrideText?: string, surfaceLabel?: string) => {
+      const textToSend = (overrideText ?? threadReplyInputs[doubtId] ?? '').trim();
+      if (!textToSend || replyingThreadId === doubtId) return;
+      if (!overrideText) {
+        setThreadReplyInputs((prev) => ({ ...prev, [doubtId]: '' }));
+      }
+      setReplyingThreadId(doubtId);
+      try {
+        await continueQuickDoubtChat(doubtId, textToSend, { surfaceLabel });
+      } finally {
+        setReplyingThreadId(null);
+      }
+    };
+
+    const renderInteractiveThreadMessages = (item: QuickDoubtItem, surfaceLabel: string, compact = false) => {
+      const turns: QuickDoubtChatTurn[] =
+        item.messages && item.messages.length > 0
+          ? item.messages
+          : [
+              {
+                id: `legacy-stu-${item.id}`,
+                sender: 'student',
+                text: item.question,
+                timestamp: item.createdAt,
+                imagePreview: item.imagePreview,
+                isBlockedViolation: item.blockedViolation,
+                guardianReport: item.guardianReport,
+              },
+              ...(item.answer
+                ? [
+                    {
+                      id: `legacy-ai-${item.id}`,
+                      sender: 'ai' as const,
+                      text: item.answer,
+                      timestamp: item.createdAt,
+                      isWellnessNotice: item.isWellnessNotice,
+                    },
+                  ]
+                : []),
+            ];
+
+      const isStreamingThis = item.status === 'streaming';
+
+      return (
+        <div className="space-y-2.5">
+          {turns.map((turn, tIdx) => {
+            const isLastTurn = tIdx === turns.length - 1;
+
+            if (turn.sender === 'student') {
+              return (
+                <div key={turn.id} className="space-y-1.5">
+                  <div className="flex justify-end">
+                    <div
+                      className={`max-w-[90%] rounded-2xl rounded-tr-xs px-3 py-2 text-xs ${
+                        turn.isBlockedViolation
+                          ? 'bg-rose-100 dark:bg-rose-950/70 text-rose-800 dark:text-rose-200 border border-rose-300 dark:border-rose-700'
+                          : 'bg-indigo-600/90 text-white shadow-xs'
+                      }`}
+                    >
+                      {turn.imagePreview && (
+                        <img
+                          src={turn.imagePreview}
+                          alt="Uploaded doubt diagram"
+                          className="max-h-32 rounded-lg mb-1.5 border border-white/20 object-contain bg-white"
+                        />
+                      )}
+                      <p className="leading-snug">{turn.text}</p>
+                      <span className="block text-[9px] opacity-75 mt-1 text-right">{turn.timestamp}</span>
+                    </div>
+                  </div>
+                  {turn.guardianReport && renderGuardianAlertBox(turn.guardianReport)}
+                </div>
+              );
+            }
+
+            // AI Agent Turn
+            if (turn.isWellnessNotice) {
+              return (
+                <div
+                  key={turn.id}
+                  className="rounded-2xl rounded-tl-xs p-3.5 bg-amber-50/90 dark:bg-amber-950/35 border border-amber-200 dark:border-amber-800/70 space-y-2"
+                >
+                  <div className="flex items-center gap-1.5 text-[11px] font-bold text-amber-800 dark:text-amber-300">
+                    <HeartHandshake className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                    <span>Parent &amp; Medical Practitioner Guidance Only</span>
+                  </div>
+                  <div className="text-xs leading-relaxed text-amber-950 dark:text-amber-100">
+                    {renderFormattedQuickAnswer(turn.text)}
+                  </div>
+                </div>
+              );
+            }
+
+            const parsed = parseQuickDoubtResponse(turn.text);
+            const hasStructured = Boolean(parsed.resolution || parsed.furtherLearning);
+
+            return (
+              <div key={turn.id} className="space-y-2">
+                {turn.text ? (
+                  <div className="bg-white dark:bg-[#0E1A2D] rounded-2xl rounded-tl-xs p-3.5 border border-slate-200/80 dark:border-slate-700/80 space-y-3 shadow-2xs">
+                    {/* Resolution Section */}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                          <CheckCircle2 className="w-3 h-3" />
+                          Resolution
+                        </span>
+                        <span className="text-[9px] text-slate-400 dark:text-slate-300">{turn.timestamp}</span>
+                      </div>
+                      <div>
+                        {renderFormattedQuickAnswer(hasStructured ? parsed.resolution : turn.text)}
+                        {isStreamingThis && isLastTurn && !parsed.furtherLearning && (
+                          <span className="inline-block w-1.5 h-3.5 ml-1 bg-[#FF6B00] animate-pulse align-middle rounded-xs" />
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Further Learning Section */}
+                    {parsed.furtherLearning && (
+                      <div className="pt-2.5 border-t border-slate-100 dark:border-slate-800 space-y-2">
+                        <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                          <Lightbulb className="w-3 h-3 text-[#FF6B00]" />
+                          Further Learning
+                        </span>
+                        <div className="bg-slate-50/80 dark:bg-slate-800/40 rounded-xl p-2.5 border border-slate-200/60 dark:border-slate-700/50">
+                          {renderFormattedQuickAnswer(parsed.furtherLearning)}
+                          {isStreamingThis && isLastTurn && (
+                            <span className="inline-block w-1.5 h-3.5 ml-1 bg-[#FF6B00] animate-pulse align-middle rounded-xs" />
+                          )}
+                        </div>
+
+                        {/* Interactive Further Learning Quick-Explore Buttons */}
+                        {!isStreamingThis && parsed.followUpSuggestions.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 pt-0.5">
+                            {parsed.followUpSuggestions.slice(0, compact ? 2 : 3).map((sug, sIdx) => (
+                              <button
+                                key={sIdx}
+                                type="button"
+                                disabled={replyingThreadId === item.id}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleSendThreadFollowUp(
+                                    item.id,
+                                    `Let's explore further: ${sug}`,
+                                    surfaceLabel
+                                  );
+                                }}
+                                className="text-left text-[10px] px-2.5 py-1 rounded-lg bg-orange-50/70 dark:bg-orange-950/30 hover:bg-orange-100 dark:hover:bg-orange-950/60 text-[#FF6B00] border border-orange-200/70 dark:border-orange-800/60 inline-flex items-center gap-1 cursor-pointer transition-colors"
+                              >
+                                <CornerDownRight className="w-2.5 h-2.5 shrink-0" />
+                                <span className="line-clamp-1">{sug}</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ) : isStreamingThis && isLastTurn ? (
+                  <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-white py-2 px-1">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-[#FF6B00]" />
+                    <span>Preparing interactive resolution &amp; further learning for {item.subject}...</span>
+                  </div>
+                ) : null}
+              </div>
+            );
+          })}
+
+          {/* Interactive Student <-> AI Reply Input Box */}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSendThreadFollowUp(item.id, undefined, surfaceLabel);
+            }}
+            onClick={(e) => e.stopPropagation()}
+            className="flex items-center gap-2 pt-1.5"
+          >
+            <input
+              type="text"
+              value={threadReplyInputs[item.id] || ''}
+              onChange={(e) =>
+                setThreadReplyInputs((prev) => ({ ...prev, [item.id]: e.target.value }))
+              }
+              disabled={isStreamingThis || replyingThreadId === item.id}
+              placeholder="Reply to AI Agent for follow-up or deeper explanation..."
+              className="flex-1 bg-white dark:bg-[#0E1A2D] border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#FF6B00]"
+            />
+            <button
+              type="submit"
+              disabled={
+                !(threadReplyInputs[item.id] || '').trim() ||
+                isStreamingThis ||
+                replyingThreadId === item.id
+              }
+              className="px-3 py-2 rounded-xl bg-[#FF6B00] hover:bg-[#E56000] disabled:opacity-40 text-white text-xs font-semibold inline-flex items-center gap-1 cursor-pointer transition-colors shrink-0"
+            >
+              {replyingThreadId === item.id ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Send className="w-3.5 h-3.5" />
+              )}
+              <span>Reply</span>
+            </button>
+          </form>
+        </div>
+      );
+    };
 
   const handleSidebarDoubtSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!sidebarDoubtText.trim() || isSidebarSubmitting) return;
+    if ((!sidebarDoubtText.trim() && !sidebarImageData) || isSidebarSubmitting) return;
+    const resolvedTopic =
+      sidebarDoubtTopic === '__custom__' ? sidebarCustomTopic.trim() : sidebarDoubtTopic.trim();
+    const qText =
+      sidebarDoubtText.trim() ||
+      `Please explain and solve the attached ${sidebarDoubtSubject}${resolvedTopic ? ` (${resolvedTopic})` : ''} diagram/problem.`;
+
     setIsSidebarSubmitting(true);
-    await addDoubt(sidebarDoubtText, 'General', 'Dashboard Quick Query');
     setSidebarDoubtText('');
-    setIsSidebarSubmitting(false);
+    const imgPayload = sidebarImageData;
+    setSidebarImageData(null);
+
+    try {
+      const createdId = await askQuickDoubtAI(qText, sidebarDoubtSubject || 'General', {
+        topic: resolvedTopic,
+        gradeLevel: activeGradeFilter,
+        board: currentBoard,
+        medium: globalLanguage,
+        imageBase64: imgPayload?.base64,
+        imageMimeType: imgPayload?.mimeType,
+        imagePreview: imgPayload?.preview,
+        surfaceLabel: 'Student Dashboard Quick Doubts Chat',
+      });
+      if (createdId) setExpandedQuickDoubtId(createdId);
+    } finally {
+      setIsSidebarSubmitting(false);
+    }
   };
 
   const handleSendMessage = async (e?: React.FormEvent) => {
@@ -283,11 +803,33 @@ export const StudentView: React.FC = () => {
 
   const handleQuickDoubtSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!quickDoubtText.trim()) return;
+    if ((!quickDoubtText.trim() && !quickImageData) || isSubmittingDoubt) return;
+    const resolvedTopic =
+      quickDoubtTopic === '__custom__' ? quickCustomTopic.trim() : quickDoubtTopic.trim();
+    const qText =
+      quickDoubtText.trim() ||
+      `Please solve and explain the attached ${quickDoubtSubject}${resolvedTopic ? ` (${resolvedTopic})` : ''} diagram.`;
+
     setIsSubmittingDoubt(true);
-    await addDoubt(quickDoubtText, quickDoubtSubject, 'Quick Popup Question');
     setQuickDoubtText('');
-    setIsSubmittingDoubt(false);
+    const imgPayload = quickImageData;
+    setQuickImageData(null);
+
+    try {
+      const createdId = await askQuickDoubtAI(qText, quickDoubtSubject, {
+        topic: resolvedTopic,
+        gradeLevel: activeGradeFilter,
+        board: currentBoard,
+        medium: globalLanguage,
+        imageBase64: imgPayload?.base64,
+        imageMimeType: imgPayload?.mimeType,
+        imagePreview: imgPayload?.preview,
+        surfaceLabel: 'Floating Quick Doubts AI Pop-up',
+      });
+      if (createdId) setExpandedQuickDoubtId(createdId);
+    } finally {
+      setIsSubmittingDoubt(false);
+    }
   };
 
   // Nav Items matching the theme in the image
@@ -683,45 +1225,55 @@ export const StudentView: React.FC = () => {
         {/* =========================================================================
             3. MAIN CONTAINER FOR CONDITIONAL STUDENT TABS
             ========================================================================= */}
-        <main className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full flex-1 space-y-6">
-          {/* TAB 1: MAIN DASHBOARD VIEW (Roadmap + Filters + Doubts + Momentum) */}
+        <main className="p-4 sm:p-6 lg:p-8 max-w-[1680px] mx-auto w-full flex-1 space-y-6">
+          {/* TAB 1: MAIN DASHBOARD VIEW (Top Progress & Filters + Full-Width Agile Study Roadmap + Quick Doubts AI) */}
           {studentNav === 'dashboard' && (
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-              {/* Center / Left: Visual Progress Tracking Bar + Agile Study Roadmap */}
-              <div className="lg:col-span-8 space-y-6">
-                <CourseProgressTracker />
-                <AgileStudyRoadmap />
-              </div>
-
-              {/* Right Sidebar: Grade & Board Filters, Quick Doubts AI, Momentum */}
-              <div className="lg:col-span-4 space-y-6">
-                {/* CARD 1: GRADE & BOARD FILTERS */}
-                <div className="bg-white dark:bg-[#0E1A2D] rounded-2xl p-5 border border-slate-200/90 dark:border-slate-800/80 shadow-xs space-y-4">
-                  <h3 className="text-xs font-light uppercase tracking-wider text-slate-500 dark:text-white">
+            <div className="space-y-6">
+              {/* ROW 1: FULL-WIDTH GRADE & BOARD FILTERS (Stretched Left to Right above Course Tracker) */}
+              <div className="font-lollipop-regular w-full bg-white dark:bg-[#0E1A2D] rounded-2xl p-5 border border-slate-200/90 dark:border-slate-800/80 shadow-xs space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h3 className="text-xs font-normal uppercase tracking-wider text-slate-500 dark:text-white">
                     Grade & Board Filters
                   </h3>
+                  <div className="flex items-center gap-4 text-[11px] text-slate-500 dark:text-white">
+                    <span className="flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                      <span>Curriculum Live Synced</span>
+                    </span>
+                    <button
+                      onClick={() => setIsCurriculumModalOpen(true)}
+                      className="font-normal text-[#FF6B00] hover:underline cursor-pointer"
+                    >
+                      View Syllabus &rarr;
+                    </button>
+                  </div>
+                </div>
 
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
                   {/* Grade Selector Dropdown */}
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-700 dark:text-white">
+                    <label className="text-xs font-normal text-slate-700 dark:text-white block">
                       Grade Level
                     </label>
                     <div className="relative">
                       <select
                         value={activeGradeFilter}
                         onChange={(e) => {
-                          setGradeOverride(true);
-                          setActiveGradeFilter(Number(e.target.value));
+                          const nextGrade = Number(e.target.value);
+                          setActiveGradeFilter(nextGrade);
+                          updateCurrentUser({
+                            grade: `Grade ${nextGrade}`,
+                            grade_level: nextGrade,
+                          });
                         }}
-                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-white rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#FF6B00] appearance-none cursor-pointer"
+                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-normal text-slate-900 dark:text-white rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#FF6B00] appearance-none cursor-pointer"
                       >
-                        <option value={10}>Grade 10</option>
-                        <option value={6}>Grade 6</option>
-                        <option value={7}>Grade 7</option>
-                        <option value={8}>Grade 8</option>
-                        <option value={9}>Grade 9</option>
-                        <option value={11}>Grade 11 (Science)</option>
-                        <option value={12}>Grade 12 (Advanced)</option>
+                        {gradeOptions.map((g) => (
+                          <option key={g} value={g}>
+                            Grade {g}
+                            {g === 11 ? ' (Science)' : g === 12 ? ' (Advanced)' : ''}
+                          </option>
+                        ))}
                       </select>
                       <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                     </div>
@@ -729,14 +1281,18 @@ export const StudentView: React.FC = () => {
 
                   {/* Education Board Selector Dropdown */}
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-700 dark:text-white">
+                    <label className="text-xs font-normal text-slate-700 dark:text-white block">
                       Governing Board
                     </label>
                     <div className="relative">
                       <select
                         value={currentBoard}
-                        onChange={(e) => setCurrentBoard(e.target.value)}
-                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-white rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#FF6B00] appearance-none cursor-pointer"
+                        onChange={(e) => {
+                          const nextBoard = e.target.value as EducationBoard;
+                          setCurrentBoard(nextBoard);
+                          updateCurrentUser({ education_board: nextBoard });
+                        }}
+                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-normal text-slate-900 dark:text-white rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#FF6B00] appearance-none cursor-pointer"
                       >
                         {SUPPORTED_BOARDS.map((b) => (
                           <option key={b.value} value={b.value}>
@@ -750,15 +1306,19 @@ export const StudentView: React.FC = () => {
 
                   {/* Multilingual Medium Selector Dropdown */}
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-700 dark:text-white flex items-center gap-1.5">
+                    <label className="text-xs font-normal text-slate-700 dark:text-white flex items-center gap-1.5">
                       <Languages className="w-3.5 h-3.5 text-[#FF6B00]" />
                       <span>Language Medium</span>
                     </label>
                     <div className="relative">
                       <select
                         value={globalLanguage}
-                        onChange={(e) => setGlobalLanguage(e.target.value)}
-                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-white rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#FF6B00] appearance-none cursor-pointer"
+                        onChange={(e) => {
+                          const nextLang = e.target.value as LanguageMedium;
+                          setGlobalLanguage(nextLang);
+                          updateCurrentUser({ preferred_language: nextLang });
+                        }}
+                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-normal text-slate-900 dark:text-white rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#FF6B00] appearance-none cursor-pointer"
                       >
                         {SUPPORTED_LANGUAGES.map((l) => (
                           <option key={l.value} value={l.value}>
@@ -770,122 +1330,389 @@ export const StudentView: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="pt-1 flex items-center justify-between text-[11px] text-slate-500 dark:text-white">
-                    <span className="flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                      <span>Vector RAG Synced</span>
-                    </span>
-                    <button
-                      onClick={() => setIsCurriculumModalOpen(true)}
-                      className="font-bold text-[#FF6B00] hover:underline cursor-pointer"
-                    >
-                      View Syllabus &rarr;
-                    </button>
+                  {/* Quick Selected Subjects & Profile Sync */}
+                  <div className="px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200/70 dark:border-slate-700/60 space-y-0.5 text-[11px]">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-normal text-slate-700 dark:text-white truncate">
+                        Selected Subjects ({currentUser?.enrolledCourses?.length || 0})
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setIsProfileOpen(true)}
+                        className="text-[#00A896] hover:underline font-normal cursor-pointer shrink-0"
+                      >
+                        Select in Profile &rarr;
+                      </button>
+                    </div>
+                    <p className="text-[10px] font-normal text-slate-500 dark:text-white/80 truncate">
+                      {displaySubjects.length} live Admin subjects for Grade {activeGradeFilter} ({currentBoard}).
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* ROW 2: FULL-WIDTH ENROLLED COURSE COMPLETION TRACKER */}
+              <div className="w-full">
+                <CourseProgressTracker />
+              </div>
+
+              {/* ROW 3: STUDY SPRINT GOALS (Student Momentum Full-Width Strip) */}
+              <div className="font-lollipop-regular w-full bg-white dark:bg-[#0E1A2D] rounded-2xl p-4 sm:p-5 border border-slate-200/90 dark:border-slate-800/80 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex items-center gap-3 shrink-0">
+                  <h3 className="text-xs font-normal uppercase tracking-wider text-slate-500 dark:text-white flex items-center gap-1.5">
+                    <Flame className="w-4 h-4 text-[#FF6B00]" />
+                    <span>Study Momentum</span>
+                  </h3>
+                  <span className="text-[11px] font-normal text-[#FF6B00] bg-orange-50 dark:bg-orange-950/60 px-2.5 py-0.5 rounded-full border border-orange-200 dark:border-orange-800/60">
+                    5-Day Streak 🔥
+                  </span>
+                </div>
+
+                <div className="flex-1 max-w-xl space-y-1.5 text-xs">
+                  <div className="flex items-center justify-between text-slate-600 dark:text-white">
+                    <span>Weekly Core Math:</span>
+                    <span className="font-normal text-slate-900 dark:text-white">10.5 / 10.5 hrs</span>
+                  </div>
+                  <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
+                    <div className="bg-gradient-to-r from-[#FF6B00] to-[#FFA04D] h-full rounded-full w-4/5" />
                   </div>
                 </div>
 
-                {/* CARD 2: QUICK DOUBTS AI CHAT PANEL */}
-                <div className="bg-white dark:bg-[#0E1A2D] rounded-2xl p-5 border border-slate-200/90 dark:border-slate-800/80 shadow-xs space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-xl bg-orange-50 dark:bg-orange-950/80 text-[#FF6B00] flex items-center justify-center font-bold">
-                        <Sparkles className="w-4 h-4" />
+                <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-white shrink-0">
+                  <Target className="w-3.5 h-3.5 text-[#FF6B00]" />
+                  <span>Next Milestone: Quadratic Formula Drills</span>
+                </div>
+              </div>
+
+              {/* ROW 2: FULL-WIDTH AGILE STUDY ROADMAP & DAILY PLANNER */}
+              <div className="w-full">
+                <AgileStudyRoadmap />
+              </div>
+
+              {/* ROW 3: FULL-WIDTH QUICK DOUBTS AI ASSISTANT (Real-time LLM, Subject & Topic, Private — Not Submitted to Teachers) */}
+              <div className="quick-doubts-lollipop bg-white dark:bg-[#0E1A2D] rounded-2xl p-5 sm:p-6 border border-slate-200/90 dark:border-slate-800/80 shadow-xs">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                  {/* Left: Ask Subject + Topic Specific Query */}
+                  <div className="lg:col-span-5 space-y-4">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-9 h-9 rounded-xl bg-orange-50 dark:bg-orange-950/80 text-[#FF6B00] flex items-center justify-center font-bold shrink-0">
+                          <Sparkles className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-sm font-semibold text-slate-900 dark:text-white leading-tight">
+                              Quick Doubts AI Assistant
+                            </h3>
+                            <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
+                              Real-Time LLM
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-500 dark:text-white/80 mt-0.5 flex items-center gap-1">
+                            <Lock className="w-3 h-3 text-[#00A896]" />
+                            <span>Private AI tutor &bull; Not submitted to any teacher</span>
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <h3 className="text-sm font-light text-slate-900 dark:text-white leading-tight">
-                          Quick Doubts AI
-                        </h3>
-                        <p className="text-[11px] text-slate-500 dark:text-white">
-                          Ask questions on the fly
+                    </div>
+
+                    <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/60 text-xs leading-relaxed text-slate-700 dark:text-white">
+                      <div className="flex items-center gap-2 mb-1 text-[11px] font-bold text-[#FF6B00]">
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span>Interactive Resolution &amp; Further Learning</span>
+                      </div>
+                      Select your <strong>Subject</strong> and <strong>Topic</strong> below, ask your question (or attach a diagram), and chat interactively with the AI Agent for step-by-step <strong>Resolution</strong> and <strong>Further Learning</strong>.
+                    </div>
+
+                    <form onSubmit={handleSidebarDoubtSubmit} className="space-y-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        {/* Subject Dropdown */}
+                        <div className="space-y-1">
+                          <label className="text-[11px] font-bold text-slate-600 dark:text-white">
+                            Subject
+                          </label>
+                          <select
+                            value={sidebarDoubtSubject}
+                            onChange={(e) => setSidebarDoubtSubject(e.target.value)}
+                            aria-label="Select subject for Quick Doubts AI"
+                            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-white px-3 py-2.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FF6B00] cursor-pointer"
+                          >
+                            {displaySubjects.map((s) => {
+                              const localized = getLocalizedSubjectName(s.name, currentBoard);
+                              return (
+                                <option key={`sb-doubt-${s.id}`} value={localized}>
+                                  {localized} (Grade {s.grade_level})
+                                </option>
+                              );
+                            })}
+                          </select>
+                        </div>
+
+                        {/* Topic Dropdown */}
+                        <div className="space-y-1">
+                          <label className="text-[11px] font-bold text-slate-600 dark:text-white">
+                            Topic
+                          </label>
+                          <select
+                            value={sidebarDoubtTopic}
+                            onChange={(e) => setSidebarDoubtTopic(e.target.value)}
+                            aria-label="Select topic for Quick Doubts AI"
+                            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-white px-3 py-2.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FF6B00] cursor-pointer"
+                          >
+                            {sidebarTopicsForSubject.map((t) => (
+                              <option key={`sb-topic-${t.id}`} value={t.title}>
+                                {t.title}
+                              </option>
+                            ))}
+                            <option value="">General {sidebarDoubtSubject}</option>
+                            <option value="__custom__">+ Enter Custom Topic...</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      {sidebarDoubtTopic === '__custom__' && (
+                        <input
+                          type="text"
+                          value={sidebarCustomTopic}
+                          onChange={(e) => setSidebarCustomTopic(e.target.value)}
+                          placeholder={`Enter specific ${sidebarDoubtSubject} topic (e.g., Quadratic Equations)...`}
+                          className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white px-3.5 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FF6B00]"
+                        />
+                      )}
+
+                      {sidebarImageData && (
+                        <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-orange-50/70 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800/60">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <img
+                              src={sidebarImageData.preview}
+                              alt="Attached diagram"
+                              className="w-9 h-9 rounded-lg object-cover border border-orange-300"
+                            />
+                            <span className="text-[11px] font-semibold text-slate-700 dark:text-white truncate">
+                              Diagram attached for AI vision
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setSidebarImageData(null)}
+                            className="p-1 rounded-lg hover:bg-orange-100 dark:hover:bg-orange-900/50 text-slate-500 dark:text-white cursor-pointer"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      )}
+
+                      <div className="space-y-2">
+                        <textarea
+                          rows={2}
+                          value={sidebarDoubtText}
+                          onChange={(e) => setSidebarDoubtText(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                              e.preventDefault();
+                              handleSidebarDoubtSubmit(e as unknown as React.FormEvent);
+                            }
+                          }}
+                          placeholder={`Ask your ${sidebarDoubtSubject}${
+                            sidebarDoubtTopic && sidebarDoubtTopic !== '__custom__'
+                              ? ` • ${sidebarDoubtTopic}`
+                              : ''
+                          } question...`}
+                          className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FF6B00] resize-none transition-all"
+                        />
+
+                        <div className="flex items-center justify-between gap-2">
+                          <label className="flex items-center gap-1.5 py-1.5 px-3 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 text-xs text-slate-600 dark:text-white cursor-pointer hover:border-[#FF6B00] transition-colors">
+                            <UploadCloud className="w-3.5 h-3.5 text-[#FF6B00]" />
+                            <span>Attach Diagram</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={(e) => handleQuickDoubtImageSelect(e.target.files?.[0], setSidebarImageData)}
+                            />
+                          </label>
+
+                          <button
+                            type="submit"
+                            disabled={(!sidebarDoubtText.trim() && !sidebarImageData) || isSidebarSubmitting}
+                            className="px-4 py-2 rounded-xl bg-[#FF6B00] hover:bg-[#E56000] disabled:opacity-40 text-white font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
+                          >
+                            {isSidebarSubmitting ? (
+                              <>
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                <span>Resolving Live...</span>
+                              </>
+                            ) : (
+                              <>
+                                <Send className="w-3.5 h-3.5" />
+                                <span>Ask AI Assistant</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    </form>
+                  </div>
+
+                  {/* Right: Live Real-Time LLM Answer Feed */}
+                  <div className="lg:col-span-7 lg:border-l lg:border-slate-100 dark:lg:border-slate-800 lg:pl-6 space-y-3">
+                    <div className="flex items-center justify-between text-[11px]">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-slate-500 dark:text-white uppercase tracking-wider">
+                          Real-Time AI Answers
+                        </span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-teal-50 dark:bg-teal-950/50 text-[#00A896] font-semibold border border-teal-200 dark:border-teal-800">
+                          {quickDoubts.length} Resolved Privately
+                        </span>
+                      </div>
+                      {quickDoubts.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={clearQuickDoubts}
+                          className="text-[11px] font-semibold text-slate-400 hover:text-rose-500 transition-colors cursor-pointer"
+                        >
+                          Clear History
+                        </button>
+                      )}
+                    </div>
+
+                    {quickDoubts.length === 0 ? (
+                      <div className="p-8 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-dashed border-slate-200 dark:border-slate-700 text-center space-y-1.5">
+                        <Sparkles className="w-5 h-5 text-[#FF6B00] mx-auto" />
+                        <p className="text-xs font-semibold text-slate-700 dark:text-white">
+                          Ask any Subject &amp; Topic question on the left
+                        </p>
+                        <p className="text-[11px] text-slate-500 dark:text-white/75">
+                          Answers stream immediately from the AI Assistant — nothing is sent to teachers.
                         </p>
                       </div>
-                    </div>
+                    ) : (
+                      <div className="space-y-2.5 max-h-[420px] overflow-y-auto pr-1">
+                        {quickDoubts.map((item: QuickDoubtItem, idx: number) => {
+                          const isExpanded =
+                            expandedQuickDoubtId === item.id ||
+                            (idx === 0 && expandedQuickDoubtId === null) ||
+                            item.status === 'streaming';
+                          return (
+                            <div
+                              key={item.id}
+                              className={`rounded-2xl border transition-all ${
+                                item.status === 'streaming'
+                                  ? 'bg-orange-50/40 dark:bg-orange-950/20 border-[#FF6B00]/50 shadow-xs'
+                                  : item.status === 'error'
+                                  ? 'bg-rose-50/50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-800/70'
+                                  : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200/80 dark:border-slate-800'
+                              }`}
+                            >
+                              {/* Question Header */}
+                              <div
+                                onClick={() =>
+                                  setExpandedQuickDoubtId(isExpanded ? '__none__' : item.id)
+                                }
+                                className="p-3.5 flex items-start justify-between gap-3 cursor-pointer"
+                              >
+                                <div className="space-y-1 min-w-0 flex-1">
+                                  <div className="flex flex-wrap items-center gap-1.5">
+                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                                      {item.subject}
+                                    </span>
+                                    {item.topic && (
+                                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-teal-50 dark:bg-teal-950/60 text-[#00A896] border border-teal-200 dark:border-teal-800">
+                                        {item.topic}
+                                      </span>
+                                    )}
+                                    <span className="text-[10px] text-slate-400 dark:text-slate-300">
+                                      {item.createdAt}
+                                    </span>
+                                  </div>
+                                  <p className="text-xs font-semibold text-slate-900 dark:text-white leading-snug">
+                                    {item.question}
+                                  </p>
+                                </div>
 
-                    <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
-                      24/7 Live
-                    </span>
-                  </div>
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  {item.status === 'streaming' ? (
+                                    <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-[#FF6B00]/15 text-[#FF6B00] flex items-center gap-1">
+                                      <Loader2 className="w-3 h-3 animate-spin" />
+                                      Streaming
+                                    </span>
+                                  ) : item.status === 'blocked' ? (
+                                    <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 flex items-center gap-1">
+                                      <ShieldAlert className="w-3 h-3" />
+                                      Guardian Notified
+                                    </span>
+                                  ) : item.status === 'error' ? (
+                                    <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300">
+                                      Error
+                                    </span>
+                                  ) : (
+                                    <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400">
+                                      Interactive Chat
+                                    </span>
+                                  )}
+                                  {isExpanded ? (
+                                    <ChevronUp className="w-4 h-4 text-slate-400" />
+                                  ) : (
+                                    <ChevronDown className="w-4 h-4 text-slate-400" />
+                                  )}
+                                </div>
+                              </div>
 
-                  {/* Socratic Assistant Greeting Bubble */}
-                  <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/60 text-xs leading-relaxed text-slate-700 dark:text-white">
-                    <div className="flex items-center gap-2 mb-1 text-[11px] font-bold text-[#FF6B00]">
-                      <Sparkles className="w-3.5 h-3.5" />
-                      <span>AI Tutor Assistant</span>
-                    </div>
-                    "Hi! Stuck on a concept or formula in your study plan? Type it below and I'll break it down step-by-step!"
-                  </div>
+                              {/* Expanded Interactive Student <-> AI Chat Body */}
+                              {isExpanded && (
+                                <div className="px-3.5 pb-3.5 pt-2.5 border-t border-slate-200/70 dark:border-slate-700/60 space-y-2.5">
+                                  {item.errorMessage && (
+                                    <div className="p-2.5 rounded-xl bg-rose-100/70 dark:bg-rose-950/60 text-rose-700 dark:text-rose-200 text-xs">
+                                      {item.errorMessage}
+                                    </div>
+                                  )}
 
-                  {/* Interactive Input with Send Arrow Button */}
-                  <form onSubmit={handleSidebarDoubtSubmit} className="relative">
-                    <input
-                      type="text"
-                      value={sidebarDoubtText}
-                      onChange={(e) => setSidebarDoubtText(e.target.value)}
-                      placeholder="Ask a quick doubt..."
-                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white pl-3.5 pr-10 py-2.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FF6B00] transition-all"
-                    />
-                    <button
-                      type="submit"
-                      disabled={!sidebarDoubtText.trim() || isSidebarSubmitting}
-                      className="absolute right-1.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-lg bg-[#FF6B00] hover:bg-[#E56000] disabled:opacity-40 text-white flex items-center justify-center transition-all cursor-pointer"
-                    >
-                      <Send className="w-3.5 h-3.5" />
-                    </button>
-                  </form>
+                                  {renderInteractiveThreadMessages(
+                                    item,
+                                    'Dashboard Quick Doubts AI Assistant',
+                                    false
+                                  )}
 
-                  {/* Recent Resolved Doubts snippet */}
-                  <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-2">
-                    <div className="flex items-center justify-between text-[11px]">
-                      <span className="font-bold text-slate-500 dark:text-white uppercase tracking-wider">
-                        Recent Activity
-                      </span>
-                      <span className="text-[#FF6B00] font-bold">
-                        {doubts.length} Doubts Logged
-                      </span>
-                    </div>
-                    {doubts.slice(0, 2).map((d) => (
-                      <div
-                        key={d.id}
-                        className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800 text-[11px] space-y-0.5"
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="font-bold text-slate-800 dark:text-slate-100 truncate">{d.question}</span>
-                          <span className="text-[9px] px-1.5 py-0.2 rounded-full font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400">
-                            {d.status}
-                          </span>
-                        </div>
-                        {d.solution && (
-                          <p className="text-slate-500 dark:text-white line-clamp-1 text-[10px]">{d.solution}</p>
-                        )}
+                                  <div className="flex items-center justify-between pt-1">
+                                    <span className="text-[10px] text-slate-400 dark:text-slate-300 flex items-center gap-1">
+                                      <Lock className="w-2.5 h-2.5 text-[#00A896]" />
+                                      <span>Private Student &harr; AI session (not sent to teachers)</span>
+                                    </span>
+                                    <div className="flex items-center gap-1.5">
+                                      {item.answer && (
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleCopyDoubtAnswer(item.id, item.answer);
+                                          }}
+                                          className="px-2 py-1 rounded-lg bg-slate-200/70 dark:bg-slate-700 hover:bg-slate-300/70 dark:hover:bg-slate-600 text-[10px] font-semibold text-slate-700 dark:text-white flex items-center gap-1 cursor-pointer"
+                                        >
+                                          <Copy className="w-3 h-3" />
+                                          <span>{copiedDoubtId === item.id ? 'Copied!' : 'Copy'}</span>
+                                        </button>
+                                      )}
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          deleteQuickDoubt(item.id);
+                                        }}
+                                        className="p-1 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/50 cursor-pointer"
+                                        title="Remove entry"
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* CARD 3: STUDY SPRINT GOALS (Student Momentum) */}
-                <div className="bg-white dark:bg-[#0E1A2D] rounded-2xl p-5 border border-slate-200/90 dark:border-slate-800/80 shadow-xs space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-xs font-light uppercase tracking-wider text-slate-500 dark:text-white flex items-center gap-1.5">
-                      <Flame className="w-4 h-4 text-[#FF6B00]" />
-                      <span>Study Momentum</span>
-                    </h3>
-                    <span className="text-[11px] font-extrabold text-[#FF6B00] bg-orange-50 dark:bg-orange-950/60 px-2 py-0.5 rounded-full border border-orange-200 dark:border-orange-800/60">
-                      5-Day Streak 🔥
-                    </span>
-                  </div>
-
-                  <div className="space-y-2 text-xs">
-                    <div className="flex items-center justify-between text-slate-600 dark:text-white">
-                      <span>Weekly Core Math:</span>
-                      <span className="font-bold text-slate-900 dark:text-white">10.5 / 10.5 hrs</span>
-                    </div>
-                    <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
-                      <div className="bg-gradient-to-r from-[#FF6B00] to-[#FFA04D] h-full rounded-full w-4/5" />
-                    </div>
-                    <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-white pt-1">
-                      <Target className="w-3.5 h-3.5 text-[#FF6B00]" />
-                      <span>Next Milestone: Quadratic Formula Drills</span>
-                    </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -903,39 +1730,103 @@ export const StudentView: React.FC = () => {
           {/* TAB 3: SKILLS PASSPORT / ENROLLED COURSES */}
           {studentNav === 'my-courses' && (
             <div className="space-y-6">
-              <div className="bg-white dark:bg-[#0E1A2D] rounded-2xl p-6 border border-slate-200/90 dark:border-slate-800/80 shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-2xl font-light text-slate-900 dark:text-white tracking-wide">Skills Passport & Subject Units</h2>
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
-                      <span>Live Synced</span>
-                    </span>
+              <div className="bg-white dark:bg-[#0E1A2D] rounded-2xl p-6 border border-slate-200/90 dark:border-slate-800/80 shadow-xs space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-2xl font-light text-slate-900 dark:text-white tracking-wide">Skills Passport & Subject Units</h2>
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+                        <span>Live Synced</span>
+                      </span>
+                    </div>
+                    <p className="text-xs sm:text-sm text-slate-500 dark:text-white mt-1">
+                      Auto-aligned to Grade {activeGradeFilter} &bull; {BOARD_LABELS[currentBoard as EducationBoard] || currentBoard} &bull; Real-time sync with Student Profile, Teacher & Admin panels
+                    </p>
                   </div>
-                  <p className="text-xs sm:text-sm text-slate-500 dark:text-white mt-1">
-                    Auto-aligned to Grade {studentGradeLevel} &bull; {currentBoard} Governing Curriculum &bull; Real-time sync with Teacher & Admin panels
-                  </p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      onClick={() => setIsProfileOpen(true)}
+                      className="px-3.5 py-2 rounded-xl bg-[#00A896] text-white text-xs font-bold hover:bg-[#009282] transition-colors cursor-pointer shadow-sm flex items-center gap-1.5"
+                    >
+                      <UserIcon className="w-3.5 h-3.5" />
+                      <span>Manage Profile Subjects ({currentUser?.enrolledCourses?.length || 0})</span>
+                    </button>
+                    <button
+                      onClick={() => setIsCurriculumModalOpen(true)}
+                      className="px-4 py-2 rounded-xl bg-[#FF6B00] text-white text-xs font-bold hover:bg-[#E56000] transition-colors cursor-pointer shadow-sm flex items-center gap-1.5"
+                    >
+                      <Compass className="w-4 h-4" />
+                      <span>Browse Full Grades 6-12 Curriculum</span>
+                    </button>
+                  </div>
                 </div>
-                <button
-                  onClick={() => setIsCurriculumModalOpen(true)}
-                  className="px-4 py-2 rounded-xl bg-[#FF6B00] text-white text-xs font-bold hover:bg-[#E56000] transition-colors cursor-pointer shadow-sm flex items-center gap-1.5"
-                >
-                  <Compass className="w-4 h-4" />
-                  <span>Browse Full Grades 6-12 Curriculum</span>
-                </button>
+
+                {/* Filter Controls: Enrolled vs All Grade Subjects + Domain Filters */}
+                <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setCoursesScopeFilter('ALL')}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        coursesScopeFilter === 'ALL'
+                          ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-xs'
+                          : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-white hover:bg-slate-200 dark:hover:bg-slate-700'
+                      }`}
+                    >
+                      All Grade {activeGradeFilter} Subjects ({displaySubjects.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCoursesScopeFilter('ENROLLED')}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        coursesScopeFilter === 'ENROLLED'
+                          ? 'bg-[#00A896] text-white shadow-xs'
+                          : 'bg-teal-50 dark:bg-teal-950/40 text-[#00A896] hover:bg-teal-100 dark:hover:bg-teal-900/50 border border-teal-200 dark:border-teal-800'
+                      }`}
+                    >
+                      My Selected Subjects ({displaySubjects.filter((s) => isSubjectEnrolled(s, currentUser?.enrolledCourses, currentBoard)).length})
+                    </button>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {(['ALL', ...(activeCategories.length > 0 ? activeCategories : ['STEM', 'Language Arts', 'Humanities', 'Arts & Electives'])]).map((cat) => (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => setCoursesCategoryFilter(cat)}
+                        className={`px-2.5 py-1 rounded-full text-[11px] font-bold transition-colors cursor-pointer ${
+                          coursesCategoryFilter === cat
+                            ? 'bg-[#FF6B00] text-white'
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-white hover:bg-slate-200 dark:hover:bg-slate-700'
+                        }`}
+                      >
+                        {cat === 'ALL' ? 'All Domains' : cat}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
 
               {/* Informational banner */}
               <div className="p-3.5 rounded-xl bg-teal-50 dark:bg-[#0B2528] border border-teal-200/80 dark:border-teal-800/60 flex items-center justify-between gap-3 text-xs">
                 <div className="flex items-center gap-2 text-teal-800 dark:text-teal-200">
                   <Zap className="w-4 h-4 text-[#00A896] shrink-0" />
-                  <span>Completing any unit below immediately records a finished task on your Agile Roadmap, updates your progress bar, and broadcasts to your Teacher's class roster without page refresh.</span>
+                  <span>Select or enroll in any subject below to add it to your Profile &amp; Agile Study Roadmap. Completing units immediately updates your progress bars and broadcasts to your Teacher's roster.</span>
                 </div>
                 <span className="font-bold text-[#00A896] shrink-0">Live Active</span>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {displaySubjects.map((sub) => {
+                {displaySubjects
+                  .filter((sub) => {
+                    if (coursesCategoryFilter !== 'ALL' && (sub.category || 'STEM') !== coursesCategoryFilter) return false;
+                    if (coursesScopeFilter === 'ENROLLED' && !isSubjectEnrolled(sub, currentUser?.enrolledCourses, currentBoard)) return false;
+                    return true;
+                  })
+                  .map((sub) => {
+                  const localizedSubName = getLocalizedSubjectName(sub.name, currentBoard);
+                  const isEnrolled = isSubjectEnrolled(sub, currentUser?.enrolledCourses, currentBoard);
                   const topicsForSub = topicsDB.filter((t) => t.subject_id === sub.id && t.status === 'ACTIVE');
                   
                   // Compute live mastery percentage for this subject
@@ -956,32 +1847,62 @@ export const StudentView: React.FC = () => {
                   }
 
                   const matchingTasks = dailyTasks.filter((t) =>
-                    (t.subject || '').toLowerCase().includes(normSubName) || normSubName.includes((t.subject || '').toLowerCase())
+                    (t.subject || '').toLowerCase().includes(normSubName) ||
+                    normSubName.includes((t.subject || '').toLowerCase()) ||
+                    (t.subject || '').toLowerCase() === localizedSubName.toLowerCase()
                   );
                   const completedTasksCount = matchingTasks.filter((t) => t.status === 'Completed').length;
 
                   return (
                     <div
                       key={sub.id}
-                      className="bg-white dark:bg-[#0E1A2D] rounded-2xl p-5 border border-slate-200/90 dark:border-slate-800/80 shadow-xs hover:shadow-md transition-all space-y-4 flex flex-col justify-between"
+                      className={`bg-white dark:bg-[#0E1A2D] rounded-2xl p-5 border shadow-xs hover:shadow-md transition-all space-y-4 flex flex-col justify-between ${
+                        isEnrolled
+                          ? 'border-[#00A896] ring-1 ring-[#00A896]/25'
+                          : 'border-slate-200/90 dark:border-slate-800/80'
+                      }`}
                     >
                       <div>
-                        <div className="flex items-start justify-between">
-                          <div className="w-10 h-10 rounded-xl bg-orange-50 dark:bg-orange-950/80 text-[#FF6B00] flex items-center justify-center font-bold text-lg">
-                            {sub.name.charAt(0)}
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="w-11 h-11 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200/70 dark:border-slate-700/70 flex items-center justify-center shrink-0">
+                            <SubjectIcon subject={localizedSubName} size="lg" />
                           </div>
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex flex-wrap items-center justify-end gap-1.5">
                             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-white">
                               {sub.code || `GR-${sub.grade_level}`}
                             </span>
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-50 dark:bg-teal-950 text-[#00A896]">
-                              {subProgress}%
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-300">
+                              {sub.board && sub.board !== 'ALL' ? sub.board : currentBoard}
                             </span>
+                            <button
+                              type="button"
+                              onClick={() => handleToggleSubjectEnrollment(sub)}
+                              className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border transition-all cursor-pointer flex items-center gap-1 ${
+                                isEnrolled
+                                  ? 'bg-[#00A896] text-white border-[#00A896]'
+                                  : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-white border-slate-200 dark:border-slate-700 hover:border-[#00A896] hover:text-[#00A896]'
+                              }`}
+                            >
+                              {isEnrolled ? (
+                                <>
+                                  <Check className="w-2.5 h-2.5 stroke-[3]" />
+                                  <span>Selected</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Plus className="w-2.5 h-2.5" />
+                                  <span>Select Subject</span>
+                                </>
+                              )}
+                            </button>
                           </div>
                         </div>
 
                         <div className="mt-2">
-                          <h3 className="font-light text-base text-slate-900 dark:text-white">{sub.name}</h3>
+                          <div className="flex items-center justify-between gap-2">
+                            <h3 className="font-light text-base text-slate-900 dark:text-white">{localizedSubName}</h3>
+                            <span className="text-[10px] font-bold text-[#00A896] shrink-0">{subProgress}%</span>
+                          </div>
                           <p className="text-xs text-slate-500 dark:text-white mt-0.5 line-clamp-2">{sub.description}</p>
                         </div>
 
@@ -1007,25 +1928,29 @@ export const StudentView: React.FC = () => {
                           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-white">
                             Active Curriculum Units ({topicsForSub.length}):
                           </span>
-                          <div className="space-y-1.5">
-                            {topicsForSub.slice(0, 3).map((top) => (
-                              <div
-                                key={top.id}
-                                className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700/60 flex items-center justify-between gap-2 text-xs"
-                              >
-                                <div className="flex items-center gap-1.5 truncate">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-[#FF6B00] shrink-0" />
-                                  <span className="truncate text-slate-700 dark:text-white font-medium">{top.title}</span>
-                                </div>
-                                <button
-                                  onClick={() => completeCurriculumUnit(sub.name, top.title)}
-                                  className="px-2 py-0.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 text-[10px] font-bold border border-emerald-200 dark:border-emerald-800 shrink-0 cursor-pointer transition-colors"
-                                  title="Mark unit completed and sync to Teacher/Admin in real time"
+                          <div className="space-y-1.5 max-h-36 overflow-y-auto pr-0.5">
+                            {topicsForSub.length === 0 ? (
+                              <p className="text-[11px] text-slate-400 italic">No active topics added yet.</p>
+                            ) : (
+                              topicsForSub.map((top) => (
+                                <div
+                                  key={top.id}
+                                  className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700/60 flex items-center justify-between gap-2 text-xs"
                                 >
-                                  ✓ Complete
-                                </button>
-                              </div>
-                            ))}
+                                  <div className="flex items-center gap-1.5 truncate">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-[#FF6B00] shrink-0" />
+                                    <span className="truncate text-slate-700 dark:text-white font-medium">{top.title}</span>
+                                  </div>
+                                  <button
+                                    onClick={() => completeCurriculumUnit(localizedSubName, top.title)}
+                                    className="px-2 py-0.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 text-[10px] font-bold border border-emerald-200 dark:border-emerald-800 shrink-0 cursor-pointer transition-colors"
+                                    title="Mark unit completed and sync to Teacher/Admin in real time"
+                                  >
+                                    ✓ Complete
+                                  </button>
+                                </div>
+                              ))
+                            )}
                           </div>
                         </div>
                       </div>
@@ -1048,7 +1973,7 @@ export const StudentView: React.FC = () => {
                         <button
                           onClick={() => {
                             setStudentNav('ai-tutor');
-                            sendTutorMessage(`Let's start tutoring on ${sub.name} - ${topicsForSub[0]?.title || 'Core Syllabus'}.`);
+                            sendTutorMessage(`Let's start tutoring on ${localizedSubName} - ${topicsForSub[0]?.title || 'Core Syllabus'}.`);
                           }}
                           className="py-2 rounded-xl bg-orange-50 hover:bg-[#FF6B00] hover:text-white dark:bg-orange-950/60 text-[#FF6B00] text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer"
                         >
@@ -1153,56 +2078,87 @@ export const StudentView: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                      {[
-                        { name: 'Algebra I (Core Mathematics)', code: 'MTH-101', progress: currentUser?.mathProgress ?? 92, grade: 'A+', status: 'Mastered' },
-                        { name: 'Physics II (Mechanics & Vectors)', code: 'PHY-201', progress: currentUser?.physicsProgress ?? 75, grade: 'A', status: 'On Track' },
-                        { name: 'Biology (Cell Structure & Respiration)', code: 'BIO-201', progress: currentUser?.biologyProgress ?? 88, grade: 'A', status: 'On Track' },
-                        { name: 'Chemistry (Atomic Chart & Bonding)', code: 'CHM-101', progress: 84, grade: 'A', status: 'On Track' },
-                        { name: 'World History (Global Networks)', code: 'HIS-101', progress: 79, grade: 'B+', status: 'Revision Needed' },
-                        { name: 'English Literature (Persuasive Rhetoric)', code: 'ENG-201', progress: 86, grade: 'A', status: 'On Track' },
-                      ].map((item, idx) => (
-                        <tr key={idx} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors">
-                          <td className="p-3 font-bold text-slate-900 dark:text-white">
-                            <div>{item.name}</div>
-                            <span className="text-[10px] font-normal text-slate-400 dark:text-white/80">{item.code}</span>
-                          </td>
-                          <td className="p-3 text-slate-600 dark:text-white">4 / 5 Units</td>
-                          <td className="p-3 text-slate-600 dark:text-white">Sprint 2 Active</td>
-                          <td className="p-3">
-                            <div className="w-28 bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden">
-                              <div
-                                className="bg-[#00A896] h-full rounded-full"
-                                style={{ width: `${item.progress}%` }}
-                              />
-                            </div>
-                            <span className="text-[10px] font-bold text-[#00A896] mt-0.5 block">{item.progress}%</span>
-                          </td>
-                          <td className="p-3 font-black text-slate-900 dark:text-white">{item.grade}</td>
-                          <td className="p-3">
-                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                              item.status === 'Mastered'
-                                ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'
-                                : item.status === 'On Track'
-                                ? 'bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-400 border border-teal-200 dark:border-teal-800'
-                                : 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800'
-                            }`}>
-                              {item.status}
-                            </span>
-                          </td>
-                          <td className="p-3">
-                            <button
-                              onClick={() => {
-                                setStudentNav('practice');
-                                const q = quizzes.find((quiz) => quiz.title.toLowerCase().includes(item.code.toLowerCase().slice(0, 3)));
-                                if (q) setActiveQuizId(q.id);
-                              }}
-                              className="px-2.5 py-1 rounded-lg bg-orange-50 hover:bg-[#FF6B00] hover:text-white dark:bg-orange-950/60 text-[#FF6B00] text-[10px] font-bold transition-colors cursor-pointer"
-                            >
-                              Launch Drill
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
+                      {(displaySubjects.filter((s) => isSubjectEnrolled(s, currentUser?.enrolledCourses, currentBoard)).length > 0
+                        ? displaySubjects.filter((s) => isSubjectEnrolled(s, currentUser?.enrolledCourses, currentBoard))
+                        : displaySubjects.slice(0, 6)
+                      ).map((sub) => {
+                        const localized = getLocalizedSubjectName(sub.name, currentBoard);
+                        const normSub = sub.name.toLowerCase();
+                        const subTopics = topicsDB.filter((t) => t.subject_id === sub.id && t.status === 'ACTIVE');
+                        const subTasks = dailyTasks.filter(
+                          (t) =>
+                            (t.subject || '').toLowerCase().includes(normSub) ||
+                            normSub.includes((t.subject || '').toLowerCase()) ||
+                            (t.subject || '').toLowerCase() === localized.toLowerCase()
+                        );
+                        const doneCount = subTasks.filter((t) => t.status === 'Completed').length;
+                        let progress = currentUser?.overallProgress ?? 80;
+                        if (normSub.includes('math') || normSub.includes('algeb')) progress = currentUser?.mathProgress ?? 92;
+                        else if (normSub.includes('phys')) progress = currentUser?.physicsProgress ?? 75;
+                        else if (normSub.includes('bio')) progress = currentUser?.biologyProgress ?? 88;
+                        else if (normSub.includes('chem')) progress = currentUser?.chemistryProgress ?? 84;
+                        else if (normSub.includes('hist') || normSub.includes('civic')) progress = currentUser?.historyProgress ?? 79;
+
+                        const letterGrade = progress >= 92 ? 'A+' : progress >= 85 ? 'A' : progress >= 75 ? 'B+' : 'B';
+                        const status = progress >= 90 ? 'Mastered' : progress >= 75 ? 'On Track' : 'Revision Needed';
+                        const code = sub.code || `GR-${sub.grade_level}`;
+
+                        return (
+                          <tr key={sub.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors">
+                            <td className="p-3 font-bold text-slate-900 dark:text-white">
+                              <div className="flex items-center gap-2.5">
+                                <SubjectIcon subject={localized} size="sm" />
+                                <div>
+                                  <div className="font-lollipop-regular">{localized}</div>
+                                  <span className="text-[10px] font-normal text-slate-400 dark:text-white/80">
+                                    {code} &bull; {sub.board && sub.board !== 'ALL' ? sub.board : currentBoard}
+                                  </span>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="p-3 text-slate-600 dark:text-white">
+                              {subTopics.length} {subTopics.length === 1 ? 'Unit' : 'Units'}
+                            </td>
+                            <td className="p-3 text-slate-600 dark:text-white">
+                              {doneCount} / {Math.max(1, subTasks.length)} Tasks
+                            </td>
+                            <td className="p-3">
+                              <div className="w-28 bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                                <div
+                                  className="bg-[#00A896] h-full rounded-full"
+                                  style={{ width: `${progress}%` }}
+                                />
+                              </div>
+                              <span className="text-[10px] font-bold text-[#00A896] mt-0.5 block">{progress}%</span>
+                            </td>
+                            <td className="p-3 font-black text-slate-900 dark:text-white">{letterGrade}</td>
+                            <td className="p-3">
+                              <span
+                                className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                  status === 'Mastered'
+                                    ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'
+                                    : status === 'On Track'
+                                    ? 'bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-400 border border-teal-200 dark:border-teal-800'
+                                    : 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800'
+                                }`}
+                              >
+                                {status}
+                              </span>
+                            </td>
+                            <td className="p-3">
+                              <button
+                                onClick={() => {
+                                  setStudentNav('ai-tutor');
+                                  sendTutorMessage(`Let's launch a practice drill on ${localized} (Grade ${activeGradeFilter}, ${currentBoard}).`);
+                                }}
+                                className="px-2.5 py-1 rounded-lg bg-orange-50 hover:bg-[#FF6B00] hover:text-white dark:bg-orange-950/60 text-[#FF6B00] text-[10px] font-bold transition-colors cursor-pointer"
+                              >
+                                Launch Drill
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -1235,172 +2191,418 @@ export const StudentView: React.FC = () => {
             <div className="space-y-6">
               <div className="bg-white dark:bg-[#0E1A2D] rounded-2xl p-6 border border-slate-200/90 dark:border-slate-800/80 shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-2xl font-light text-slate-900 dark:text-white tracking-wide">Interactive Practice Quizzes</h2>
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
-                      Real-Time Sync Active
+                  <div className="flex flex-wrap items-center gap-3">
+                    <h2 className="text-2xl font-lollipop-regular text-slate-900 dark:text-white tracking-wide">
+                      Interactive Practice Quizzes
+                    </h2>
+                    <span className="text-xs font-lollipop-regular text-emerald-700 dark:text-emerald-400">
+                      · Real-Time Sync Active
                     </span>
                   </div>
-                  <p className="text-xs sm:text-sm text-slate-500 dark:text-white mt-1">
-                    Reinforce concepts with board-compliant MCQs & instant feedback • Score &gt;=80% automatically earns verified credentials
+                  <p className="text-sm font-lollipop-regular text-slate-600 dark:text-slate-300 mt-1">
+                    30-question board-compliant assessments, one question at a time · Score ≥ 80% earns verified credentials
                   </p>
                 </div>
-                <span className="px-3 py-1 rounded-full text-xs font-bold bg-orange-50 dark:bg-orange-950/60 text-[#FF6B00] border border-orange-200 dark:border-orange-800/60">
-                  {quizzes.length} Quizzes Available
-                </span>
+                <div className="text-sm font-lollipop-regular text-[#FF6B00] whitespace-nowrap shrink-0 tabular-nums">
+                  {quizzes.length} Quizzes · 30 Questions Each
+                </div>
               </div>
 
               {/* Quiz Selection Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {quizzes.map((quiz) => (
-                  <div
-                    key={quiz.id}
-                    onClick={() => {
-                      setActiveQuizId(quiz.id);
-                      setSelectedAnswers({});
-                      setQuizSubmitted(false);
-                      setQuizResult(null);
-                    }}
-                    className={`p-5 rounded-2xl border transition-all cursor-pointer ${
-                      activeQuizId === quiz.id
-                        ? 'bg-orange-50/50 dark:bg-orange-950/20 border-[#FF6B00] ring-2 ring-[#FF6B00]/20'
-                        : 'bg-white dark:bg-[#0E1A2D] border-slate-200/90 dark:border-slate-800/80 hover:border-slate-300'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-white">
-                        {quiz.grade || `Grade ${studentGradeLevel}`}
-                      </span>
-                      <span className="text-xs font-bold text-[#FF6B00]">
-                        {quiz.questions?.length || 3} Questions
-                      </span>
-                    </div>
-                    <h3 className="font-light text-slate-900 dark:text-white text-base">{quiz.title}</h3>
-                    <p className="text-xs text-slate-500 dark:text-white mt-1">{quiz.topic}</p>
-                    <div className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-400 dark:text-white/80">
-                      <span>Attempts: {quiz.attempts || 0}</span>
-                      <span>Avg: {quiz.avgScore ? `${quiz.avgScore}%` : 'Pending'}</span>
-                    </div>
-                  </div>
-                ))}
+                {quizzes.map((quiz) => {
+                  const isSelected = activeQuiz?.id === quiz.id;
+                  return (
+                    <button
+                      type="button"
+                      key={quiz.id}
+                      onClick={() => {
+                        setActiveQuizId(quiz.id);
+                        setCurrentQuestionIndex(0);
+                        setSelectedAnswers({});
+                        setQuizSubmitted(false);
+                        setQuizResult(null);
+                        setIsReviewingAnswers(false);
+                      }}
+                      className={`text-left p-5 rounded-2xl border transition-all cursor-pointer ${
+                        isSelected
+                          ? 'bg-orange-50/60 dark:bg-orange-950/25 border-[#FF6B00] ring-2 ring-[#FF6B00]/20'
+                          : 'bg-white dark:bg-[#0E1A2D] border-slate-200/90 dark:border-slate-800/80 hover:border-slate-300 dark:hover:border-slate-700'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2 mb-2 text-xs font-lollipop-regular">
+                        <span className="flex items-center gap-2 text-slate-500 dark:text-slate-300">
+                          <SubjectIcon subject={quiz.topic || quiz.title} size="sm" />
+                          <span>{quiz.grade || `Grade ${studentGradeLevel}`}</span>
+                        </span>
+                        <span className="text-[#FF6B00] tabular-nums">
+                          {quiz.questions?.length || 30} Questions
+                        </span>
+                      </div>
+                      <h3 className="font-lollipop-regular text-slate-900 dark:text-white text-base leading-snug">
+                        {quiz.title}
+                      </h3>
+                      <p className="text-xs font-lollipop-regular text-slate-500 dark:text-slate-300 mt-1">
+                        {quiz.topic}
+                      </p>
+                      <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs font-lollipop-regular text-slate-500 dark:text-slate-300 tabular-nums">
+                        <span>Attempts: {quiz.attempts || 0}</span>
+                        <span>Avg: {quiz.avgScore ? `${quiz.avgScore}%` : 'Pending'}</span>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
 
-              {/* Active Quiz Player */}
-              {activeQuiz && (
-                <div className="bg-white dark:bg-[#0E1A2D] rounded-2xl p-6 border border-slate-200/90 dark:border-slate-800/80 shadow-xs space-y-6">
-                  <div className="border-b border-slate-100 dark:border-slate-800 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <div>
-                      <h3 className="text-lg font-light text-slate-900 dark:text-white">{activeQuiz.title}</h3>
-                      <p className="text-xs text-slate-500 dark:text-white">{activeQuiz.topic} &bull; Select the best answer for each question</p>
-                    </div>
-                    <div className="text-xs font-bold text-slate-600 dark:text-white bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-xl">
-                      Answered: {Object.keys(selectedAnswers).length} / {activeQuiz.questions.length}
-                    </div>
-                  </div>
+              {/* Active Single-Question Quiz Player / Submission Result */}
+              {activeQuiz && activeQuiz.questions.length > 0 && (() => {
+                const totalQuestions = activeQuiz.questions.length;
+                const safeIndex = Math.min(Math.max(0, currentQuestionIndex), totalQuestions - 1);
+                const currentQuestion = activeQuiz.questions[safeIndex];
+                const answeredCount = Object.keys(selectedAnswers).length;
+                const userSelection = selectedAnswers[safeIndex];
+                const isCurrentCorrect = userSelection === currentQuestion.answerIndex;
+                const progressPercent = Math.round(((safeIndex + 1) / totalQuestions) * 100);
 
-                  <div className="space-y-6">
-                    {activeQuiz.questions.map((q, qIndex) => {
-                      const userSelection = selectedAnswers[qIndex];
-                      const isCorrect = userSelection === q.answerIndex;
-                      return (
-                        <div key={q.id || qIndex} className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/60 space-y-3">
-                          <p className="font-bold text-sm text-slate-900 dark:text-white">
-                            {qIndex + 1}. {q.question}
-                          </p>
+                const handleRetakeQuiz = () => {
+                  setSelectedAnswers({});
+                  setQuizSubmitted(false);
+                  setQuizResult(null);
+                  setIsReviewingAnswers(false);
+                  setCurrentQuestionIndex(0);
+                };
 
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                            {q.options.map((opt, optIndex) => {
-                              const isOptionSelected = userSelection === optIndex;
+                const handleSubmitQuiz = () => {
+                  const result = recordQuizSubmission(activeQuiz.id, selectedAnswers);
+                  setQuizSubmitted(true);
+                  setQuizResult(result);
+                  setIsReviewingAnswers(false);
+                };
+
+                return (
+                  <div className="bg-white dark:bg-[#0E1A2D] rounded-2xl p-6 sm:p-8 border border-slate-200/90 dark:border-slate-800/80 shadow-xs space-y-6">
+                    {/* Quiz Header & Progress */}
+                    <div className="border-b border-slate-100 dark:border-slate-800 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div>
+                        <h3 className="text-lg sm:text-xl font-lollipop-regular text-slate-900 dark:text-white">
+                          {activeQuiz.title}
+                        </h3>
+                        <p className="text-xs sm:text-sm font-lollipop-regular text-slate-500 dark:text-slate-300 mt-0.5">
+                          {activeQuiz.topic} · {activeQuiz.author}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-4 text-sm font-lollipop-regular text-slate-700 dark:text-slate-200 tabular-nums shrink-0">
+                        <span>
+                          Question {safeIndex + 1} of {totalQuestions}
+                        </span>
+                        <span className="text-slate-300 dark:text-slate-600">|</span>
+                        <span>
+                          Answered: {answeredCount} / {totalQuestions}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Result Summary View on Submission */}
+                    {quizSubmitted && quizResult && !isReviewingAnswers ? (
+                      <div className="space-y-6 py-2">
+                        <div
+                          className={`p-6 sm:p-8 rounded-2xl border space-y-5 ${
+                            quizResult.score >= 80
+                              ? 'bg-emerald-50/70 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800/80'
+                              : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700/80'
+                          }`}
+                        >
+                          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div className="space-y-1.5">
+                              <div className="flex items-center gap-2 text-sm font-lollipop-regular text-emerald-700 dark:text-emerald-300">
+                                <CheckCircle2 className="w-5 h-5 shrink-0" />
+                                <span>
+                                  {quizResult.score >= 80
+                                    ? 'Assessment Passed · Verified Certificate Earned'
+                                    : 'Assessment Submitted · Review & Retake to Reach 80%'}
+                                </span>
+                              </div>
+                              <h4 className="text-2xl sm:text-3xl font-lollipop-regular text-slate-900 dark:text-white tabular-nums">
+                                Final Score: {quizResult.score}% ({quizResult.correctCount} / {quizResult.totalQuestions} Correct)
+                              </h4>
+                              <p className="text-xs sm:text-sm font-lollipop-regular text-slate-600 dark:text-slate-300">
+                                Your score is synchronized with Grades &amp; Mastery and your instructor&apos;s class roster.
+                              </p>
+                            </div>
+
+                            {quizResult.certificateIssued && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setActiveCertModal(quizResult.certificateIssued || null);
+                                  setStudentNav('certificates');
+                                }}
+                                className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-lollipop-regular text-sm shadow-xs flex items-center gap-2 cursor-pointer whitespace-nowrap shrink-0"
+                              >
+                                <Award className="w-4 h-4" />
+                                <span>View Issued Certificate</span>
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Breakdown Stats */}
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+                            <div className="p-4 rounded-xl bg-white dark:bg-[#0B1526] border border-slate-200/80 dark:border-slate-700/70">
+                              <div className="text-xs font-lollipop-regular text-slate-500 dark:text-slate-400">Percentage</div>
+                              <div className="text-xl font-lollipop-regular text-slate-900 dark:text-white mt-1 tabular-nums">
+                                {quizResult.score}%
+                              </div>
+                            </div>
+                            <div className="p-4 rounded-xl bg-white dark:bg-[#0B1526] border border-slate-200/80 dark:border-slate-700/70">
+                              <div className="text-xs font-lollipop-regular text-slate-500 dark:text-slate-400">Correct Answers</div>
+                              <div className="text-xl font-lollipop-regular text-emerald-600 dark:text-emerald-400 mt-1 tabular-nums">
+                                {quizResult.correctCount}
+                              </div>
+                            </div>
+                            <div className="p-4 rounded-xl bg-white dark:bg-[#0B1526] border border-slate-200/80 dark:border-slate-700/70">
+                              <div className="text-xs font-lollipop-regular text-slate-500 dark:text-slate-400">Incorrect / Skipped</div>
+                              <div className="text-xl font-lollipop-regular text-rose-600 dark:text-rose-400 mt-1 tabular-nums">
+                                {quizResult.totalQuestions - quizResult.correctCount}
+                              </div>
+                            </div>
+                            <div className="p-4 rounded-xl bg-white dark:bg-[#0B1526] border border-slate-200/80 dark:border-slate-700/70">
+                              <div className="text-xs font-lollipop-regular text-slate-500 dark:text-slate-400">Total Questions</div>
+                              <div className="text-xl font-lollipop-regular text-slate-900 dark:text-white mt-1 tabular-nums">
+                                {quizResult.totalQuestions}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Result Actions: Retake or Step-by-Step Question Review */}
+                          <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-200/70 dark:border-slate-700/70">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setCurrentQuestionIndex(0);
+                                setIsReviewingAnswers(true);
+                              }}
+                              className="px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-800 dark:text-white text-sm font-lollipop-regular transition-colors cursor-pointer whitespace-nowrap"
+                            >
+                              Review Questions &amp; Explanations (1–{totalQuestions})
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={handleRetakeQuiz}
+                              className="px-5 py-2.5 rounded-xl bg-[#FF6B00] hover:bg-[#E56000] text-white text-sm font-lollipop-regular shadow-xs flex items-center gap-2 cursor-pointer whitespace-nowrap"
+                            >
+                              <RefreshCw className="w-4 h-4" />
+                              <span>Retake Quiz</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      /* Single Question Display (Active Attempt OR Question-by-Question Review) */
+                      <div className="space-y-6">
+                        {/* Review Banner if reviewing after submission */}
+                        {quizSubmitted && quizResult && isReviewingAnswers && (
+                          <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex flex-wrap items-center justify-between gap-3">
+                            <div className="text-sm font-lollipop-regular text-slate-700 dark:text-slate-200 tabular-nums">
+                              Review Mode · Final Score: {quizResult.score}% ({quizResult.correctCount} / {quizResult.totalQuestions} Correct)
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => setIsReviewingAnswers(false)}
+                                className="px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-white text-xs font-lollipop-regular hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer whitespace-nowrap"
+                              >
+                                Back to Result Summary
+                              </button>
+                              <button
+                                type="button"
+                                onClick={handleRetakeQuiz}
+                                className="px-3.5 py-2 rounded-xl bg-[#FF6B00] hover:bg-[#E56000] text-white text-xs font-lollipop-regular flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+                              >
+                                <RefreshCw className="w-3.5 h-3.5" />
+                                <span>Retake Quiz</span>
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Progress Bar + Compact Question Navigator (1 to 30) */}
+                        <div className="space-y-3">
+                          <div className="w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                            <div
+                              className="h-full bg-[#FF6B00] transition-all duration-200 rounded-full"
+                              style={{ width: `${progressPercent}%` }}
+                            />
+                          </div>
+
+                          <div className="flex flex-wrap gap-1.5" aria-label="Question navigator">
+                            {activeQuiz.questions.map((qItem, idx) => {
+                              const isCurrent = idx === safeIndex;
+                              const isAnswered = selectedAnswers[idx] !== undefined;
+                              const isCorrectIdx = quizSubmitted && selectedAnswers[idx] === qItem.answerIndex;
+
+                              let stepClass =
+                                'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700';
+
+                              if (quizSubmitted) {
+                                stepClass = isCorrectIdx
+                                  ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700'
+                                  : 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-700';
+                              } else if (isAnswered) {
+                                stepClass =
+                                  'bg-orange-50 dark:bg-orange-950/40 text-[#FF6B00] border-orange-300 dark:border-orange-700';
+                              }
+
+                              if (isCurrent) {
+                                stepClass =
+                                  'bg-[#FF6B00] text-white border-[#FF6B00] ring-2 ring-[#FF6B00]/25';
+                              }
+
                               return (
                                 <button
-                                  key={optIndex}
-                                  onClick={() => !quizSubmitted && setSelectedAnswers((prev) => ({ ...prev, [qIndex]: optIndex }))}
-                                  disabled={quizSubmitted}
-                                  className={`p-3 rounded-xl text-left text-xs font-semibold transition-all cursor-pointer border ${
-                                    isOptionSelected
-                                      ? 'bg-[#FF6B00] text-white border-[#FF6B00] shadow-xs'
-                                      : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-white border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
-                                  }`}
+                                  type="button"
+                                  key={qItem.id || idx}
+                                  onClick={() => setCurrentQuestionIndex(idx)}
+                                  className={`w-8 h-8 rounded-lg border text-xs font-lollipop-regular tabular-nums transition-colors cursor-pointer flex items-center justify-center ${stepClass}`}
+                                  title={`Go to Question ${idx + 1}`}
                                 >
-                                  {String.fromCharCode(65 + optIndex)}. {opt}
+                                  {idx + 1}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Single Active Question Card */}
+                        <div className="p-5 sm:p-6 rounded-2xl bg-slate-50/90 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/70 space-y-5">
+                          <div className="flex items-start justify-between gap-4">
+                            <p className="text-base sm:text-lg font-lollipop-regular text-slate-900 dark:text-white leading-relaxed">
+                              <span className="text-[#FF6B00] mr-2 tabular-nums">Q{safeIndex + 1}.</span>
+                              {currentQuestion.question}
+                            </p>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {currentQuestion.options.map((opt, optIndex) => {
+                              const isOptionSelected = userSelection === optIndex;
+                              const isRightAnswer = currentQuestion.answerIndex === optIndex;
+
+                              let optionStyle =
+                                'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700/80';
+
+                              if (quizSubmitted) {
+                                if (isRightAnswer) {
+                                  optionStyle =
+                                    'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-200 border-emerald-500';
+                                } else if (isOptionSelected && !isRightAnswer) {
+                                  optionStyle =
+                                    'bg-rose-50 dark:bg-rose-950/60 text-rose-900 dark:text-rose-200 border-rose-500';
+                                }
+                              } else if (isOptionSelected) {
+                                optionStyle =
+                                  'bg-[#FF6B00] text-white border-[#FF6B00] shadow-xs';
+                              }
+
+                              return (
+                                <button
+                                  type="button"
+                                  key={optIndex}
+                                  onClick={() =>
+                                    !quizSubmitted &&
+                                    setSelectedAnswers((prev) => ({ ...prev, [safeIndex]: optIndex }))
+                                  }
+                                  disabled={quizSubmitted}
+                                  className={`min-h-[48px] px-4 py-3 rounded-xl text-left text-sm font-lollipop-regular transition-all cursor-pointer border flex items-center justify-between gap-3 ${optionStyle}`}
+                                >
+                                  <span>
+                                    <span className="mr-2 opacity-80">{String.fromCharCode(65 + optIndex)}.</span>
+                                    {opt}
+                                  </span>
+                                  {quizSubmitted && isRightAnswer && (
+                                    <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                  )}
+                                  {quizSubmitted && isOptionSelected && !isRightAnswer && (
+                                    <X className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
+                                  )}
                                 </button>
                               );
                             })}
                           </div>
 
                           {quizSubmitted && (
-                            <div className={`p-2.5 rounded-lg text-xs font-medium ${isCorrect ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300' : 'bg-rose-50 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300'}`}>
-                              <strong>{isCorrect ? '✓ Correct! ' : '✗ Incorrect. '}</strong>
-                              {q.explanation}
+                            <div
+                              className={`p-3.5 rounded-xl text-sm font-lollipop-regular border ${
+                                isCurrentCorrect
+                                  ? 'bg-emerald-50 text-emerald-900 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-200 dark:border-emerald-800/70'
+                                  : 'bg-rose-50 text-rose-900 border-rose-200 dark:bg-rose-950/50 dark:text-rose-200 dark:border-rose-800/70'
+                              }`}
+                            >
+                              <span className="mr-1.5">
+                                {isCurrentCorrect
+                                  ? '✓ Correct Answer:'
+                                  : userSelection === undefined
+                                  ? '✗ Question Skipped:'
+                                  : '✗ Incorrect Answer:'}
+                              </span>
+                              {currentQuestion.explanation}
                             </div>
                           )}
                         </div>
-                      );
-                    })}
-                  </div>
 
-                  {/* Submission and Result Bar */}
-                  {quizSubmitted && quizResult && (
-                    <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 space-y-3 animate-in fade-in">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <div>
-                          <div className="text-emerald-800 dark:text-emerald-300 font-bold text-base flex items-center gap-2">
-                            <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-                            <span>Assessment Score: {quizResult.score}% ({quizResult.correctCount} / {quizResult.totalQuestions} Correct)</span>
+                        {/* Bottom Navigation Bar: Back, Next, Submit & Retake */}
+                        <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setCurrentQuestionIndex((prev) => Math.max(0, prev - 1))}
+                              disabled={safeIndex === 0}
+                              className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed text-slate-700 dark:text-white text-sm font-lollipop-regular flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+                            >
+                              <ChevronLeft className="w-4 h-4" />
+                              <span>Back</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={handleRetakeQuiz}
+                              className="px-4 py-2.5 rounded-xl text-sm font-lollipop-regular text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+                            >
+                              <RefreshCw className="w-4 h-4" />
+                              <span>Retake</span>
+                            </button>
                           </div>
-                          <p className="text-xs text-emerald-700 dark:text-emerald-400 mt-1">
-                            ⚡ Real-time synchronized: Your score has been parallelly updated in Teacher class roster and Admin audit analytics without page refresh.
-                          </p>
+
+                          <div className="flex items-center gap-3">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setCurrentQuestionIndex((prev) => Math.min(totalQuestions - 1, prev + 1))
+                              }
+                              disabled={safeIndex === totalQuestions - 1}
+                              className="px-5 py-2.5 rounded-xl bg-[#FF6B00] hover:bg-[#E56000] disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-lollipop-regular shadow-xs shadow-orange-500/20 flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+                            >
+                              <span>Next</span>
+                              <ChevronRight className="w-4 h-4" />
+                            </button>
+
+                            {!quizSubmitted && (safeIndex === totalQuestions - 1 || answeredCount > 0) && (
+                              <button
+                                type="button"
+                                onClick={handleSubmitQuiz}
+                                disabled={answeredCount === 0}
+                                className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-lollipop-regular shadow-xs flex items-center gap-2 cursor-pointer whitespace-nowrap"
+                              >
+                                <CheckCircle2 className="w-4 h-4" />
+                                <span>Submit Quiz</span>
+                              </button>
+                            )}
+                          </div>
                         </div>
-                        {quizResult.certificateIssued && (
-                          <button
-                            onClick={() => {
-                              setActiveCertModal(quizResult.certificateIssued || null);
-                              setStudentNav('certificates');
-                            }}
-                            className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm flex items-center gap-1.5 cursor-pointer shrink-0"
-                          >
-                            <Award className="w-4 h-4" />
-                            <span>View Issued Certificate</span>
-                          </button>
-                        )}
                       </div>
-                    </div>
-                  )}
-
-                  <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-800">
-                    <button
-                      onClick={() => {
-                        setSelectedAnswers({});
-                        setQuizSubmitted(false);
-                        setQuizResult(null);
-                      }}
-                      className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
-                    >
-                      Reset / Retake
-                    </button>
-
-                    {!quizSubmitted ? (
-                      <button
-                        onClick={() => {
-                          const result = recordQuizSubmission(activeQuiz.id, selectedAnswers);
-                          setQuizSubmitted(true);
-                          setQuizResult(result);
-                        }}
-                        disabled={Object.keys(selectedAnswers).length === 0}
-                        className="px-5 py-2.5 rounded-xl bg-[#FF6B00] hover:bg-[#E56000] disabled:opacity-50 text-white text-xs font-extrabold shadow-sm shadow-orange-500/25 cursor-pointer flex items-center gap-1.5"
-                      >
-                        <CheckCircle2 className="w-4 h-4" />
-                        <span>Submit Answers & Sync</span>
-                      </button>
-                    ) : (
-                      <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                        Score: {quizResult ? quizResult.score : 0}% Recorded & Synced
-                      </span>
                     )}
                   </div>
-                </div>
-              )}
+                );
+              })()}
             </div>
           )}
 
@@ -1595,58 +2797,7 @@ export const StudentView: React.FC = () => {
 
           {/* TAB 8: COMMUNITY DOUBT FORUM */}
           {studentNav === 'community' && (
-            <div className="space-y-6">
-              <div className="bg-white dark:bg-[#0E1A2D] rounded-2xl p-6 border border-slate-200/90 dark:border-slate-800/80 shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
-                  <h2 className="text-2xl font-light text-slate-900 dark:text-white tracking-wide">Community Doubt Forum</h2>
-                  <p className="text-xs sm:text-sm text-slate-500 dark:text-white mt-1">
-                    Ask peers & verified teachers &bull; AI moderation active with zero-tolerance policy
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                {communityPosts.map((post) => (
-                  <div
-                    key={post.id}
-                    className="bg-white dark:bg-[#0E1A2D] rounded-2xl p-5 border border-slate-200/90 dark:border-slate-800/80 shadow-xs space-y-3"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-white">
-                          <span className="font-bold text-slate-800 dark:text-white">{post.author_name}</span>
-                          <span>&bull;</span>
-                          <span>{post.subject} (Grade {post.grade_level})</span>
-                          <span>&bull;</span>
-                          <span>{post.created_at}</span>
-                        </div>
-                        <h3 className="text-base font-light text-slate-900 dark:text-white mt-1">{post.title}</h3>
-                      </div>
-
-                      <button
-                        onClick={() => upvoteCommunityPost(post.id)}
-                        className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-orange-50 hover:text-[#FF6B00] text-xs font-bold text-slate-700 dark:text-white transition-colors cursor-pointer"
-                      >
-                        <ThumbsUp className="w-3.5 h-3.5" />
-                        <span>{post.upvotes}</span>
-                      </button>
-                    </div>
-
-                    <p className="text-xs text-slate-600 dark:text-white leading-relaxed">{post.content}</p>
-
-                    {post.is_verified && post.verified_solution && (
-                      <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-xs space-y-1">
-                        <div className="flex items-center gap-1.5 text-emerald-800 dark:text-emerald-300 font-extrabold">
-                          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                          <span>Teacher-Verified Solution &bull; {post.verified_solution.teacher_name}</span>
-                        </div>
-                        <p className="text-emerald-900 dark:text-emerald-200">{post.verified_solution.solution}</p>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
+            <CommunityDoubtForum onJoinLiveSession={() => setStudentNav('ai-tutor')} />
           )}
 
           {/* TAB 9: SETTINGS & SUBSCRIPTION */}
@@ -1693,56 +2844,173 @@ export const StudentView: React.FC = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Active Curriculum & Selected Subjects Card */}
+              <div className="bg-white dark:bg-[#0E1A2D] rounded-2xl p-5 border border-slate-200/90 dark:border-slate-800/80 shadow-xs space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <h3 className="font-light text-base text-slate-900 dark:text-white">
+                      Curriculum, Board & Selected Subjects
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-white/80">
+                      Synced live with Student Profile and Admin Curriculum Catalog
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsProfileOpen(true)}
+                    className="px-3.5 py-1.5 rounded-xl bg-[#00A896] hover:bg-[#009282] text-white text-xs font-bold transition-colors cursor-pointer self-start sm:self-auto"
+                  >
+                    Select / Edit Subjects in Profile
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
+                    <span className="text-[10px] text-slate-500 dark:text-white/70 block">Grade Level</span>
+                    <span className="font-bold text-slate-900 dark:text-white">Grade {activeGradeFilter}</span>
+                  </div>
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
+                    <span className="text-[10px] text-slate-500 dark:text-white/70 block">Governing Board</span>
+                    <span className="font-bold text-slate-900 dark:text-white">{BOARD_LABELS[currentBoard as EducationBoard] || currentBoard}</span>
+                  </div>
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
+                    <span className="text-[10px] text-slate-500 dark:text-white/70 block">Language Medium</span>
+                    <span className="font-bold text-slate-900 dark:text-white">
+                      {SUPPORTED_LANGUAGES.find((l) => l.value === globalLanguage)?.label || globalLanguage}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <span className="text-xs font-bold text-slate-700 dark:text-white block">
+                    Selected Subjects ({currentUser?.enrolledCourses?.length || 0}):
+                  </span>
+                  {currentUser?.enrolledCourses && currentUser.enrolledCourses.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {currentUser.enrolledCourses.map((course, idx) => (
+                        <span
+                          key={idx}
+                          className="px-3 py-1 rounded-xl text-xs bg-teal-50 dark:bg-teal-950/50 text-[#00A896] border border-teal-200 dark:border-teal-800 font-medium"
+                        >
+                          📚 {course}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-500 dark:text-white/80 italic">
+                      No subjects explicitly selected yet. Click "Select / Edit Subjects in Profile" above or select subjects inside Skills Passport.
+                    </p>
+                  )}
+                </div>
+              </div>
             </div>
           )}
         </main>
       </div>
 
       {/* =========================================================================
-          4. FLOATING QUICK DOUBTS WIDGET (Available across all tabs)
+          4. FLOATING QUICK DOUBTS AI ASSISTANT WIDGET (Available across all tabs)
           ========================================================================= */}
       <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end">
         {isQuickDoubtsOpen && (
-          <div className="mb-3 w-96 max-w-[calc(100vw-2rem)] bg-white dark:bg-[#0E1A2D] text-slate-900 dark:text-white rounded-3xl p-5 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-3 animate-in fade-in slide-in-from-bottom-5">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+          <div className="quick-doubts-lollipop mb-3 w-[420px] max-w-[calc(100vw-2rem)] max-h-[82vh] flex flex-col bg-white dark:bg-[#0E1A2D] text-slate-900 dark:text-white rounded-3xl p-5 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-3 animate-in fade-in slide-in-from-bottom-5">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800 shrink-0">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-xl bg-orange-50 dark:bg-orange-950/80 text-[#FF6B00] flex items-center justify-center">
-                  <HelpCircle className="w-4 h-4" />
+                  <Sparkles className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="font-light text-sm">Quick Doubts AI</h3>
-                  <p className="text-[10px] text-slate-500 dark:text-white">Autonomous Step-by-Step Solver</p>
+                  <h3 className="font-semibold text-sm">Quick Doubts AI</h3>
                 </div>
               </div>
               <button
                 onClick={() => setIsQuickDoubtsOpen(false)}
-                className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 dark:text-white"
+                className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 dark:text-white cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleQuickDoubtSubmit} className="space-y-3">
-              <div className="space-y-1">
-                <label className="text-[11px] font-bold text-slate-600 dark:text-white">Subject</label>
-                <select
-                  value={quickDoubtSubject}
-                  onChange={(e) => setQuickDoubtSubject(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-800 text-xs font-bold rounded-xl px-3 py-2 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
-                >
-                  {displaySubjects.map((s) => (
-                    <option key={s.id} value={s.name}>
-                      {s.name} (Grade {s.grade_level})
-                    </option>
-                  ))}
-                </select>
+            <form onSubmit={handleQuickDoubtSubmit} className="space-y-2.5 shrink-0">
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-slate-600 dark:text-white">Subject</label>
+                  <select
+                    value={quickDoubtSubject}
+                    onChange={(e) => setQuickDoubtSubject(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-slate-800 text-xs font-bold rounded-xl px-2.5 py-2 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white cursor-pointer"
+                  >
+                    {displaySubjects.map((s) => {
+                      const localized = getLocalizedSubjectName(s.name, currentBoard);
+                      return (
+                        <option key={s.id} value={localized}>
+                          {localized} (Grade {s.grade_level})
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-slate-600 dark:text-white">Topic</label>
+                  <select
+                    value={quickDoubtTopic}
+                    onChange={(e) => setQuickDoubtTopic(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-slate-800 text-xs font-bold rounded-xl px-2.5 py-2 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white cursor-pointer"
+                  >
+                    {floatingTopicsForSubject.map((t) => (
+                      <option key={`flt-top-${t.id}`} value={t.title}>
+                        {t.title}
+                      </option>
+                    ))}
+                    <option value="">General {quickDoubtSubject}</option>
+                    <option value="__custom__">+ Custom Topic...</option>
+                  </select>
+                </div>
               </div>
 
+              {quickDoubtTopic === '__custom__' && (
+                <input
+                  type="text"
+                  value={quickCustomTopic}
+                  onChange={(e) => setQuickCustomTopic(e.target.value)}
+                  placeholder={`Specify ${quickDoubtSubject} topic...`}
+                  className="w-full bg-slate-50 dark:bg-slate-800 text-xs px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#FF6B00]"
+                />
+              )}
+
+              {quickImageData && (
+                <div className="flex items-center justify-between gap-2 p-1.5 rounded-xl bg-orange-50/70 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800/60">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <img
+                      src={quickImageData.preview}
+                      alt="Diagram preview"
+                      className="w-8 h-8 rounded-lg object-cover border border-orange-300"
+                    />
+                    <span className="text-[10px] font-semibold truncate">Diagram ready for AI</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setQuickImageData(null)}
+                    className="p-1 text-slate-500 hover:text-rose-500 cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+
               <textarea
-                rows={3}
+                rows={2}
                 value={quickDoubtText}
                 onChange={(e) => setQuickDoubtText(e.target.value)}
-                placeholder="Type your question or copy-paste math equation..."
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleQuickDoubtSubmit(e as unknown as React.FormEvent);
+                  }
+                }}
+                placeholder="Ask a question on this subject & topic..."
                 className="w-full bg-slate-50 dark:bg-slate-800 text-xs p-3 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#FF6B00] resize-none"
               />
 
@@ -1752,25 +3020,72 @@ export const StudentView: React.FC = () => {
                   <span>Diagram</span>
                   <input
                     type="file"
+                    accept="image/*"
                     className="hidden"
-                    onChange={(e) => {
-                      if (e.target.files?.[0]) {
-                        setQuickDoubtText(`[Diagram Attached: ${e.target.files[0].name}] How do I solve this diagram problem?`);
-                      }
-                    }}
+                    onChange={(e) => handleQuickDoubtImageSelect(e.target.files?.[0], setQuickImageData)}
                   />
                 </label>
 
                 <button
                   type="submit"
-                  disabled={!quickDoubtText.trim() || isSubmittingDoubt}
+                  disabled={(!quickDoubtText.trim() && !quickImageData) || isSubmittingDoubt}
                   className="px-4 py-2 rounded-xl bg-[#FF6B00] hover:bg-[#E56000] disabled:opacity-40 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-sm"
                 >
-                  <Send className="w-3.5 h-3.5" />
-                  <span>Submit Doubt</span>
+                  {isSubmittingDoubt ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Resolving...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-3.5 h-3.5" />
+                      <span>Ask AI Now</span>
+                    </>
+                  )}
                 </button>
               </div>
             </form>
+
+            {/* Interactive AI Conversation Thread inside Floating Widget */}
+            {quickDoubts.length > 0 && (
+              <div className="pt-2 border-t border-slate-100 dark:border-slate-800 overflow-y-auto space-y-2.5 pr-0.5">
+                {quickDoubts.slice(0, 1).map((qd) => (
+                  <div
+                    key={`flt-${qd.id}`}
+                    className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80 space-y-2"
+                  >
+                    <div className="flex items-center justify-between gap-2 text-[10px]">
+                      <span className="font-bold text-[#00A896] truncate">
+                        {qd.subject}{qd.topic ? ` • ${qd.topic}` : ''}
+                      </span>
+                      <span
+                        className={`px-1.5 py-0.5 rounded-full font-bold shrink-0 ${
+                          qd.status === 'streaming'
+                            ? 'bg-orange-100 text-[#FF6B00]'
+                            : qd.status === 'blocked'
+                            ? 'bg-rose-100 text-rose-700'
+                            : qd.status === 'error'
+                            ? 'bg-rose-100 text-rose-700'
+                            : 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400'
+                        }`}
+                      >
+                        {qd.status === 'streaming'
+                          ? 'Live...'
+                          : qd.status === 'blocked'
+                          ? 'Guardian Alerted'
+                          : qd.status === 'error'
+                          ? 'Error'
+                          : 'Interactive Chat'}
+                      </span>
+                    </div>
+                    {qd.errorMessage && (
+                      <p className="text-[11px] text-rose-600 dark:text-rose-300">{qd.errorMessage}</p>
+                    )}
+                    {renderInteractiveThreadMessages(qd, 'Floating Quick Doubts AI Pop-up', true)}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 

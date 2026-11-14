@@ -151,9 +151,21 @@ export const UserManagement: React.FC = () => {
       status: formStatus,
       ...(editingUser.role === 'student' && {
         grade: studentGrade,
+        enrolledCourses: studentCourses
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean),
       }),
       ...(editingUser.role === 'teacher' && {
         department: teacherDepartment,
+        assignedSubjects: teacherSubjects
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean),
+        assignedCohorts: teacherCohorts
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean),
       }),
       ...(editingUser.role === 'admin' && {
         permissionLevel: adminPermission,
@@ -184,7 +196,10 @@ export const UserManagement: React.FC = () => {
     setFormRole(user.role);
     setFormStatus(user.status);
     if (user.grade) setStudentGrade(user.grade);
+    if (user.enrolledCourses) setStudentCourses(user.enrolledCourses.join(', '));
     if (user.department) setTeacherDepartment(user.department);
+    if (user.assignedSubjects) setTeacherSubjects(user.assignedSubjects.join(', '));
+    if (user.assignedCohorts) setTeacherCohorts(user.assignedCohorts.join(', '));
     if (user.permissionLevel) setAdminPermission(user.permissionLevel);
   };
 
@@ -194,14 +209,14 @@ export const UserManagement: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-[#131d33] p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm transition-colors">
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-cyan-600 dark:text-cyan-400 bg-cyan-100/70 dark:bg-cyan-950/70 px-2.5 py-0.5 rounded-full border border-cyan-200/50 dark:border-cyan-800/50">
+            <span className="text-xs font-normal uppercase tracking-wider text-cyan-600 dark:text-cyan-400 bg-cyan-100/70 dark:bg-cyan-950/70 px-2.5 py-0.5 rounded-full border border-cyan-200/50 dark:border-cyan-800/50">
               Administrative Control
             </span>
-            <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+            <span className="text-xs text-slate-500 dark:text-slate-400 font-normal">
               &bull; Comprehensive User Directory
             </span>
           </div>
-          <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight mt-1">
+          <h2 className="text-xl sm:text-2xl font-normal text-slate-900 dark:text-white tracking-tight mt-1">
             User Management Dashboard
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
@@ -214,7 +229,7 @@ export const UserManagement: React.FC = () => {
             resetForm();
             setIsAddModalOpen(true);
           }}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-cyan-600 hover:bg-cyan-700 text-white font-bold text-xs shadow-md shadow-cyan-600/20 transition-all cursor-pointer whitespace-nowrap self-start sm:self-auto"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-cyan-600 hover:bg-cyan-700 text-white font-normal text-xs shadow-md shadow-cyan-600/20 transition-all cursor-pointer whitespace-nowrap self-start sm:self-auto"
         >
           <UserPlus className="w-4 h-4" />
           <span>Add New User</span>
@@ -227,7 +242,7 @@ export const UserManagement: React.FC = () => {
         <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 dark:border-slate-800/80 pb-3">
           <button
             onClick={() => setActiveTab('all')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-normal transition-all cursor-pointer ${
               activeTab === 'all'
                 ? 'bg-slate-900 text-white dark:bg-cyan-500 dark:text-slate-950 shadow-sm'
                 : 'bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800'
@@ -241,7 +256,7 @@ export const UserManagement: React.FC = () => {
 
           <button
             onClick={() => setActiveTab('student')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-normal transition-all cursor-pointer ${
               activeTab === 'student'
                 ? 'bg-indigo-600 text-white shadow-sm'
                 : 'bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 hover:text-indigo-600'
@@ -256,7 +271,7 @@ export const UserManagement: React.FC = () => {
 
           <button
             onClick={() => setActiveTab('teacher')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-normal transition-all cursor-pointer ${
               activeTab === 'teacher'
                 ? 'bg-amber-600 text-white shadow-sm'
                 : 'bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 hover:bg-amber-50 dark:hover:bg-amber-950/40 hover:text-amber-600'
@@ -271,7 +286,7 @@ export const UserManagement: React.FC = () => {
 
           <button
             onClick={() => setActiveTab('admin')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-normal transition-all cursor-pointer ${
               activeTab === 'admin'
                 ? 'bg-cyan-600 text-white shadow-sm'
                 : 'bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 hover:bg-cyan-50 dark:hover:bg-cyan-950/40 hover:text-cyan-600'
@@ -291,7 +306,7 @@ export const UserManagement: React.FC = () => {
             <div>
               <div className="flex items-center gap-2">
                 <BookOpen className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
-                <h3 className="font-extrabold text-sm text-slate-900 dark:text-white">
+                <h3 className="font-normal text-sm text-slate-900 dark:text-white">
                   Curriculum and Grade Range Control
                 </h3>
               </div>
@@ -301,7 +316,7 @@ export const UserManagement: React.FC = () => {
             </div>
             <button
               onClick={() => setIsCurriculumModalOpen(true)}
-              className="text-xs font-bold text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 hover:underline flex items-center gap-1 cursor-pointer self-start sm:self-auto"
+              className="text-xs font-normal text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 hover:underline flex items-center gap-1 cursor-pointer self-start sm:self-auto"
             >
               <span>Explore All {curriculumList.length} Courses</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -311,7 +326,7 @@ export const UserManagement: React.FC = () => {
           {/* Active Grades Multi-Select */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between text-xs">
-              <span className="font-bold text-slate-700 dark:text-slate-300">
+              <span className="font-normal text-slate-700 dark:text-slate-300">
                 Active Grades: [{activeGrades.join(', ')}]
               </span>
               <span className="text-[10px] text-slate-400">Click to toggle grades (6-12)</span>
@@ -323,7 +338,7 @@ export const UserManagement: React.FC = () => {
                   <button
                     key={g}
                     onClick={() => toggleGradeFilter(g)}
-                    className={`px-3 py-1 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
+                    className={`px-3 py-1 rounded-xl text-xs font-normal transition-all cursor-pointer ${
                       isActive
                         ? 'bg-cyan-600 text-white shadow-xs'
                         : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:bg-slate-100'
@@ -339,7 +354,7 @@ export const UserManagement: React.FC = () => {
           {/* Active Subject Categories Multi-Select */}
           <div className="space-y-1.5 pt-1">
             <div className="flex items-center justify-between text-xs">
-              <span className="font-bold text-slate-700 dark:text-slate-300">
+              <span className="font-normal text-slate-700 dark:text-slate-300">
                 Active Subjects: [{activeCategories.join(', ')}]
               </span>
               <span className="text-[10px] text-slate-400">Click to toggle subject domains</span>
@@ -351,7 +366,7 @@ export const UserManagement: React.FC = () => {
                   <button
                     key={cat}
                     onClick={() => toggleCategoryFilter(cat)}
-                    className={`px-3 py-1 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
+                    className={`px-3 py-1 rounded-xl text-xs font-normal transition-all cursor-pointer ${
                       isActive
                         ? 'bg-slate-900 text-white dark:bg-cyan-500 dark:text-slate-950 shadow-xs'
                         : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:bg-slate-100'
@@ -382,7 +397,7 @@ export const UserManagement: React.FC = () => {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as any)}
-              className="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 text-xs font-semibold text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-cyan-500 cursor-pointer"
+              className="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 text-xs font-normal text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-cyan-500 cursor-pointer"
             >
               <option value="all">Status: All</option>
               <option value="Active">Status: Active</option>
@@ -395,7 +410,7 @@ export const UserManagement: React.FC = () => {
         <div className="overflow-x-auto rounded-2xl border border-slate-200/80 dark:border-slate-800">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="bg-slate-50 dark:bg-slate-800/70 border-b border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-bold uppercase text-[10px] tracking-wider">
+              <tr className="bg-slate-50 dark:bg-slate-800/70 border-b border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-normal uppercase text-[10px] tracking-wider">
                 <th className="py-3 px-4">User</th>
                 <th className="py-3 px-4">Role</th>
                 <th className="py-3 px-4">Scope / Specialization</th>
@@ -404,7 +419,7 @@ export const UserManagement: React.FC = () => {
                 <th className="py-3 px-4 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-normal">
               {filteredUsers.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-8 text-center text-slate-500 dark:text-slate-400">
@@ -426,7 +441,7 @@ export const UserManagement: React.FC = () => {
                       <td className="py-3.5 px-4">
                         <div className="flex items-center gap-3">
                           <div
-                            className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs text-white shadow-xs overflow-hidden ${
+                            className={`w-8 h-8 rounded-xl flex items-center justify-center font-normal text-xs text-white shadow-xs overflow-hidden ${
                               isStudent
                                 ? 'bg-gradient-to-tr from-indigo-500 to-purple-600'
                                 : isTeacher
@@ -441,7 +456,7 @@ export const UserManagement: React.FC = () => {
                             )}
                           </div>
                           <div>
-                            <span className="font-bold text-slate-900 dark:text-white block">
+                            <span className="font-normal text-slate-900 dark:text-white block">
                               {user.name}
                             </span>
                             <span className="text-[11px] text-slate-500 dark:text-slate-400">
@@ -454,19 +469,19 @@ export const UserManagement: React.FC = () => {
                       {/* Role Pill */}
                       <td className="py-3.5 px-4">
                         {isStudent && (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-100 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-normal bg-indigo-100 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
                             <GraduationCap className="w-3 h-3" />
                             Student
                           </span>
                         )}
                         {isTeacher && (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 dark:bg-amber-950/70 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-normal bg-amber-100 dark:bg-amber-950/70 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
                             <Briefcase className="w-3 h-3" />
                             Teacher
                           </span>
                         )}
                         {isAdmin && (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-cyan-100 dark:bg-cyan-950/70 text-cyan-700 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-normal bg-cyan-100 dark:bg-cyan-950/70 text-cyan-700 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800">
                             <ShieldCheck className="w-3 h-3" />
                             Admin
                           </span>
@@ -477,7 +492,7 @@ export const UserManagement: React.FC = () => {
                       <td className="py-3.5 px-4 text-slate-700 dark:text-slate-300">
                         {isStudent && (
                           <div>
-                            <span className="font-semibold">{user.grade || '8th Grade'}</span>
+                            <span className="font-normal">{user.grade || '8th Grade'}</span>
                             <span className="text-[10px] text-slate-400 block">
                               GPA: {user.gpa || '3.5'} &bull; Prog: {user.overallProgress || 80}%
                             </span>
@@ -485,7 +500,7 @@ export const UserManagement: React.FC = () => {
                         )}
                         {isTeacher && (
                           <div>
-                            <span className="font-semibold">{user.department || 'Science'}</span>
+                            <span className="font-normal">{user.department || 'Science'}</span>
                             <span className="text-[10px] text-slate-400 block">
                               Cohorts: {user.assignedCohorts?.join(', ') || 'Class 7B'}
                             </span>
@@ -493,7 +508,7 @@ export const UserManagement: React.FC = () => {
                         )}
                         {isAdmin && (
                           <div>
-                            <span className="font-semibold">{user.permissionLevel || 'Super Admin'}</span>
+                            <span className="font-normal">{user.permissionLevel || 'Super Admin'}</span>
                             <span className="text-[10px] text-slate-400 block">
                               Global Oversight & Proctor
                             </span>
@@ -504,12 +519,12 @@ export const UserManagement: React.FC = () => {
                       {/* Status */}
                       <td className="py-3.5 px-4">
                         {user.status === 'Active' ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-normal bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
                             <CheckCircle2 className="w-3 h-3" />
                             Active
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-normal bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
                             <XCircle className="w-3 h-3" />
                             Inactive
                           </span>
@@ -550,7 +565,7 @@ export const UserManagement: React.FC = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
           <div className="p-4 rounded-2xl bg-slate-900 text-white flex items-center justify-between border border-slate-800 shadow-md">
             <div className="space-y-0.5">
-              <span className="text-[10px] uppercase font-bold text-cyan-400 block tracking-wider">
+              <span className="text-[10px] uppercase font-normal text-cyan-400 block tracking-wider">
                 Live Monitoring
               </span>
               <p className="text-xs text-slate-300">
@@ -559,7 +574,7 @@ export const UserManagement: React.FC = () => {
             </div>
             <button
               onClick={() => setAdminNav('dashboard')}
-              className="px-3.5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-bold transition-colors cursor-pointer whitespace-nowrap ml-3"
+              className="px-3.5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-normal transition-colors cursor-pointer whitespace-nowrap ml-3"
             >
               Open Video Feeds &rarr;
             </button>
@@ -567,7 +582,7 @@ export const UserManagement: React.FC = () => {
 
           <div className="p-4 rounded-2xl bg-slate-900 text-white flex items-center justify-between border border-slate-800 shadow-md">
             <div className="space-y-0.5">
-              <span className="text-[10px] uppercase font-bold text-amber-400 block tracking-wider">
+              <span className="text-[10px] uppercase font-normal text-amber-400 block tracking-wider">
                 Certificates
               </span>
               <p className="text-xs text-slate-300">
@@ -576,7 +591,7 @@ export const UserManagement: React.FC = () => {
             </div>
             <button
               onClick={() => setAdminNav('certificates')}
-              className="px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition-colors cursor-pointer whitespace-nowrap ml-3"
+              className="px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-normal transition-colors cursor-pointer whitespace-nowrap ml-3"
             >
               Manage Certificates &rarr;
             </button>
@@ -595,7 +610,7 @@ export const UserManagement: React.FC = () => {
                   <UserPlus className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-base">Provision New User Account</h3>
+                  <h3 className="font-normal text-base">Provision New User Account</h3>
                   <p className="text-xs text-white/80">Configure identity, role permissions, and initial cohort.</p>
                 </div>
               </div>
@@ -612,7 +627,7 @@ export const UserManagement: React.FC = () => {
               {/* Standard Fields: Name & Email */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block font-normal text-slate-700 dark:text-slate-300 mb-1">
                     Full Name *
                   </label>
                   <input
@@ -625,7 +640,7 @@ export const UserManagement: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block font-normal text-slate-700 dark:text-slate-300 mb-1">
                     Institutional Email *
                   </label>
                   <input
@@ -641,13 +656,13 @@ export const UserManagement: React.FC = () => {
 
               {/* ROLE SELECTION DROPDOWN (Mandatory requirement) */}
               <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block font-normal text-slate-700 dark:text-slate-300 mb-1">
                   User Role Dropdown *
                 </label>
                 <select
                   value={formRole}
                   onChange={(e) => setFormRole(e.target.value as UserRole)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 cursor-pointer"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 font-normal text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 cursor-pointer"
                 >
                   <option value="student">🎓 Student (Personal AI Tutor & Doubt Solver)</option>
                   <option value="teacher">💼 Teacher (Curriculum & Dynamic Quiz Studio)</option>
@@ -658,7 +673,7 @@ export const UserManagement: React.FC = () => {
               {/* Temporary Password & Account Status */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block font-normal text-slate-700 dark:text-slate-300 mb-1">
                     Temporary Password *
                   </label>
                   <input
@@ -670,13 +685,13 @@ export const UserManagement: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block font-normal text-slate-700 dark:text-slate-300 mb-1">
                     Account Status
                   </label>
                   <select
                     value={formStatus}
                     onChange={(e) => setFormStatus(e.target.value as any)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 font-bold text-slate-900 dark:text-white cursor-pointer"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 font-normal text-slate-900 dark:text-white cursor-pointer"
                   >
                     <option value="Active">Active</option>
                     <option value="Inactive">Inactive</option>
@@ -689,27 +704,30 @@ export const UserManagement: React.FC = () => {
               {/* 1. If Student: Grade & Course enrollments */}
               {formRole === 'student' && (
                 <div className="p-4 rounded-2xl bg-indigo-50/60 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-900/60 space-y-3">
-                  <span className="font-bold text-indigo-700 dark:text-indigo-400 block uppercase tracking-wider text-[10px]">
+                  <span className="font-normal text-indigo-700 dark:text-indigo-400 block uppercase tracking-wider text-[10px]">
                     Student Specific Credentials
                   </span>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      <label className="block font-normal text-slate-700 dark:text-slate-300 mb-1">
                         Class / Grade Level
                       </label>
                       <select
                         value={studentGrade}
                         onChange={(e) => setStudentGrade(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 font-medium"
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 font-normal"
                       >
+                        <option value="6th Grade">6th Grade</option>
                         <option value="7th Grade">7th Grade</option>
                         <option value="8th Grade">8th Grade</option>
                         <option value="9th Grade">9th Grade</option>
                         <option value="10th Grade">10th Grade</option>
+                        <option value="11th Grade">11th Grade</option>
+                        <option value="12th Grade">12th Grade</option>
                       </select>
                     </div>
                     <div>
-                      <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      <label className="block font-normal text-slate-700 dark:text-slate-300 mb-1">
                         Default Enrolled Courses
                       </label>
                       <input
@@ -727,12 +745,12 @@ export const UserManagement: React.FC = () => {
               {/* 2. If Teacher: Subject, Department, Cohorts */}
               {formRole === 'teacher' && (
                 <div className="p-4 rounded-2xl bg-amber-50/60 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 space-y-3">
-                  <span className="font-bold text-amber-700 dark:text-amber-400 block uppercase tracking-wider text-[10px]">
+                  <span className="font-normal text-amber-700 dark:text-amber-400 block uppercase tracking-wider text-[10px]">
                     Educator Faculty Credentials
                   </span>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
-                      <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      <label className="block font-normal text-slate-700 dark:text-slate-300 mb-1">
                         Department
                       </label>
                       <input
@@ -743,7 +761,7 @@ export const UserManagement: React.FC = () => {
                       />
                     </div>
                     <div>
-                      <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      <label className="block font-normal text-slate-700 dark:text-slate-300 mb-1">
                         Assigned Subject(s)
                       </label>
                       <input
@@ -754,7 +772,7 @@ export const UserManagement: React.FC = () => {
                       />
                     </div>
                     <div>
-                      <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      <label className="block font-normal text-slate-700 dark:text-slate-300 mb-1">
                         Assigned Cohorts
                       </label>
                       <input
@@ -771,17 +789,17 @@ export const UserManagement: React.FC = () => {
               {/* 3. If Admin: Permission level */}
               {formRole === 'admin' && (
                 <div className="p-4 rounded-2xl bg-cyan-50/60 dark:bg-cyan-950/40 border border-cyan-200 dark:border-cyan-900/60 space-y-3">
-                  <span className="font-bold text-cyan-700 dark:text-cyan-400 block uppercase tracking-wider text-[10px]">
+                  <span className="font-normal text-cyan-700 dark:text-cyan-400 block uppercase tracking-wider text-[10px]">
                     Administrative Security Level
                   </span>
                   <div>
-                    <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    <label className="block font-normal text-slate-700 dark:text-slate-300 mb-1">
                       System Permissions Level
                     </label>
                     <select
                       value={adminPermission}
                       onChange={(e) => setAdminPermission(e.target.value as any)}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 font-bold"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 font-normal"
                     >
                       <option value="Super Admin">Super Admin (All modules + User CRUD + Proctoring)</option>
                       <option value="Proctor Manager">Proctor Manager (Video Monitoring & Cheating Anomaly Control)</option>
@@ -796,13 +814,13 @@ export const UserManagement: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsAddModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-normal cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white font-bold shadow-md cursor-pointer"
+                  className="px-5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white font-normal shadow-md cursor-pointer"
                 >
                   Create User Account
                 </button>
@@ -817,7 +835,7 @@ export const UserManagement: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
           <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-lg w-full border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden p-6 text-xs space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-              <h3 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
+              <h3 className="font-normal text-base text-slate-900 dark:text-white flex items-center gap-2">
                 <Edit2 className="w-4 h-4 text-cyan-600" />
                 <span>Edit User: {editingUser.name}</span>
               </h3>
@@ -831,7 +849,7 @@ export const UserManagement: React.FC = () => {
 
             <form onSubmit={handleUpdateUserSubmit} className="space-y-3">
               <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Name</label>
+                <label className="block font-normal text-slate-700 dark:text-slate-300 mb-1">Name</label>
                 <input
                   type="text"
                   required
@@ -842,7 +860,7 @@ export const UserManagement: React.FC = () => {
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Email</label>
+                <label className="block font-normal text-slate-700 dark:text-slate-300 mb-1">Email</label>
                 <input
                   type="email"
                   required
@@ -853,11 +871,11 @@ export const UserManagement: React.FC = () => {
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Account Status</label>
+                <label className="block font-normal text-slate-700 dark:text-slate-300 mb-1">Account Status</label>
                 <select
                   value={formStatus}
                   onChange={(e) => setFormStatus(e.target.value as any)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-bold"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-normal"
                 >
                   <option value="Active">Active</option>
                   <option value="Inactive">Inactive</option>
@@ -865,36 +883,70 @@ export const UserManagement: React.FC = () => {
               </div>
 
               {editingUser.role === 'student' && (
-                <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Grade</label>
-                  <input
-                    type="text"
-                    value={studentGrade}
-                    onChange={(e) => setStudentGrade(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800"
-                  />
+                <div className="space-y-3">
+                  <div>
+                    <label className="block font-normal text-slate-700 dark:text-slate-300 mb-1">Grade</label>
+                    <input
+                      type="text"
+                      value={studentGrade}
+                      onChange={(e) => setStudentGrade(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-normal text-slate-700 dark:text-slate-300 mb-1">Enrolled Courses</label>
+                    <input
+                      type="text"
+                      value={studentCourses}
+                      onChange={(e) => setStudentCourses(e.target.value)}
+                      placeholder="Comma separated"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800"
+                    />
+                  </div>
                 </div>
               )}
 
               {editingUser.role === 'teacher' && (
-                <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Department</label>
-                  <input
-                    type="text"
-                    value={teacherDepartment}
-                    onChange={(e) => setTeacherDepartment(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800"
-                  />
+                <div className="space-y-3">
+                  <div>
+                    <label className="block font-normal text-slate-700 dark:text-slate-300 mb-1">Department</label>
+                    <input
+                      type="text"
+                      value={teacherDepartment}
+                      onChange={(e) => setTeacherDepartment(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-normal text-slate-700 dark:text-slate-300 mb-1">Assigned Subject(s)</label>
+                    <input
+                      type="text"
+                      value={teacherSubjects}
+                      onChange={(e) => setTeacherSubjects(e.target.value)}
+                      placeholder="Comma separated"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-normal text-slate-700 dark:text-slate-300 mb-1">Assigned Cohorts</label>
+                    <input
+                      type="text"
+                      value={teacherCohorts}
+                      onChange={(e) => setTeacherCohorts(e.target.value)}
+                      placeholder="Comma separated"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800"
+                    />
+                  </div>
                 </div>
               )}
 
               {editingUser.role === 'admin' && (
                 <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Permission Level</label>
+                  <label className="block font-normal text-slate-700 dark:text-slate-300 mb-1">Permission Level</label>
                   <select
                     value={adminPermission}
                     onChange={(e) => setAdminPermission(e.target.value as any)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 font-bold"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 font-normal"
                   >
                     <option value="Super Admin">Super Admin</option>
                     <option value="Proctor Manager">Proctor Manager</option>
@@ -907,13 +959,13 @@ export const UserManagement: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setEditingUser(null)}
-                  className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-normal cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white font-bold cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white font-normal cursor-pointer"
                 >
                   Save Changes
                 </button>
@@ -931,7 +983,7 @@ export const UserManagement: React.FC = () => {
               <AlertTriangle className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="font-bold text-base text-slate-900 dark:text-white">Delete User Account?</h3>
+              <h3 className="font-normal text-base text-slate-900 dark:text-white">Delete User Account?</h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                 Are you sure you want to permanently remove <strong>{userToDelete.name}</strong> from the institutional directory?
               </p>
@@ -939,7 +991,7 @@ export const UserManagement: React.FC = () => {
             <div className="flex gap-2">
               <button
                 onClick={() => setUserToDelete(null)}
-                className="flex-1 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-xs cursor-pointer"
+                className="flex-1 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-normal text-xs cursor-pointer"
               >
                 Cancel
               </button>
@@ -948,7 +1000,7 @@ export const UserManagement: React.FC = () => {
                   deleteUser(userToDelete.id);
                   setUserToDelete(null);
                 }}
-                className="flex-1 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs cursor-pointer shadow-sm"
+                className="flex-1 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-normal text-xs cursor-pointer shadow-sm"
               >
                 Confirm Delete
               </button>

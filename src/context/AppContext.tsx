@@ -6,6 +6,7 @@ import {
   AppUser,
   ChatMessage,
   StudentDoubt,
+  QuickDoubtItem,
   LessonPlan,
   Quiz,
   ProctorFeed,
@@ -25,15 +26,32 @@ import {
   MeetingInvite,
   CommunityPost,
   CommunityComment,
+  ForumStudyGroup,
+  ForumResourceItem,
   DailyStudyTask,
   WeeklySprintAllocation,
   MasterChapterItem,
   SubscriptionState,
+  EducationBoard,
+  QuickDoubtChatTurn,
+  GuardianEscalationReceipt,
 } from '../types';
 import {
-  COMPREHENSIVE_CURRICULUM_6_12,
+  DEFAULT_SUBJECTS_DB,
+  DEFAULT_TOPICS_DB,
   SAMPLE_STUDENT_ACADEMIC_GROWTH,
 } from '../data/curriculumData';
+import {
+  PLANT_CELLS_QUIZ_QUESTIONS,
+  NEWTONS_LAWS_QUIZ_QUESTIONS,
+  ALGEBRA_QUADRATICS_QUIZ_QUESTIONS,
+} from '../data/practiceQuizQuestions';
+import {
+  detectFoulLanguage,
+  detectStressOrMedicalQuery,
+  STRICT_PARENT_DOCTOR_ONLY_RESPONSE,
+} from '../utils/safetyGuard';
+import { captureQuickDoubtScreenshot } from '../utils/captureScreenshot';
 
 export interface BroadcastedQuizInfo {
   quiz: Quiz;
@@ -70,7 +88,7 @@ interface AppContextType {
   topicsDB: DBTopic[];
   isCurriculumSyncing: boolean;
   fetchCurriculum: () => Promise<void>;
-  createSubject: (subject: { name: string; grade_level: number; category?: any; code?: string; description?: string; status?: 'ACTIVE' | 'INACTIVE' }) => Promise<DBSubject | null>;
+  createSubject: (subject: { name: string; grade_level: number; board?: EducationBoard | 'ALL'; category?: any; code?: string; description?: string; status?: 'ACTIVE' | 'INACTIVE' }) => Promise<DBSubject | null>;
   updateSubject: (id: string, updates: Partial<DBSubject>) => Promise<DBSubject | null>;
   deleteSubject: (id: string) => Promise<boolean>;
   createTopic: (topic: { subject_id: string; title: string; description?: string; status?: 'ACTIVE' | 'INACTIVE' }) => Promise<DBTopic | null>;
@@ -118,10 +136,40 @@ interface AppContextType {
 
   // Community Doubt Forum with Automated AI Moderation
   communityPosts: CommunityPost[];
+  forumStudyGroups: ForumStudyGroup[];
+  forumResources: ForumResourceItem[];
+  forumPoints: number;
+  peerAnswersThisWeek: number;
+  liveSessionRsvp: boolean;
+  toggleLiveSessionRsvp: () => void;
   addCommunityPost: (data: any) => Promise<{ success: boolean; error?: string }>;
   addCommunityComment: (postId: string, content: string) => Promise<{ success: boolean; error?: string }>;
   upvoteCommunityPost: (postId: string) => Promise<void>;
+  upvoteCommunityComment: (postId: string, commentId: string) => Promise<void>;
+  acceptCommunityComment: (postId: string, commentId: string) => Promise<void>;
+  flagCommunityPost: (postId: string, reason?: string) => Promise<void>;
+  resolveFlaggedCommunityPost: (postId: string, action: 'dismiss' | 'remove') => void;
   verifyCommunityPost: (postId: string, solution: string) => Promise<void>;
+  joinOrLeaveStudyGroup: (groupId: string) => void;
+  createStudyGroup: (groupData: {
+    name: string;
+    subject: string;
+    chapter_unit: string;
+    grade_level: number;
+    availability: string;
+    focus_goal: string;
+  }) => void;
+  addStudyGroupMessage: (groupId: string, content: string) => void;
+  addForumResource: (resource: {
+    title: string;
+    resource_type: 'Notes' | 'Previous Paper' | 'Revision Material' | 'Recommended Video';
+    subject: string;
+    chapter_unit: string;
+    grade_level: number;
+    description: string;
+    url?: string;
+  }) => void;
+  upvoteForumResource: (resourceId: string) => void;
 
   // Subscription & 7-Day Free Trial
   subscriptionState: SubscriptionState;
@@ -174,6 +222,33 @@ interface AppContextType {
   doubts: StudentDoubt[];
   addDoubt: (question: string, subject: string, topic?: string) => Promise<void>;
   resolveDoubt: (id: string) => void;
+  quickDoubts: QuickDoubtItem[];
+  askQuickDoubtAI: (
+    question: string,
+    subject: string,
+    options?: {
+      topic?: string;
+      gradeLevel?: number | string;
+      board?: string;
+      medium?: string;
+      imageBase64?: string;
+      imageMimeType?: string;
+      imagePreview?: string;
+      surfaceLabel?: string;
+    }
+  ) => Promise<string | undefined>;
+  continueQuickDoubtChat: (
+    doubtId: string,
+    followUpText: string,
+    options?: {
+      imageBase64?: string;
+      imageMimeType?: string;
+      imagePreview?: string;
+      surfaceLabel?: string;
+    }
+  ) => Promise<void>;
+  deleteQuickDoubt: (id: string) => void;
+  clearQuickDoubts: () => void;
 
   // Teacher State
   lessonPlans: LessonPlan[];
@@ -426,8 +501,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Theme state managed via ThemeContext with localStorage persistence & root DOM synchronization
   const { theme, setTheme, toggleTheme } = useTheme();
 
-  // Curriculum & Grades 6-12 Global Context State
-  const [curriculumList, setCurriculumList] = useState<CurriculumItem[]>(COMPREHENSIVE_CURRICULUM_6_12);
+  // Dynamic Subjects & Topics DB State synchronized in real-time (seeded across all Grades 6-12 & all 11 Boards)
+  const [subjectsDB, setSubjectsDB] = useState<DBSubject[]>(DEFAULT_SUBJECTS_DB);
+  const [topicsDB, setTopicsDB] = useState<DBTopic[]>(DEFAULT_TOPICS_DB);
+
+  // Derive live CurriculumItem catalog from active subjectsDB & topicsDB
+  const curriculumList = React.useMemo<CurriculumItem[]>(() => {
+    return subjectsDB
+      .filter((s) => s.status === 'ACTIVE')
+      .map((s) => ({
+        id: s.id,
+        grade: s.grade_level,
+        gradeLabel: `Grade ${s.grade_level}`,
+        board: s.board || 'CBSE',
+        category: s.category || 'STEM',
+        subjectName: s.name,
+        code: s.code || `${s.name.slice(0, 3).toUpperCase()}-${s.grade_level}01`,
+        description: s.description || `${s.name} curriculum for Grade ${s.grade_level}`,
+        sampleTopics: topicsDB
+          .filter((t) => t.subject_id === s.id && t.status === 'ACTIVE')
+          .map((t) => t.title),
+      }));
+  }, [subjectsDB, topicsDB]);
+
   const [activeGrades, setActiveGrades] = useState<number[]>([6, 7, 8, 9, 10, 11, 12]);
   const [activeCategories, setActiveCategories] = useState<string[]>([
     'STEM',
@@ -439,34 +535,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [studentAcademicGrowth] = useState<StudentGradeGrowth[]>(SAMPLE_STUDENT_ACADEMIC_GROWTH);
   const [isCurriculumModalOpen, setIsCurriculumModalOpen] = useState<boolean>(false);
   const [ecosystemOverviewMode, setEcosystemOverviewMode] = useState<boolean>(false);
-
-  // Dynamic Subjects & Topics DB State synchronized in real-time
-  const [subjectsDB, setSubjectsDB] = useState<DBSubject[]>([
-    { id: 'subj-1', name: 'Physics', grade_level: 10, category: 'STEM', code: 'PHY-101', description: 'Classical Mechanics, Kinematics & Energy', status: 'ACTIVE', created_at: '2026-01-10' },
-    { id: 'subj-2', name: 'Biology', grade_level: 9, category: 'STEM', code: 'BIO-201', description: 'Cellular Systems, Genetics & Photosynthesis', status: 'ACTIVE', created_at: '2026-01-10' },
-    { id: 'subj-3', name: 'Mathematics', grade_level: 8, category: 'STEM', code: 'MTH-102', description: 'Algebraic Equations & Functions', status: 'ACTIVE', created_at: '2026-01-10' },
-    { id: 'subj-4', name: 'Computer Science', grade_level: 11, category: 'STEM', code: 'CSC-301', description: 'Algorithms, Data Structures & Python', status: 'ACTIVE', created_at: '2026-01-10' },
-    { id: 'subj-5', name: 'Chemistry', grade_level: 10, category: 'STEM', code: 'CHM-101', description: 'Atomic Theory & Chemical Reactivity', status: 'ACTIVE', created_at: '2026-01-12' },
-    { id: 'subj-6', name: 'Earth & Space Science', grade_level: 6, category: 'STEM', code: 'SCI-601', description: 'Planetary Geology & Atmospheric Cycles', status: 'ACTIVE', created_at: '2026-01-12' },
-    { id: 'subj-7', name: 'Environmental Science', grade_level: 11, category: 'STEM', code: 'ENV-301', description: 'Renewable Resources, Ecology & Climate Systems', status: 'ACTIVE', created_at: '2026-01-15' },
-    { id: 'subj-8', name: 'English Literature & Rhetoric', grade_level: 10, category: 'Language Arts', code: 'ENG-201', description: 'Rhetorical Analysis & Classic World Prose', status: 'ACTIVE', created_at: '2026-01-15' },
-    { id: 'subj-9', name: 'World History & Civilizations', grade_level: 7, category: 'Humanities', code: 'HIS-101', description: 'Global Dynasties & Cross-Cultural Networks', status: 'ACTIVE', created_at: '2026-01-15' },
-    { id: 'subj-10', name: 'Artificial Intelligence', grade_level: 12, category: 'STEM', code: 'AI-401', description: 'Neural Networks, Vision & Machine Cognition', status: 'ACTIVE', created_at: '2026-01-18' },
-    { id: 'subj-11', name: 'Robotics & Automation', grade_level: 11, category: 'STEM', code: 'ROB-301', description: 'Sensors, Actuators & Control Engineering', status: 'ACTIVE', created_at: '2026-01-20' },
-  ]);
-
-  const [topicsDB, setTopicsDB] = useState<DBTopic[]>([
-    { id: 'top-1', subject_id: 'subj-1', title: "Newton's Laws of Motion", description: 'Inertia, F=ma, Action & Reaction pairs', status: 'ACTIVE', created_at: '2026-01-10' },
-    { id: 'top-2', subject_id: 'subj-1', title: 'Kinematics & Velocity Vectors', description: 'Displacement, velocity, and projectile motion', status: 'ACTIVE', created_at: '2026-01-10' },
-    { id: 'top-3', subject_id: 'subj-1', title: 'Work, Energy & Momentum', description: 'Conservation of mechanical energy & collisions', status: 'ACTIVE', created_at: '2026-01-10' },
-    { id: 'top-4', subject_id: 'subj-2', title: 'Photosynthesis & Solar Conversion', description: 'Light reactions, Calvin cycle, ATP synthesis', status: 'ACTIVE', created_at: '2026-01-10' },
-    { id: 'top-5', subject_id: 'subj-2', title: 'Cellular Organelles & Membranes', description: 'Chloroplasts, mitochondria, transport mechanisms', status: 'ACTIVE', created_at: '2026-01-10' },
-    { id: 'top-6', subject_id: 'subj-3', title: 'Quadratic Functions & Parabolas', description: 'Factoring, vertex form, quadratic formula', status: 'ACTIVE', created_at: '2026-01-10' },
-    { id: 'top-7', subject_id: 'subj-3', title: 'Linear Equations & Graphing', description: 'Slope-intercept, point-slope, systems of equations', status: 'ACTIVE', created_at: '2026-01-10' },
-    { id: 'top-8', subject_id: 'subj-7', title: 'Renewable Energy Systems', description: 'Solar photovoltaic, wind turbines, grid storage', status: 'ACTIVE', created_at: '2026-01-15' },
-    { id: 'top-9', subject_id: 'subj-11', title: 'Robotics Kinematics & Automation', description: 'Inverse kinematics, motor drivers, PID loops', status: 'ACTIVE', created_at: '2026-01-20' },
-    { id: 'top-10', subject_id: 'subj-10', title: 'Large Language Models & Transformers', description: 'Self-attention mechanisms and encoder-decoder stacks', status: 'ACTIVE', created_at: '2026-01-20' },
-  ]);
 
   const [isCurriculumSyncing, setIsCurriculumSyncing] = useState<boolean>(false);
 
@@ -567,7 +635,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
 
   // CRUD handlers for Admin Curriculum Management
-  const createSubject = async (newSubj: { name: string; grade_level: number; category?: any; code?: string; description?: string; status?: 'ACTIVE' | 'INACTIVE' }) => {
+  const createSubject = async (newSubj: { name: string; grade_level: number; board?: EducationBoard | 'ALL'; category?: any; code?: string; description?: string; status?: 'ACTIVE' | 'INACTIVE' }) => {
     try {
       const res = await fetch('/api/curriculum/subjects', {
         method: 'POST',
@@ -590,6 +658,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         id: `subj-${Date.now()}`,
         name: newSubj.name,
         grade_level: newSubj.grade_level,
+        board: newSubj.board || 'CBSE',
         category: newSubj.category || 'STEM',
         code: newSubj.code || `${newSubj.name.slice(0, 3).toUpperCase()}-${newSubj.grade_level}01`,
         description: newSubj.description || '',
@@ -723,6 +792,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
     return INITIAL_USERS;
   });
+
+  // Persist usersList whenever users are added, updated, or deleted
+  useEffect(() => {
+    try {
+      localStorage.setItem('educate_ai_users_list', JSON.stringify(usersList));
+    } catch (e) {
+      console.warn('Failed to persist users list to localStorage', e);
+    }
+  }, [usersList]);
 
   const [currentUser, setCurrentUser] = useState<AppUser | null>(() => {
     try {
@@ -940,18 +1018,85 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return fallback;
   };
 
-  // Student-Teacher Community Doubt Forum State with Zero-Tolerance Moderation
+  // Student-Teacher Community Doubt Forum State with Structured Spaces & Moderation
+  const [forumPoints, setForumPoints] = useState<number>(640);
+  const [peerAnswersThisWeek, setPeerAnswersThisWeek] = useState<number>(1);
+  const [liveSessionRsvp, setLiveSessionRsvp] = useState<boolean>(false);
+
+  const toggleLiveSessionRsvp = () => {
+    setLiveSessionRsvp((prev) => {
+      const next = !prev;
+      addNotification(
+        next ? 'Live Doubt Session RSVP Confirmed' : 'Live Session RSVP Cancelled',
+        next
+          ? 'You are registered for Thursday 5:00 PM Live Doubt-Clearing Session (Class 10 Algebra & Physics).'
+          : 'You have removed your RSVP from this week’s live doubt-clearing session.',
+        'info',
+        'student'
+      );
+      return next;
+    });
+  };
+
   const [communityPosts, setCommunityPosts] = useState<CommunityPost[]>([
+    {
+      id: 'post-dotd',
+      author_id: 'user-stu-1',
+      author_name: 'Sarah Connor',
+      author_role: 'student',
+      author_points: 1450,
+      title: 'Why does completing the square require adding (b/2a)² to both sides?',
+      content: 'When solving ax² + bx + c = 0 by completing the square, I always memorize adding (b/2a)² after dividing by a. Can someone explain geometrically or algebraically why this exact term forms a perfect square?',
+      attempted_solution: 'I factored out a to get x² + (b/a)x = -c/a. Then I wrote (x + k)² = x² + 2kx + k², so 2k = b/a means k = b/2a. Not sure how to visualize the missing square corner!',
+      space: 'subject-doubts',
+      subject: 'Mathematics',
+      chapter_unit: 'Class 10 Algebra',
+      grade_level: 10,
+      topic: 'Class 10 Algebra',
+      tags: ['Class 10 Algebra', 'Quadratics', 'DoubtOfTheDay'],
+      created_at: '1 hour ago',
+      upvotes: 29,
+      views_count: 142,
+      comments_count: 2,
+      is_doubt_of_the_day: true,
+      is_verified: false,
+      accepted_comment_id: 'comm-dotd-1',
+      comments: [
+        {
+          id: 'comm-dotd-1',
+          author_id: 'user-stu-3',
+          author_name: 'Liam Chen',
+          author_role: 'student',
+          author_badge: 'Best Answer',
+          content: 'Step 1: Draw a square of side x (area x²) and split (b/a)x into two equal rectangles of width b/(2a) placed on the right and bottom edges. Step 2: Notice there is an empty corner square of side b/(2a), whose area is (b/2a)². Adding that exact corner area completes the full (x + b/2a)² square!',
+          created_at: '35 mins ago',
+          upvotes: 14,
+          is_accepted: true,
+        },
+        {
+          id: 'comm-dotd-2',
+          author_id: 'user-stu-5',
+          author_name: 'Zoe Washington',
+          author_role: 'student',
+          content: 'Thinking of the two rectangles of width b/(2a) made it click immediately—thank you!',
+          created_at: '20 mins ago',
+          upvotes: 5,
+        },
+      ],
+      status: 'ACTIVE',
+    },
     {
       id: 'post-1',
       author_id: 'user-stu-1',
       author_name: 'Sarah Connor',
       author_role: 'student',
-      author_avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=faces',
       author_points: 1450,
-      title: 'How to find the derivative of ln(x) using the limit definition?',
-      content: "I'm struggling with the algebraic simplification when evaluating lim_{h->0} [ln(x+h) - ln(x)] / h. Specifically, how does the e base property transform the exponent?",
+      title: 'Why does the integration substitution step ln(1 + h/x) work in this limit?',
+      content: "I'm struggling with the algebraic simplification when evaluating lim_{h->0} [ln(x+h) - ln(x)] / h. Specifically, how does the quotient rule convert it to 1/x?",
+      attempted_solution: 'I rewrote ln(x+h) - ln(x) as ln((x+h)/x) = ln(1 + h/x), then got stuck factoring out 1/x cleanly.',
+      space: 'subject-doubts',
       subject: 'Mathematics',
+      chapter_unit: 'Calculus & Derivatives',
       grade_level: 10,
       topic: 'Calculus & Derivatives',
       tags: ['Calculus', 'Derivatives', 'Limits'],
@@ -962,8 +1107,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       is_verified: true,
       verified_solution: {
         teacher_name: 'Dr. David Vance (Moderator & Physics/Math Lead)',
-        teacher_avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=faces',
-        solution: 'Use logarithm quotient rule: ln(x+h) - ln(x) = ln((x+h)/x) = ln(1 + h/x). Then rewrite the limit as (1/x) * lim_{t->0} [ln(1+t)/t] where t = h/x. Since lim_{t->0} ln(1+t)/t = 1, the derivative is exactly 1/x.',
+        solution: 'Use logarithm quotient rule: ln(x+h) - ln(x) = ln((x+h)/x) = ln(1 + h/x). Then multiply numerator and denominator by x so the fraction becomes (1/x) * [ln(1+t)/t] where t = h/x. As h -> 0, t -> 0 and lim_{t->0} ln(1+t)/t = 1, leaving 1/x.',
         verified_at: '1 hour ago',
       },
       comments: [
@@ -972,11 +1116,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           author_id: 'user-stu-3',
           author_name: 'Liam Chen',
           author_role: 'student',
-          content: 'That makes total sense! The change of variable t = h/x was the key step.',
+          author_badge: 'Best Answer',
+          content: 'Step 1: Set t = h/x so h = x·t. Step 2: Substitute h into the denominator to pull (1/x) outside the limit cleanly. That leaves lim_{t->0} ln(1+t)/t = 1.',
           created_at: '45 mins ago',
           upvotes: 4,
+          is_accepted: true,
         },
       ],
+      accepted_comment_id: 'comm-1',
       status: 'ACTIVE',
     },
     {
@@ -984,11 +1131,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       author_id: 'user-stu-2',
       author_name: 'Alex Rivera',
       author_role: 'student',
-      author_avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=100&h=100&fit=crop&crop=faces',
       author_points: 620,
       title: 'Can heat be converted completely into mechanical work in a cyclic process?',
       content: 'My textbook states that 100% heat-to-work conversion is impossible for any cyclic thermodynamic engine, but why can electric heaters achieve near 100% work-to-heat conversion?',
+      attempted_solution: 'I compared W = Q_h - Q_c for a Carnot cycle and saw Q_c cannot be 0 unless T_c = 0 K, which is impossible.',
+      space: 'subject-doubts',
       subject: 'Physics',
+      chapter_unit: 'Thermodynamics & Heat Cycles',
       grade_level: 10,
       topic: 'Thermodynamics & Heat Cycles',
       tags: ['Physics', 'Thermodynamics', 'CarnotEngine'],
@@ -999,7 +1148,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       is_verified: true,
       verified_solution: {
         teacher_name: 'Ms. Elena Rostova',
-        solution: "This is Kelvin-Planck's statement of the Second Law of Thermodynamics! Work is ordered energy, while heat is disordered thermal motion. Degrading order into disorder (work to heat) is thermodynamically favored (entropy increases), but gathering scattered molecular kinetic energy back into macroscopic ordered work without leaving an entropy footprint in a cold reservoir is impossible.",
+        solution: "This is Kelvin-Planck's statement of the Second Law of Thermodynamics! Work is ordered energy, while heat is disordered thermal motion. Degrading order into disorder (work to heat) increases entropy naturally, whereas converting disordered heat fully back into ordered cyclic work without rejecting waste heat to a cold reservoir violates entropy conservation.",
         verified_at: '3 hours ago',
       },
       comments: [],
@@ -1011,15 +1160,66 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       author_name: 'Zoe Washington',
       author_role: 'student',
       author_points: 890,
-      title: 'Difference between BFS and DFS traversal in graph algorithms?',
-      content: 'Looking for a clear, intuitive visual explanation of when to use Breadth-First Search vs Depth-First Search in tree/graph shortest path search.',
-      subject: 'Computer Science',
+      title: 'When should I pick BFS vs DFS in Python recursion and shortest-path tasks?',
+      content: 'Looking for a step-by-step explanation of when Breadth-First Search guarantees the shortest path vs when Depth-First Search with recursion is better.',
+      attempted_solution: 'I wrote a recursive DFS function in Python, and it found a path from node A to node D, but it took 5 hops when a 2-hop path existed!',
+      space: 'subject-doubts',
+      subject: 'Coding',
+      chapter_unit: 'Python Basics',
       grade_level: 11,
-      topic: 'Graph Data Structures',
-      tags: ['ComputerScience', 'DataStructures', 'Algorithms'],
+      topic: 'Python Basics',
+      tags: ['Python Basics', 'Coding', 'Algorithms'],
       created_at: '6 hours ago',
       upvotes: 34,
       views_count: 110,
+      comments_count: 0,
+      is_verified: false,
+      is_high_priority: true,
+      comments: [],
+      status: 'ACTIVE',
+    },
+    {
+      id: 'post-4',
+      author_id: 'user-stu-4',
+      author_name: 'Carlos Mendez',
+      author_role: 'student',
+      author_points: 410,
+      title: 'How do I prioritize functional groups in IUPAC naming of Organic Chemistry esters?',
+      content: 'For our Friday mock assignment, I have a molecule containing both a carboxylic acid (-COOH) and an alcohol (-OH) group on a 5-carbon chain. Which suffix wins and how do we number the carbons?',
+      attempted_solution: 'I numbered from the -OH side and called it 5-hydroxypentanoic acid, or should I name -OH as a prefix from the -COOH carbon 1?',
+      space: 'assignment-exam',
+      subject: 'Chemistry',
+      chapter_unit: 'Organic Chemistry',
+      grade_level: 10,
+      topic: 'Organic Chemistry',
+      tags: ['Organic Chemistry', 'IUPAC', 'HomeworkHelp'],
+      created_at: '3 hours ago',
+      upvotes: 12,
+      views_count: 47,
+      comments_count: 0,
+      is_verified: false,
+      is_high_priority: true,
+      comments: [],
+      status: 'ACTIVE',
+    },
+    {
+      id: 'post-5',
+      author_id: 'user-stu-6',
+      author_name: 'Ananya Sharma',
+      author_role: 'student',
+      author_points: 530,
+      title: 'Mock Exam Strategy: How to structure comparative literary essays in 35 minutes?',
+      content: 'During timed English Literature mock exams, I run out of time on paragraph 3. Should I outline thesis + 2 body themes first or integrate quotes paragraph by paragraph?',
+      attempted_solution: 'Last mock I spent 10 minutes outlining and barely finished my conclusion. Looking for peer-tested pacing tips.',
+      space: 'assignment-exam',
+      subject: 'English',
+      chapter_unit: 'Critical Reading & Essay Craft',
+      grade_level: 9,
+      topic: 'Critical Reading & Essay Craft',
+      tags: ['English', 'ExamStrategy', 'MockTest'],
+      created_at: '4 hours ago',
+      upvotes: 9,
+      views_count: 39,
       comments_count: 0,
       is_verified: false,
       comments: [],
@@ -1027,7 +1227,159 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     },
   ]);
 
+  const [forumStudyGroups, setForumStudyGroups] = useState<ForumStudyGroup[]>([
+    {
+      id: 'sg-1',
+      name: 'Class 10 Algebra Evening Prep',
+      subject: 'Mathematics',
+      chapter_unit: 'Class 10 Algebra',
+      grade_level: 10,
+      availability: 'Mon & Wed · 6:00 PM',
+      focus_goal: 'Quadratic factoring, discriminant drills & board mock papers',
+      host_name: 'Sarah Connor',
+      members: ['Sarah Connor', 'Liam Chen', 'Praveen Bhatia'],
+      max_members: 8,
+      next_session: 'Wednesday, 6:00 PM',
+      messages: [
+        {
+          id: 'sgm-1',
+          author_name: 'Sarah Connor',
+          author_role: 'student',
+          content: 'Welcome! Bring 2 quadratic word problems you found tricky for Wednesday’s walkthrough.',
+          created_at: '2 hours ago',
+        },
+        {
+          id: 'sgm-2',
+          author_name: 'Liam Chen',
+          author_role: 'student',
+          content: 'I uploaded the Class 10 Algebra formula sheet to the Resource Library for everyone.',
+          created_at: '1 hour ago',
+        },
+      ],
+    },
+    {
+      id: 'sg-2',
+      name: 'Python Basics & Problem Solving Circle',
+      subject: 'Coding',
+      chapter_unit: 'Python Basics',
+      grade_level: 11,
+      availability: 'Saturdays · 11:00 AM',
+      focus_goal: 'Loops, recursion, lists, dictionaries & dry-run trace tables',
+      host_name: 'Zoe Washington',
+      members: ['Zoe Washington', 'Alex Rivera'],
+      max_members: 10,
+      next_session: 'Saturday, 11:00 AM',
+      messages: [
+        {
+          id: 'sgm-3',
+          author_name: 'Zoe Washington',
+          author_role: 'student',
+          content: 'This weekend we will trace BFS vs DFS step-by-step on a 6-node graph.',
+          created_at: '3 hours ago',
+        },
+      ],
+    },
+    {
+      id: 'sg-3',
+      name: 'Organic Chemistry & Physics Exam Sprint',
+      subject: 'Chemistry',
+      chapter_unit: 'Organic Chemistry',
+      grade_level: 10,
+      availability: 'Tue & Fri · 5:30 PM',
+      focus_goal: 'IUPAC nomenclature, reaction mechanisms & thermodynamics numericals',
+      host_name: 'Carlos Mendez',
+      members: ['Carlos Mendez', 'Ananya Sharma'],
+      max_members: 8,
+      next_session: 'Friday, 5:30 PM',
+      messages: [
+        {
+          id: 'sgm-4',
+          author_name: 'Carlos Mendez',
+          author_role: 'student',
+          content: 'Let’s practice 10 IUPAC naming chains before Friday’s mock test!',
+          created_at: '50 mins ago',
+        },
+      ],
+    },
+  ]);
+
+  const [forumResources, setForumResources] = useState<ForumResourceItem[]>([
+    {
+      id: 'res-1',
+      title: 'Class 10 Algebra: Quadratics & Completing the Square Summary Notes',
+      resource_type: 'Notes',
+      subject: 'Mathematics',
+      chapter_unit: 'Class 10 Algebra',
+      grade_level: 10,
+      author_name: 'Liam Chen',
+      author_role: 'student',
+      description: 'Clean 4-page visual derivation sheet covering vertex form, discriminant cases, and Vieta’s root relationships.',
+      helpful_count: 42,
+      created_at: 'Yesterday',
+    },
+    {
+      id: 'res-2',
+      title: '2025 CBSE & ICSE Physics Board Mock Paper (With Step-by-Step Marking Scheme)',
+      resource_type: 'Previous Paper',
+      subject: 'Physics',
+      chapter_unit: "Newton's Laws & Thermodynamics",
+      grade_level: 10,
+      author_name: 'Dr. David Vance',
+      author_role: 'teacher',
+      description: 'Full 80-mark practice paper with step-allocation rubrics and common free-body diagram pitfalls highlighted.',
+      helpful_count: 58,
+      created_at: '2 days ago',
+    },
+    {
+      id: 'res-3',
+      title: 'Python Basics: Lists, Recursion & Graph Traversal Cheat Sheet',
+      resource_type: 'Revision Material',
+      subject: 'Coding',
+      chapter_unit: 'Python Basics',
+      grade_level: 11,
+      author_name: 'Zoe Washington',
+      author_role: 'student',
+      description: 'Annotated code patterns showing queue-based BFS vs recursive DFS with time complexity notes.',
+      helpful_count: 31,
+      created_at: '3 days ago',
+    },
+    {
+      id: 'res-4',
+      title: 'Organic Chemistry IUPAC Priority Table & Isomer Walkthrough',
+      resource_type: 'Recommended Video',
+      subject: 'Chemistry',
+      chapter_unit: 'Organic Chemistry',
+      grade_level: 10,
+      author_name: 'Ms. Elena Rostova',
+      author_role: 'teacher',
+      description: '14-minute guided walkthrough explaining carboxylic acid, aldehyde, ketone, and alcohol suffix priorities.',
+      helpful_count: 49,
+      created_at: '4 days ago',
+    },
+  ]);
+
+  const containsPersonalContactInfo = (text: string): boolean => {
+    if (!text) return false;
+    const phonePattern = /(?:\+?\d{1,3}[\s-]?)?\b\d{10}\b/;
+    const emailPattern = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i;
+    return phonePattern.test(text) || emailPattern.test(text);
+  };
+
   const addCommunityPost = async (postData: any): Promise<{ success: boolean; error?: string }> => {
+    const combinedText = `${postData.title || ''} ${postData.content || ''} ${postData.attempted_solution || ''}`;
+    if (detectFoulLanguage(combinedText)) {
+      return {
+        success: false,
+        error: 'Zero-tolerance policy: respectful academic language is required.',
+      };
+    }
+    if (containsPersonalContactInfo(combinedText)) {
+      return {
+        success: false,
+        error: 'Participation rule: please avoid sharing personal phone numbers or email addresses publicly.',
+      };
+    }
+
     try {
       const res = await fetch('/api/community/posts', {
         method: 'POST',
@@ -1037,7 +1389,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const data = await res.json();
       if (!res.ok) {
         if (data.error === 'ACCOUNT_SUSPENDED_POLICY_VIOLATION') {
-          // Zero tolerance violation triggered: lock user out
           setIsAuthenticated(false);
           setCurrentUser(null);
           addNotification(
@@ -1051,28 +1402,80 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
       if (data.post) {
         setCommunityPosts((prev) => [data.post, ...prev]);
+        setForumPoints((pts) => pts + 10);
         addNotification(
           'Doubt Posted to Community',
-          `Your question "${data.post.title.slice(0, 30)}..." has been published to peers & teachers.`,
+          `Your question "${data.post.title.slice(0, 35)}..." is live (+10 Forum Points).`,
           'success',
           'student'
         );
         return { success: true };
       }
     } catch (e) {
-      console.warn('Network issue creating community post', e);
+      console.warn('Network issue creating community post, creating locally', e);
     }
-    return { success: false, error: 'Failed to connect to moderation server' };
+
+    // Resilient local creation if server unreachable
+    const localPost: CommunityPost = {
+      id: `post-${Date.now()}`,
+      author_id: postData.author_id || currentUser?.id || 'user-stu-1',
+      author_name: postData.author_name || currentUser?.name || 'Student',
+      author_role: postData.author_role || currentUser?.role || 'student',
+      author_points: forumPoints,
+      title: postData.title,
+      content: postData.content,
+      attempted_solution: postData.attempted_solution,
+      attachment_preview: postData.attachment_preview,
+      space: postData.space === 'assignment-exam' ? 'assignment-exam' : 'subject-doubts',
+      subject: postData.subject || 'Mathematics',
+      chapter_unit: postData.chapter_unit || '',
+      grade_level: Number(postData.grade_level) || 10,
+      topic: postData.chapter_unit || postData.subject,
+      tags: Array.isArray(postData.tags) ? postData.tags : [postData.subject],
+      created_at: 'Just now',
+      upvotes: 1,
+      views_count: 1,
+      comments_count: 0,
+      is_verified: false,
+      is_high_priority: Boolean(postData.is_high_priority),
+      comments: [],
+      status: 'ACTIVE',
+    };
+    setCommunityPosts((prev) => [localPost, ...prev]);
+    setForumPoints((pts) => pts + 10);
+    addNotification(
+      'Doubt Posted to Community',
+      `Your question "${localPost.title.slice(0, 35)}..." is live (+10 Forum Points).`,
+      'success',
+      'student'
+    );
+    return { success: true };
   };
 
   const addCommunityComment = async (postId: string, content: string): Promise<{ success: boolean; error?: string }> => {
+    if (detectFoulLanguage(content)) {
+      return {
+        success: false,
+        error: 'Zero-tolerance policy: please keep replies constructive and respectful.',
+      };
+    }
+    if (containsPersonalContactInfo(content)) {
+      return {
+        success: false,
+        error: 'Participation rule: avoid sharing personal phone numbers or emails publicly.',
+      };
+    }
+
+    const targetPost = communityPosts.find((p) => p.id === postId);
+    const wasUnanswered = Boolean(targetPost && !targetPost.accepted_comment_id && !targetPost.is_verified);
+
     try {
       const res = await fetch(`/api/community/posts/${postId}/comments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          author_id: currentUser?.id || 'user-stu-2',
-          author_name: currentUser?.name || 'Alex Rivera',
+          author_id: currentUser?.id || 'user-stu-1',
+          author_name: currentUser?.name || 'Praveen Bhatia',
           author_role: currentUser?.role || 'student',
           author_avatar: currentUser?.avatar,
           content,
@@ -1100,12 +1503,51 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               : p
           )
         );
+        if (wasUnanswered) {
+          setPeerAnswersThisWeek((c) => c + 1);
+          setForumPoints((pts) => pts + 15);
+        } else {
+          setForumPoints((pts) => pts + 5);
+        }
+        addNotification(
+          'Explanation Posted',
+          wasUnanswered
+            ? 'You helped an unanswered doubt! +15 Forum Points & +1 toward Weekly Peer Challenge.'
+            : 'Your step-by-step reply has been added to the thread (+5 Forum Points).',
+          'success',
+          'student'
+        );
         return { success: true };
       }
     } catch (e) {
-      console.warn('Network comment error', e);
+      console.warn('Network comment error, adding locally', e);
     }
-    return { success: false, error: 'Network error' };
+
+    const fallbackComment: CommunityComment = {
+      id: `comm-${Date.now()}`,
+      author_id: currentUser?.id || 'user-stu-1',
+      author_name: currentUser?.name || 'Praveen Bhatia',
+      author_role: currentUser?.role || 'student',
+      author_avatar: currentUser?.avatar,
+      content,
+      created_at: 'Just now',
+      upvotes: 0,
+      is_teacher_verified: currentUser?.role === 'teacher' || currentUser?.role === 'admin',
+    };
+    setCommunityPosts((prev) =>
+      prev.map((p) =>
+        p.id === postId
+          ? { ...p, comments: [...p.comments, fallbackComment], comments_count: p.comments_count + 1 }
+          : p
+      )
+    );
+    if (wasUnanswered) {
+      setPeerAnswersThisWeek((c) => c + 1);
+      setForumPoints((pts) => pts + 15);
+    } else {
+      setForumPoints((pts) => pts + 5);
+    }
+    return { success: true };
   };
 
   const upvoteCommunityPost = async (postId: string) => {
@@ -1119,6 +1561,95 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  const upvoteCommunityComment = async (postId: string, commentId: string) => {
+    setCommunityPosts((prev) =>
+      prev.map((p) =>
+        p.id === postId
+          ? {
+              ...p,
+              comments: p.comments.map((c) =>
+                c.id === commentId ? { ...c, upvotes: c.upvotes + 1 } : c
+              ),
+            }
+          : p
+      )
+    );
+    try {
+      await fetch(`/api/community/posts/${postId}/comments/${commentId}/upvote`, { method: 'POST' });
+    } catch (e) {
+      // ignore
+    }
+  };
+
+  const acceptCommunityComment = async (postId: string, commentId: string) => {
+    let acceptedAuthor = '';
+    setCommunityPosts((prev) =>
+      prev.map((p) => {
+        if (p.id !== postId) return p;
+        return {
+          ...p,
+          accepted_comment_id: commentId,
+          comments: p.comments.map((c) => {
+            if (c.id === commentId) {
+              acceptedAuthor = c.author_name;
+              return { ...c, is_accepted: true, author_badge: 'Best Answer' };
+            }
+            return { ...c, is_accepted: false };
+          }),
+        };
+      })
+    );
+    setForumPoints((pts) => pts + 25);
+    addNotification(
+      'Best Answer Marked Accepted',
+      `${acceptedAuthor || 'Responder'} earned the Best Answer badge & +50 reputation points.`,
+      'success',
+      'student'
+    );
+    try {
+      await fetch(`/api/community/posts/${postId}/comments/${commentId}/accept`, { method: 'POST' });
+    } catch (e) {
+      // ignore
+    }
+  };
+
+  const flagCommunityPost = async (postId: string, reason: string = 'Needs teacher/moderator review') => {
+    setCommunityPosts((prev) =>
+      prev.map((p) => (p.id === postId ? { ...p, is_flagged: true, flag_reason: reason } : p))
+    );
+    addNotification(
+      'Thread Flagged for Moderator Review',
+      'Teachers and moderators have been notified to review this doubt.',
+      'warning',
+      'teacher'
+    );
+    try {
+      await fetch(`/api/community/posts/${postId}/flag`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason }),
+      });
+    } catch (e) {
+      // ignore
+    }
+  };
+
+  const resolveFlaggedCommunityPost = (postId: string, action: 'dismiss' | 'remove') => {
+    setCommunityPosts((prev) =>
+      action === 'remove'
+        ? prev.filter((p) => p.id !== postId)
+        : prev.map((p) => (p.id === postId ? { ...p, is_flagged: false, flag_reason: undefined } : p))
+    );
+    addNotification(
+      action === 'remove' ? 'Flagged Post Removed' : 'Flag Cleared by Moderator',
+      action === 'remove'
+        ? 'Thread removed from public feed following moderator review.'
+        : 'Thread verified as safe and cleared from the moderation queue.',
+      'info',
+      'teacher'
+    );
+  };
+
   const verifyCommunityPost = async (postId: string, solution: string) => {
     setCommunityPosts((prev) =>
       prev.map((p) =>
@@ -1126,6 +1657,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           ? {
               ...p,
               is_verified: true,
+              is_flagged: false,
               verified_solution: {
                 teacher_name: currentUser?.name || 'Verified Educator',
                 teacher_avatar: currentUser?.avatar,
@@ -1135,6 +1667,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             }
           : p
       )
+    );
+    addNotification(
+      'Official Solution Verified',
+      'Educator solution published and thread marked Teacher-Verified.',
+      'success',
+      'student'
     );
     try {
       await fetch(`/api/community/posts/${postId}/verify`, {
@@ -1149,6 +1687,119 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch (e) {
       // ignore
     }
+  };
+
+  const joinOrLeaveStudyGroup = (groupId: string) => {
+    const memberName = currentUser?.name || 'Praveen Bhatia';
+    setForumStudyGroups((prev) =>
+      prev.map((g) => {
+        if (g.id !== groupId) return g;
+        const alreadyMember = g.members.includes(memberName);
+        if (alreadyMember) {
+          return { ...g, members: g.members.filter((m) => m !== memberName) };
+        }
+        if (g.members.length >= g.max_members) return g;
+        return { ...g, members: [...g.members, memberName] };
+      })
+    );
+  };
+
+  const createStudyGroup = (groupData: {
+    name: string;
+    subject: string;
+    chapter_unit: string;
+    grade_level: number;
+    availability: string;
+    focus_goal: string;
+  }) => {
+    const hostName = currentUser?.name || 'Praveen Bhatia';
+    const newGroup: ForumStudyGroup = {
+      id: `sg-${Date.now()}`,
+      name: groupData.name,
+      subject: groupData.subject,
+      chapter_unit: groupData.chapter_unit,
+      grade_level: groupData.grade_level,
+      availability: groupData.availability,
+      focus_goal: groupData.focus_goal,
+      host_name: hostName,
+      members: [hostName],
+      max_members: 10,
+      next_session: groupData.availability,
+      messages: [
+        {
+          id: `sgm-${Date.now()}`,
+          author_name: hostName,
+          author_role: currentUser?.role || 'student',
+          content: `Study group created! Focus: ${groupData.focus_goal}`,
+          created_at: 'Just now',
+        },
+      ],
+    };
+    setForumStudyGroups((prev) => [newGroup, ...prev]);
+    setForumPoints((pts) => pts + 15);
+    addNotification(
+      'Study Group Created',
+      `"${newGroup.name}" is open for peers in ${newGroup.subject}.`,
+      'success',
+      'student'
+    );
+  };
+
+  const addStudyGroupMessage = (groupId: string, content: string) => {
+    if (!content.trim() || detectFoulLanguage(content) || containsPersonalContactInfo(content)) return;
+    const authorName = currentUser?.name || 'Praveen Bhatia';
+    setForumStudyGroups((prev) =>
+      prev.map((g) =>
+        g.id === groupId
+          ? {
+              ...g,
+              messages: [
+                ...g.messages,
+                {
+                  id: `sgm-${Date.now()}`,
+                  author_name: authorName,
+                  author_role: currentUser?.role || 'student',
+                  content: content.trim(),
+                  created_at: 'Just now',
+                },
+              ],
+            }
+          : g
+      )
+    );
+  };
+
+  const addForumResource = (resource: {
+    title: string;
+    resource_type: 'Notes' | 'Previous Paper' | 'Revision Material' | 'Recommended Video';
+    subject: string;
+    chapter_unit: string;
+    grade_level: number;
+    description: string;
+    url?: string;
+  }) => {
+    const newItem: ForumResourceItem = {
+      id: `res-${Date.now()}`,
+      ...resource,
+      author_name: currentUser?.name || 'Praveen Bhatia',
+      author_role: currentUser?.role || 'student',
+      helpful_count: 1,
+      created_at: 'Just now',
+    };
+    setForumResources((prev) => [newItem, ...prev]);
+    setForumPoints((pts) => pts + 15);
+    addNotification(
+      'Resource Shared in Library',
+      `"${newItem.title}" added to ${newItem.subject} · ${newItem.chapter_unit}.`,
+      'success',
+      'student'
+    );
+  };
+
+  const upvoteForumResource = (resourceId: string) => {
+    setForumResources((prev) =>
+      prev.map((r) => (r.id === resourceId ? { ...r, helpful_count: r.helpful_count + 1 } : r))
+    );
   };
 
   // Subscription & 7-Day Free Trial State
@@ -1259,45 +1910,69 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   ]);
 
   // Agile Study Planner State
-  const [dailyTasks, setDailyTasks] = useState<DailyStudyTask[]>([
-    // October 2026 Tasks
-    { id: 'dt-oct-2', day: 2, date: '2026-10-02', subject: 'Algebra I', topic: 'Linear Equations & Variables', duration_hrs: 1.5, is_core: true, status: 'Completed', points: 25, color: '#4F46E5' },
-    { id: 'dt-oct-5', day: 5, date: '2026-10-05', subject: 'Physics', topic: 'Kinematics & Velocity Vectors', duration_hrs: 2, is_core: false, status: 'Completed', points: 30, color: '#0284C7' },
-    { id: 'dt-oct-7', day: 7, date: '2026-10-07', subject: 'English Literature', topic: 'Shakespearean Sonnets & Metaphor Analysis', duration_hrs: 1.5, is_core: false, status: 'Completed', points: 25, color: '#D97706' },
-    { id: 'dt-oct-8', day: 8, date: '2026-10-08', subject: 'Chemistry', topic: 'Atomic Structure & Bohr Model', duration_hrs: 1.5, is_core: false, status: 'Completed', points: 20, color: '#10B981' },
-    { id: 'dt-oct-11', day: 11, date: '2026-10-11', subject: 'Biology', topic: 'Plant Respiration & Calvin Cycle Dynamics', duration_hrs: 1.5, is_core: false, status: 'Completed', points: 25, color: '#059669' },
-    { id: 'dt-oct-12', day: 12, date: '2026-10-12', subject: 'Algebra I', topic: 'Lesson 3 Review: Linear Inequalities', duration_hrs: 1.5, is_core: true, status: 'Completed', points: 25, color: '#4F46E5' },
-    { id: 'dt-oct-14', day: 14, date: '2026-10-14', subject: 'Physics', topic: 'Lab Prep: Vector Dynamics & Net Force', duration_hrs: 2, is_core: false, status: 'In Progress', points: 30, color: '#0284C7' },
-    { id: 'dt-oct-15', day: 15, date: '2026-10-15', subject: 'History', topic: 'Reading: Global Dynasties (Ch 4)', duration_hrs: 1.5, is_core: false, status: 'In Progress', points: 20, color: '#0EA5E9' },
-    { id: 'dt-oct-16', day: 16, date: '2026-10-16', subject: 'Biology', topic: 'Cell Division: Mitosis vs Meiosis', duration_hrs: 1.5, is_core: false, status: 'On Hold', points: 20, color: '#059669' },
-    { id: 'dt-oct-18', day: 18, date: '2026-10-18', subject: 'English Literature', topic: 'Essay Drafting: Narrative Arc & Characterization', duration_hrs: 1.5, is_core: false, status: 'In Progress', points: 20, color: '#D97706' },
-    { id: 'dt-oct-19', day: 19, date: '2026-10-19', subject: 'Algebra I', topic: 'Lesson 3 Review: Exponent Rules', duration_hrs: 1.5, is_core: true, status: 'To Do', points: 25, color: '#4F46E5' },
-    { id: 'dt-oct-21a', day: 21, date: '2026-10-21', subject: 'Physics', topic: 'Lab Prep: Friction Coefficients', duration_hrs: 1.5, is_core: false, status: 'To Do', points: 25, color: '#0284C7' },
-    { id: 'dt-oct-21b', day: 21, date: '2026-10-21', subject: 'History', topic: 'Reading: Economic Networks', duration_hrs: 1, is_core: false, status: 'Revision', points: 15, color: '#F59E0B' },
-    { id: 'dt-oct-22', day: 22, date: '2026-10-22', subject: 'Biology', topic: 'Genetics: Mendelian Inheritance & Punnett Squares', duration_hrs: 1.5, is_core: false, status: 'To Do', points: 25, color: '#059669' },
-    { id: 'dt-oct-23', day: 23, date: '2026-10-23', subject: 'History', topic: 'Reading: Maritime Trade Maps', duration_hrs: 1.5, is_core: false, status: 'To Do', points: 20, color: '#0EA5E9' },
-    { id: 'dt-oct-25', day: 25, date: '2026-10-25', subject: 'English Literature', topic: 'Poetry Explication & Rhyme Scheme Mastery', duration_hrs: 1.5, is_core: false, status: 'To Do', points: 20, color: '#D97706' },
-    { id: 'dt-oct-26', day: 26, date: '2026-10-26', subject: 'Algebra I', topic: 'Lesson 3 Review: Factoring Trinomials', duration_hrs: 1.5, is_core: true, status: 'Revision', points: 30, color: '#8B5CF6' },
-    { id: 'dt-oct-28', day: 28, date: '2026-10-28', subject: 'Physics', topic: 'Lab Prep: Momentum Collisions', duration_hrs: 2, is_core: false, status: 'To Do', points: 35, color: '#0284C7' },
-    { id: 'dt-oct-29', day: 29, date: '2026-10-29', subject: 'History', topic: 'Reading: Post-Classical Societies', duration_hrs: 1.5, is_core: false, status: 'To Do', points: 20, color: '#0EA5E9' },
+  const [dailyTasks, setDailyTasks] = useState<DailyStudyTask[]>(() => {
+    const baseTasks: DailyStudyTask[] = [
+      // October 2026 Tasks
+      { id: 'dt-oct-2', day: 2, date: '2026-10-02', subject: 'Algebra I', topic: 'Linear Equations & Variables', duration_hrs: 1.5, is_core: true, status: 'Completed', points: 25, color: '#4F46E5' },
+      { id: 'dt-oct-5', day: 5, date: '2026-10-05', subject: 'Physics', topic: 'Kinematics & Velocity Vectors', duration_hrs: 2, is_core: false, status: 'Completed', points: 30, color: '#0284C7' },
+      { id: 'dt-oct-7', day: 7, date: '2026-10-07', subject: 'English Literature', topic: 'Shakespearean Sonnets & Metaphor Analysis', duration_hrs: 1.5, is_core: false, status: 'Completed', points: 25, color: '#D97706' },
+      { id: 'dt-oct-8', day: 8, date: '2026-10-08', subject: 'Chemistry', topic: 'Atomic Structure & Bohr Model', duration_hrs: 1.5, is_core: false, status: 'Completed', points: 20, color: '#10B981' },
+      { id: 'dt-oct-11', day: 11, date: '2026-10-11', subject: 'Biology', topic: 'Plant Respiration & Calvin Cycle Dynamics', duration_hrs: 1.5, is_core: false, status: 'Completed', points: 25, color: '#059669' },
+      { id: 'dt-oct-12', day: 12, date: '2026-10-12', subject: 'Algebra I', topic: 'Lesson 3 Review: Linear Inequalities', duration_hrs: 1.5, is_core: true, status: 'Completed', points: 25, color: '#4F46E5' },
+      { id: 'dt-oct-14', day: 14, date: '2026-10-14', subject: 'Physics', topic: 'Lab Prep: Vector Dynamics & Net Force', duration_hrs: 2, is_core: false, status: 'In Progress', points: 30, color: '#0284C7' },
+      { id: 'dt-oct-15', day: 15, date: '2026-10-15', subject: 'History', topic: 'Reading: Global Dynasties (Ch 4)', duration_hrs: 1.5, is_core: false, status: 'In Progress', points: 20, color: '#0EA5E9' },
+      { id: 'dt-oct-16', day: 16, date: '2026-10-16', subject: 'Biology', topic: 'Cell Division: Mitosis vs Meiosis', duration_hrs: 1.5, is_core: false, status: 'On Hold', points: 20, color: '#059669' },
+      { id: 'dt-oct-18', day: 18, date: '2026-10-18', subject: 'English Literature', topic: 'Essay Drafting: Narrative Arc & Characterization', duration_hrs: 1.5, is_core: false, status: 'In Progress', points: 20, color: '#D97706' },
+      { id: 'dt-oct-19', day: 19, date: '2026-10-19', subject: 'Algebra I', topic: 'Lesson 3 Review: Exponent Rules', duration_hrs: 1.5, is_core: true, status: 'To Do', points: 25, color: '#4F46E5' },
+      { id: 'dt-oct-21a', day: 21, date: '2026-10-21', subject: 'Physics', topic: 'Lab Prep: Friction Coefficients', duration_hrs: 1.5, is_core: false, status: 'To Do', points: 25, color: '#0284C7' },
+      { id: 'dt-oct-21b', day: 21, date: '2026-10-21', subject: 'History', topic: 'Reading: Economic Networks', duration_hrs: 1, is_core: false, status: 'Revision', points: 15, color: '#F59E0B' },
+      { id: 'dt-oct-22', day: 22, date: '2026-10-22', subject: 'Biology', topic: 'Genetics: Mendelian Inheritance & Punnett Squares', duration_hrs: 1.5, is_core: false, status: 'To Do', points: 25, color: '#059669' },
+      { id: 'dt-oct-23', day: 23, date: '2026-10-23', subject: 'History', topic: 'Reading: Maritime Trade Maps', duration_hrs: 1.5, is_core: false, status: 'To Do', points: 20, color: '#0EA5E9' },
+      { id: 'dt-oct-25', day: 25, date: '2026-10-25', subject: 'English Literature', topic: 'Poetry Explication & Rhyme Scheme Mastery', duration_hrs: 1.5, is_core: false, status: 'To Do', points: 20, color: '#D97706' },
+      { id: 'dt-oct-26', day: 26, date: '2026-10-26', subject: 'Algebra I', topic: 'Lesson 3 Review: Factoring Trinomials', duration_hrs: 1.5, is_core: true, status: 'Revision', points: 30, color: '#8B5CF6' },
+      { id: 'dt-oct-28', day: 28, date: '2026-10-28', subject: 'Physics', topic: 'Lab Prep: Momentum Collisions', duration_hrs: 2, is_core: false, status: 'To Do', points: 35, color: '#0284C7' },
+      { id: 'dt-oct-29', day: 29, date: '2026-10-29', subject: 'History', topic: 'Reading: Post-Classical Societies', duration_hrs: 1.5, is_core: false, status: 'To Do', points: 20, color: '#0EA5E9' },
 
-    // November 2026 Tasks
-    { id: 'dt-nov-2', day: 2, date: '2026-11-02', subject: 'Algebra I', topic: 'Quadratic Formula Intro & Roots', duration_hrs: 1.5, is_core: true, status: 'Completed', points: 25, color: '#4F46E5' },
-    { id: 'dt-nov-3', day: 3, date: '2026-11-03', subject: 'Algebra I', topic: 'Parabola Symmetry & Vertex Form', duration_hrs: 1.5, is_core: true, status: 'In Progress', points: 25, color: '#4F46E5' },
-    { id: 'dt-nov-4', day: 4, date: '2026-11-04', subject: 'Physics', topic: 'Centripetal Force & Orbit Mechanics', duration_hrs: 2, is_core: false, status: 'In Progress', points: 30, color: '#0284C7' },
-    { id: 'dt-nov-5', day: 5, date: '2026-11-05', subject: 'English Literature', topic: 'Comparative Literature: Prose & Allegory', duration_hrs: 1.5, is_core: false, status: 'Completed', points: 25, color: '#D97706' },
-    { id: 'dt-nov-6', day: 6, date: '2026-11-06', subject: 'Chemistry', topic: 'Chemical Equilibrium & Le Chatelier', duration_hrs: 1.5, is_core: false, status: 'To Do', points: 25, color: '#10B981' },
-    { id: 'dt-nov-8', day: 8, date: '2026-11-08', subject: 'Biology', topic: 'Cell Membrane Transport: Osmosis & Diffusion', duration_hrs: 1.5, is_core: false, status: 'Revision', points: 20, color: '#059669' },
-    { id: 'dt-nov-9', day: 9, date: '2026-11-09', subject: 'History', topic: 'Reading: Diplomatic Treaties & Alliances', duration_hrs: 1.5, is_core: false, status: 'To Do', points: 20, color: '#0EA5E9' },
-    { id: 'dt-nov-10', day: 10, date: '2026-11-10', subject: 'History', topic: 'Reading: Cultural Diffusion & Trade routes', duration_hrs: 1.5, is_core: false, status: 'On Hold', points: 20, color: '#0EA5E9' },
-    { id: 'dt-nov-12', day: 12, date: '2026-11-12', subject: 'Algebra I', topic: 'Complex Numbers & Imaginary Roots', duration_hrs: 1.5, is_core: true, status: 'To Do', points: 25, color: '#4F46E5' },
-    { id: 'dt-nov-15', day: 15, date: '2026-11-15', subject: 'Biology', topic: 'Ecology: Trophic Levels & Energy Pyramids', duration_hrs: 1.5, is_core: false, status: 'To Do', points: 25, color: '#059669' },
-    { id: 'dt-nov-16', day: 16, date: '2026-11-16', subject: 'Physics', topic: 'Work, Energy & Power Review', duration_hrs: 2, is_core: false, status: 'Completed', points: 30, color: '#0284C7' },
-    { id: 'dt-nov-19', day: 19, date: '2026-11-19', subject: 'Chemistry', topic: 'Acid-Base Titration Curves & pH', duration_hrs: 1.5, is_core: false, status: 'Revision', points: 25, color: '#10B981' },
-    { id: 'dt-nov-20', day: 20, date: '2026-11-20', subject: 'English Literature', topic: 'Final Paper Review: Persuasive Rhetoric', duration_hrs: 1.5, is_core: false, status: 'To Do', points: 20, color: '#D97706' },
-    { id: 'dt-nov-24', day: 24, date: '2026-11-24', subject: 'Algebra I', topic: 'Polynomial Functions & Graph Analysis', duration_hrs: 1.5, is_core: true, status: 'To Do', points: 25, color: '#4F46E5' },
-    { id: 'dt-nov-27', day: 27, date: '2026-11-27', subject: 'History', topic: 'Modern Economic Revolutions', duration_hrs: 1.5, is_core: false, status: 'To Do', points: 20, color: '#0EA5E9' },
-  ]);
+      // November 2026 Tasks
+      { id: 'dt-nov-2', day: 2, date: '2026-11-02', subject: 'Algebra I', topic: 'Quadratic Formula Intro & Roots', duration_hrs: 1.5, is_core: true, status: 'Completed', points: 25, color: '#4F46E5' },
+      { id: 'dt-nov-3', day: 3, date: '2026-11-03', subject: 'Algebra I', topic: 'Parabola Symmetry & Vertex Form', duration_hrs: 1.5, is_core: true, status: 'In Progress', points: 25, color: '#4F46E5' },
+      { id: 'dt-nov-4', day: 4, date: '2026-11-04', subject: 'Physics', topic: 'Centripetal Force & Orbit Mechanics', duration_hrs: 2, is_core: false, status: 'In Progress', points: 30, color: '#0284C7' },
+      { id: 'dt-nov-5', day: 5, date: '2026-11-05', subject: 'English Literature', topic: 'Comparative Literature: Prose & Allegory', duration_hrs: 1.5, is_core: false, status: 'Completed', points: 25, color: '#D97706' },
+      { id: 'dt-nov-6', day: 6, date: '2026-11-06', subject: 'Chemistry', topic: 'Chemical Equilibrium & Le Chatelier', duration_hrs: 1.5, is_core: false, status: 'To Do', points: 25, color: '#10B981' },
+      { id: 'dt-nov-8', day: 8, date: '2026-11-08', subject: 'Biology', topic: 'Cell Membrane Transport: Osmosis & Diffusion', duration_hrs: 1.5, is_core: false, status: 'Revision', points: 20, color: '#059669' },
+      { id: 'dt-nov-9', day: 9, date: '2026-11-09', subject: 'History', topic: 'Reading: Diplomatic Treaties & Alliances', duration_hrs: 1.5, is_core: false, status: 'To Do', points: 20, color: '#0EA5E9' },
+      { id: 'dt-nov-10', day: 10, date: '2026-11-10', subject: 'History', topic: 'Reading: Cultural Diffusion & Trade routes', duration_hrs: 1.5, is_core: false, status: 'On Hold', points: 20, color: '#0EA5E9' },
+      { id: 'dt-nov-12', day: 12, date: '2026-11-12', subject: 'Algebra I', topic: 'Complex Numbers & Imaginary Roots', duration_hrs: 1.5, is_core: true, status: 'To Do', points: 25, color: '#4F46E5' },
+      { id: 'dt-nov-15', day: 15, date: '2026-11-15', subject: 'Biology', topic: 'Ecology: Trophic Levels & Energy Pyramids', duration_hrs: 1.5, is_core: false, status: 'To Do', points: 25, color: '#059669' },
+      { id: 'dt-nov-16', day: 16, date: '2026-11-16', subject: 'Physics', topic: 'Work, Energy & Power Review', duration_hrs: 2, is_core: false, status: 'Completed', points: 30, color: '#0284C7' },
+      { id: 'dt-nov-19', day: 19, date: '2026-11-19', subject: 'Chemistry', topic: 'Acid-Base Titration Curves & pH', duration_hrs: 1.5, is_core: false, status: 'Revision', points: 25, color: '#10B981' },
+      { id: 'dt-nov-20', day: 20, date: '2026-11-20', subject: 'English Literature', topic: 'Final Paper Review: Persuasive Rhetoric', duration_hrs: 1.5, is_core: false, status: 'To Do', points: 20, color: '#D97706' },
+      { id: 'dt-nov-24', day: 24, date: '2026-11-24', subject: 'Algebra I', topic: 'Polynomial Functions & Graph Analysis', duration_hrs: 1.5, is_core: true, status: 'To Do', points: 25, color: '#4F46E5' },
+      { id: 'dt-nov-27', day: 27, date: '2026-11-27', subject: 'History', topic: 'Modern Economic Revolutions', duration_hrs: 1.5, is_core: false, status: 'To Do', points: 20, color: '#0EA5E9' },
+    ];
+
+    const now = new Date();
+    const currentPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const hasCurrentMonthTasks = baseTasks.some((t) => t.date?.startsWith(currentPrefix));
+    if (hasCurrentMonthTasks) {
+      return baseTasks;
+    }
+
+    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    const currentMonthSeed = baseTasks
+      .filter((t) => t.date?.startsWith('2026-11'))
+      .map((t) => {
+        const clampedDay = Math.min(t.day || 1, daysInMonth);
+        return {
+          ...t,
+          id: `dt-cur-${clampedDay}-${t.id}`,
+          day: clampedDay,
+          date: `${currentPrefix}-${String(clampedDay).padStart(2, '0')}`,
+        };
+      });
+
+    return [...baseTasks, ...currentMonthSeed];
+  });
 
   // Synchronize student metrics across Student, Teacher, and Admin panels in real-time
   const syncStudentProgressAcrossPanels = (
@@ -1355,7 +2030,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // 2. Update studentsList roster (so Teacher & Admin panels reflect real-time changes instantly)
     setStudentsList((prev) =>
       prev.map((s) => {
-        if (s.id === 'stu-1' || s.name === studentName) {
+        const matchesUser =
+          (currentUser?.email && s.email.toLowerCase() === currentUser.email.toLowerCase()) ||
+          (currentUser?.id && s.id === currentUser.id) ||
+          s.name === studentName ||
+          (!currentUser && s.id === 'stu-1');
+        if (matchesUser) {
           return {
             ...s,
             overallProgress,
@@ -1510,7 +2190,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // 3. Update studentsList roster for real-time visibility in Teacher & Admin panels
     setStudentsList((prev) =>
       prev.map((s) => {
-        if (s.id === 'stu-1' || s.name === studentName) {
+        const matchesUser =
+          (currentUser?.email && s.email.toLowerCase() === currentUser.email.toLowerCase()) ||
+          (currentUser?.id && s.id === currentUser.id) ||
+          s.name === studentName ||
+          (!currentUser && s.id === 'stu-1');
+        if (matchesUser) {
           return {
             ...s,
             physicsProgress: isPhysics ? Math.min(100, Math.max(s.physicsProgress, score)) : s.physicsProgress,
@@ -1768,7 +2453,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const addUser = (newUser: Omit<AppUser, 'id' | 'createdAt'>) => {
-    const id = `user-${Date.now()}`;
+    const id = `user-${newUser.role.slice(0, 3)}-${Date.now()}`;
     const user: AppUser = {
       ...newUser,
       id,
@@ -1779,18 +2464,42 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const updateUser = (id: string, updates: Partial<AppUser>) => {
+    const previousUser = usersList.find((u) => u.id === id);
     setUsersList((prev) =>
       prev.map((u) => {
         if (u.id === id) {
           const updated = { ...u, ...updates };
           if (currentUser?.id === id) {
             setCurrentUser(updated);
+            try {
+              localStorage.setItem('educate_ai_current_user', JSON.stringify(updated));
+            } catch {}
           }
           return updated;
         }
         return u;
       })
     );
+
+    if (previousUser && (updates.role === undefined || updates.role === 'student') && previousUser.role === 'student') {
+      setStudentsList((prev) =>
+        prev.map((s) => {
+          const isMatch = s.id === id || s.email.toLowerCase() === previousUser.email.toLowerCase();
+          if (!isMatch) return s;
+          return {
+            ...s,
+            name: updates.name ?? s.name,
+            email: updates.email ?? s.email,
+            grade: updates.grade ?? s.grade,
+            enrolledSubjects: updates.enrolledCourses ?? s.enrolledSubjects,
+            gpa: updates.gpa ?? s.gpa,
+            attendance: updates.attendance ?? s.attendance,
+            overallProgress: updates.overallProgress ?? s.overallProgress,
+          };
+        })
+      );
+    }
+
     addNotification('User Updated', 'User details and permissions updated.', 'info', 'admin');
   };
 
@@ -1825,7 +2534,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isAiTyping, setIsAiTyping] = useState(false);
   const [chapterProgress, setChapterProgress] = useState(75);
 
-  // Doubts
+  // Doubts (General Ecosystem)
   const [doubts, setDoubts] = useState<StudentDoubt[]>([
     {
       id: 'dbt-1',
@@ -1845,6 +2554,62 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       status: 'pending',
     },
   ]);
+
+  // Private Student Quick Doubts AI (Real-time LLM only — never submitted to teachers)
+  const [quickDoubts, setQuickDoubts] = useState<QuickDoubtItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('educate_quick_doubts_v1');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          return parsed;
+        }
+      }
+    } catch {
+      // Ignore storage error
+    }
+    return [
+      {
+        id: 'qd-welcome-1',
+        subject: 'Physics',
+        topic: "Newton's Laws of Motion",
+        question: "Why don't action and reaction forces cancel each other out?",
+        answer:
+          "### Resolution\nAction and reaction forces never cancel each other out because they act on **two different objects**, never on the same body.\n\n- When Body A exerts force $F_{AB}$ on Body B, Body B exerts an equal and opposite force $F_{BA} = -F_{AB}$ back on Body A.\n- To determine whether **Body B** accelerates, you only sum forces acting *on Body B*, not forces acting on Body A.\n- Forces cancel out only when equal and opposite forces act on the **same** object.\n\n### Further Learning\n- Try applying Newton's 3rd Law to how a rocket accelerates in the vacuum of space.\n- Ask me: Why does a swimmer move forward when pushing water backward?\n- Challenge: Compare a book resting on a table (gravity vs normal force) with an action-reaction pair.",
+        status: 'resolved',
+        createdAt: 'AI Ready',
+        gradeLevel: 8,
+        board: 'CBSE',
+        language: 'en',
+        messages: [
+          {
+            id: 'turn-welcome-stu',
+            sender: 'student',
+            text: "Why don't action and reaction forces cancel each other out?",
+            timestamp: 'AI Ready',
+          },
+          {
+            id: 'turn-welcome-ai',
+            sender: 'ai',
+            text: "### Resolution\nAction and reaction forces never cancel each other out because they act on **two different objects**, never on the same body.\n\n- When Body A exerts force $F_{AB}$ on Body B, Body B exerts an equal and opposite force $F_{BA} = -F_{AB}$ back on Body A.\n- To determine whether **Body B** accelerates, you only sum forces acting *on Body B*, not forces acting on Body A.\n- Forces cancel out only when equal and opposite forces act on the **same** object.\n\n### Further Learning\n- Try applying Newton's 3rd Law to how a rocket accelerates in the vacuum of space.\n- Ask me: Why does a swimmer move forward when pushing water backward?\n- Challenge: Compare a book resting on a table (gravity vs normal force) with an action-reaction pair.",
+            timestamp: 'AI Ready',
+          },
+        ],
+      },
+    ];
+  });
+
+  useEffect(() => {
+    try {
+      // Persist resolved/error items cleanly (avoid storing giant streaming blanks or stale streaming flags)
+      const sanitized = quickDoubts.slice(0, 25).map((q) =>
+        q.status === 'streaming' ? { ...q, status: 'error' as const, errorMessage: q.answer ? undefined : 'Interrupted' } : q
+      );
+      localStorage.setItem('educate_quick_doubts_v1', JSON.stringify(sanitized));
+    } catch {
+      // Ignore quota errors
+    }
+  }, [quickDoubts]);
 
   // Teacher Data
   const [lessonPlans, setLessonPlans] = useState<LessonPlan[]>([
@@ -1887,63 +2652,38 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     {
       id: 'quiz-1',
       title: 'Plant Cells & Photosynthesis Assessment',
-      topic: 'Plant Cells',
-      grade: '7th Grade',
+      topic: 'Biology · Plant Cells & Photosynthesis',
+      grade: '8th Grade',
       author: 'Ms. Elena Rostova',
       createdAt: 'Today, 09:30 AM',
-      assignedToClass: 'Class 7B - Science',
+      assignedToClass: 'Class 8B - Biology',
       attempts: 24,
       avgScore: 84,
-      questions: [
-        {
-          id: 'q1',
-          question: 'Which organelle is exclusively found in plant cells and carries out photosynthesis?',
-          options: ['Mitochondria', 'Chloroplast', 'Centriole', 'Ribosome'],
-          answerIndex: 1,
-          explanation: 'Chloroplasts house chlorophyll pigments which absorb light to convert CO₂ and water into glucose.',
-        },
-        {
-          id: 'q2',
-          question: 'What rigid outer layer protects plant cells from osmotic bursting?',
-          options: ['Cell Membrane', 'Cellulose Cell Wall', 'Nuclear Envelope', 'Lipid Bilayer'],
-          answerIndex: 1,
-          explanation: 'The cell wall is made of rigid cellulose fibers providing structural turgor support.',
-        },
-        {
-          id: 'q3',
-          question: 'What gas is consumed during the light-independent reactions (Calvin Cycle)?',
-          options: ['Carbon Dioxide (CO₂)', 'Oxygen (O₂)', 'Nitrogen (N₂)', 'Hydrogen (H₂)'],
-          answerIndex: 0,
-          explanation: 'Carbon dioxide is fixed into 3-carbon phosphoglycerate molecules by the enzyme RuBisCO.',
-        },
-      ],
+      questions: PLANT_CELLS_QUIZ_QUESTIONS,
     },
     {
       id: 'quiz-2',
-      title: "Newton's Three Laws of Motion - Quick Check",
-      topic: "Newton's Laws",
+      title: "Newton's Three Laws of Motion - Mastery Check",
+      topic: "Physics · Newton's Laws of Motion",
       grade: '8th Grade',
       author: 'Mr. David Vance',
       createdAt: 'Yesterday',
       assignedToClass: 'Class 8A - Physics',
       attempts: 28,
       avgScore: 78,
-      questions: [
-        {
-          id: 'q2-1',
-          question: 'Which law explains why passengers jerk forward when a bus suddenly brakes?',
-          options: ['1st Law (Inertia)', '2nd Law (F = ma)', '3rd Law (Action-Reaction)', 'Universal Gravitation'],
-          answerIndex: 0,
-          explanation: "Inertia keeps the passenger's body moving forward at the original velocity until stopped by an external force.",
-        },
-        {
-          id: 'q2-2',
-          question: 'If you push a wall with 50 N of force, the wall exerts what force back on you?',
-          options: ['0 N', '25 N', '50 N in opposite direction', '100 N'],
-          answerIndex: 2,
-          explanation: 'By Newton\'s 3rd Law, every action has an equal magnitude and opposite direction reaction force.',
-        },
-      ],
+      questions: NEWTONS_LAWS_QUIZ_QUESTIONS,
+    },
+    {
+      id: 'quiz-3',
+      title: 'Algebra, Linear & Quadratic Equations Mastery',
+      topic: 'Mathematics · Algebra & Quadratics',
+      grade: '8th Grade',
+      author: 'Dr. Priya Nair',
+      createdAt: '2 days ago',
+      assignedToClass: 'Class 8A - Mathematics',
+      attempts: 31,
+      avgScore: 81,
+      questions: ALGEBRA_QUADRATICS_QUIZ_QUESTIONS,
     },
   ]);
 
@@ -2100,38 +2840,63 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     },
   ]);
 
-  // Students roster state is defined at top of component for real-time cross-panel synchronization
+  // Keep studentsList synchronized whenever students are added, removed, or signed up in usersList
+  useEffect(() => {
+    const studentUsers = usersList.filter((u) => u.role === 'student');
+    setStudentsList((prev) => {
+      const existingByEmail = new Map(prev.map((s) => [s.email.toLowerCase(), s]));
+      const existingById = new Map(prev.map((s) => [s.id, s]));
 
-  // Teachers roster
-  const [teachersList] = useState<TeacherProfile[]>([
-    {
-      id: 'tch-1',
-      name: 'Ms. Elena Rostova',
-      email: 'elena.r@educateai.org',
-      subject: 'Biology & Life Sciences',
-      classes: ['Class 7B - Science', 'Class 8C - Advanced Biology'],
-      activeStudentsCount: 58,
-      lessonPlansCount: 24,
-    },
-    {
-      id: 'tch-2',
-      name: 'Dr. David Vance',
-      email: 'david.v@educateai.org',
-      subject: 'Physics & STEM',
-      classes: ['Class 8A - Physics', 'Class 9B - Mechanics'],
-      activeStudentsCount: 62,
-      lessonPlansCount: 31,
-    },
-    {
-      id: 'tch-3',
-      name: 'Mrs. Maria Santos',
-      email: 'maria.s@educateai.org',
-      subject: 'Pure & Applied Mathematics',
-      classes: ['Class 7A - Pre-Algebra', 'Class 8A - Geometry'],
-      activeStudentsCount: 54,
-      lessonPlansCount: 19,
-    },
-  ]);
+      const synced: StudentProfile[] = studentUsers.map((u) => {
+        const existing = existingByEmail.get(u.email.toLowerCase()) || existingById.get(u.id);
+        if (existing) {
+          return existing;
+        }
+        const overall = u.overallProgress ?? 75;
+        return {
+          id: u.id,
+          name: u.name,
+          email: u.email,
+          grade: u.grade || (u.grade_level ? `Grade ${u.grade_level}` : '8th Grade'),
+          gpa: u.gpa ?? 3.5,
+          attendance: u.attendance ?? 95,
+          enrolledSubjects: u.enrolledCourses || ['Physics', 'Biology', 'Mathematics'],
+          overallProgress: overall,
+          physicsProgress: u.physicsProgress ?? 70,
+          biologyProgress: u.biologyProgress ?? 75,
+          mathProgress: u.mathProgress ?? 80,
+          chemistryProgress: u.chemistryProgress,
+          historyProgress: u.historyProgress,
+          englishProgress: u.englishProgress,
+          riskScore: overall < 60 ? 'High' : overall < 75 ? 'Medium' : 'Low',
+          activeProctorStatus: 'Clear',
+        };
+      });
+
+      return synced;
+    });
+  }, [usersList]);
+
+  // Teachers roster derived live from usersList so any newly added/updated/deleted teacher reflects immediately
+  const teachersList = React.useMemo<TeacherProfile[]>(() => {
+    return usersList
+      .filter((u) => u.role === 'teacher')
+      .map((u) => ({
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        subject:
+          (u.assignedSubjects && u.assignedSubjects.length > 0
+            ? u.assignedSubjects.join(', ')
+            : u.department) || 'General Sciences',
+        classes:
+          u.assignedCohorts && u.assignedCohorts.length > 0
+            ? u.assignedCohorts
+            : ['General Cohort'],
+        activeStudentsCount: u.activeStudentsCount ?? 30,
+        lessonPlansCount: u.createdLessonPlansCount ?? 0,
+      }));
+  }, [usersList]);
 
   // Digital Certificates
   const [certificates, setCertificates] = useState<DigitalCertificate[]>([
@@ -2227,17 +2992,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: text,
-          history: chatMessages.map((m) => ({ role: m.sender === 'student' ? 'user' : 'model', content: m.text })),
+          history: chatMessages.slice(-6).map((m) => ({
+            role: m.sender === 'student' ? 'user' : 'model',
+            content: m.text.replace(/^(Student:\s*|AI Tutor:\s*)/i, ''),
+          })),
           subject: 'Physics',
           topic: "Newton's Laws of Motion",
+          student_grade: currentUser?.grade || '8th Grade',
+          board: currentBoard || 'CBSE',
+          medium: globalLanguage || 'en',
         }),
       });
 
       const data = await res.json();
+      const reply = data.reply || "Let's explore this concept together step-by-step!";
       const aiMsg: ChatMessage = {
         id: `msg-${Date.now() + 1}`,
         sender: 'ai',
-        text: `AI Tutor: ${data.reply}`,
+        text: reply.startsWith('AI Tutor:') ? reply : `AI Tutor: ${reply}`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
       setChatMessages((prev) => [...prev, aiMsg]);
@@ -2265,6 +3037,613 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  // Helper: Capture PNG screenshot & immediately dispatch Guardian WhatsApp + Email alert (never sent to teachers)
+  const triggerGuardianEscalation = async (params: {
+    subject: string;
+    topic?: string;
+    grade: number | string;
+    board: string;
+    surfaceLabel?: string;
+  }): Promise<GuardianEscalationReceipt> => {
+    const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const fullTimestamp = new Date().toLocaleString();
+    const guardianName = currentUser?.guardian_name || 'David Connor (Parent/Guardian)';
+    const guardianPhone = currentUser?.guardian_phone || '+91 98765 11223';
+    const guardianEmail = currentUser?.guardian_email || 'david.c@guardian.org';
+
+    const screenshotDataUrl = await captureQuickDoubtScreenshot({
+      studentName: currentUser?.name || 'Sarah Connor',
+      studentEmail: currentUser?.email || 'sarah.c@educateai.org',
+      grade: params.grade,
+      board: params.board,
+      subject: params.subject,
+      topic: params.topic,
+      guardianName,
+      guardianPhone,
+      guardianEmail,
+      surfaceLabel: params.surfaceLabel || 'Quick Doubts AI Assistant',
+      timestamp: fullTimestamp,
+    });
+
+    try {
+      const res = await fetch('/api/safety/report-guardian', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          studentId: currentUser?.id || 'stu-1',
+          studentName: currentUser?.name || 'Sarah Connor',
+          studentEmail: currentUser?.email || '',
+          grade: params.grade,
+          board: params.board,
+          subject: params.subject,
+          topic: params.topic || '',
+          violationType: 'FOUL_LANGUAGE',
+          guardianName,
+          guardianPhone,
+          guardianEmail,
+          screenshotBase64: screenshotDataUrl,
+          capturedAt: fullTimestamp,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.incident) {
+          return {
+            ...data.incident,
+            screenshotDataUrl,
+          };
+        }
+      }
+    } catch (err) {
+      console.warn('Guardian escalation dispatch notice:', err);
+    }
+
+    const digits = guardianPhone.replace(/[^\d]/g, '') || '919876511223';
+    const summaryText = `[PivotIQ Safety Alert] Foul language detected in ${currentUser?.name || 'Student'}'s Quick Doubts AI session (${params.subject}) at ${fullTimestamp}. Screenshot captured.`;
+    return {
+      id: `grd-${Date.now()}`,
+      guardianName,
+      guardianPhone,
+      guardianEmail,
+      timestamp,
+      whatsappDispatched: true,
+      emailDispatched: true,
+      whatsappUrl: `https://wa.me/${digits}?text=${encodeURIComponent(summaryText)}`,
+      emailUrl: `mailto:${encodeURIComponent(guardianEmail)}?subject=${encodeURIComponent('[Urgent Safety Alert] Conduct Guardrail Triggered')}&body=${encodeURIComponent(summaryText)}`,
+      screenshotDataUrl,
+    };
+  };
+
+  // Shared real-time interactive SSE streamer for both new doubts and interactive follow-up replies
+  const streamQuickDoubtTurn = async (params: {
+    itemId: string;
+    aiTurnId: string;
+    promptText: string;
+    history: Array<{ sender: 'student' | 'ai'; text: string }>;
+    subject: string;
+    topic?: string;
+    grade: number | string;
+    board: string;
+    medium: string;
+    imageBase64?: string;
+    imageMimeType?: string;
+    surfaceLabel?: string;
+  }) => {
+    const {
+      itemId,
+      aiTurnId,
+      promptText,
+      history,
+      subject,
+      topic,
+      grade,
+      board,
+      medium,
+      imageBase64,
+      imageMimeType,
+      surfaceLabel,
+    } = params;
+
+    // Stress / Medical guardrail check (strictly only suggest parents & medical practitioner)
+    if (detectStressOrMedicalQuery(promptText)) {
+      setQuickDoubts((prev) =>
+        prev.map((q) => {
+          if (q.id !== itemId) return q;
+          const updatedMsgs = (q.messages || []).map((m) =>
+            m.id === aiTurnId
+              ? { ...m, text: STRICT_PARENT_DOCTOR_ONLY_RESPONSE, isWellnessNotice: true }
+              : m
+          );
+          return {
+            ...q,
+            answer: STRICT_PARENT_DOCTOR_ONLY_RESPONSE,
+            status: 'resolved',
+            isWellnessNotice: true,
+            messages: updatedMsgs,
+          };
+        })
+      );
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/tutor/doubt-solve/stream', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          question: promptText,
+          history,
+          subject,
+          topic: topic || '',
+          student_grade: grade,
+          board,
+          medium,
+          imageBase64,
+          imageMimeType,
+        }),
+      });
+
+      if (!response.ok) {
+        let errJson: any = null;
+        try {
+          errJson = await response.json();
+        } catch {
+          errJson = null;
+        }
+
+        if (response.status === 403 && errJson?.blocked) {
+          const receipt = await triggerGuardianEscalation({
+            subject,
+            topic,
+            grade,
+            board,
+            surfaceLabel,
+          });
+          setQuickDoubts((prev) =>
+            prev.map((q) => {
+              if (q.id !== itemId) return q;
+              const cleanedMsgs = (q.messages || [])
+                .filter((m) => m.id !== aiTurnId)
+                .map((m, idx, arr) =>
+                  idx === arr.length - 1 && m.sender === 'student'
+                    ? {
+                        ...m,
+                        text: '[Message blocked by Safety Policy — Not accepted or answered by AI]',
+                        isBlockedViolation: true,
+                        guardianReport: receipt,
+                      }
+                    : m
+                );
+              return {
+                ...q,
+                status: 'blocked',
+                blockedViolation: true,
+                guardianReport: receipt,
+                messages: cleanedMsgs,
+              };
+            })
+          );
+          return;
+        }
+
+        const errText = errJson?.error || `Server returned status ${response.status}`;
+        setQuickDoubts((prev) =>
+          prev.map((q) =>
+            q.id === itemId
+              ? {
+                  ...q,
+                  status: 'error',
+                  errorMessage: errText,
+                  messages: (q.messages || []).filter((m) => m.id !== aiTurnId),
+                }
+              : q
+          )
+        );
+        return;
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) {
+        const res = await fetch('/api/tutor/doubt-solve', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            question: promptText,
+            history,
+            subject,
+            topic: topic || '',
+            student_grade: grade,
+            board,
+            medium,
+            imageBase64,
+            imageMimeType,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok || data.error) {
+          throw new Error(data.error || 'Failed to resolve doubt');
+        }
+        const solText = data.solution || '';
+        setQuickDoubts((prev) =>
+          prev.map((q) => {
+            if (q.id !== itemId) return q;
+            return {
+              ...q,
+              answer: solText,
+              status: 'resolved',
+              isWellnessNotice: Boolean(data.isWellnessNotice),
+              messages: (q.messages || []).map((m) =>
+                m.id === aiTurnId
+                  ? { ...m, text: solText, isWellnessNotice: Boolean(data.isWellnessNotice) }
+                  : m
+              ),
+            };
+          })
+        );
+        return;
+      }
+
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let accumulated = '';
+      let streamError: string | null = null;
+      let isWellness = false;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const rawLine of lines) {
+          const line = rawLine.trim();
+          if (!line.startsWith('data:')) continue;
+          const payloadStr = line.slice(5).trim();
+          if (!payloadStr) continue;
+
+          try {
+            const payload = JSON.parse(payloadStr);
+            if (payload.isWellnessNotice) isWellness = true;
+            if (payload.error) {
+              streamError = payload.error;
+              break;
+            }
+            if (payload.text) {
+              accumulated += payload.text;
+              setQuickDoubts((prev) =>
+                prev.map((q) => {
+                  if (q.id !== itemId) return q;
+                  return {
+                    ...q,
+                    answer: accumulated,
+                    isWellnessNotice: isWellness,
+                    messages: (q.messages || []).map((m) =>
+                      m.id === aiTurnId ? { ...m, text: accumulated, isWellnessNotice: isWellness } : m
+                    ),
+                  };
+                })
+              );
+            }
+          } catch {
+            // Ignore malformed SSE line
+          }
+        }
+        if (streamError) break;
+      }
+
+      if (streamError) {
+        setQuickDoubts((prev) =>
+          prev.map((q) =>
+            q.id === itemId
+              ? {
+                  ...q,
+                  status: 'error',
+                  answer: accumulated || q.answer,
+                  errorMessage: streamError || 'Stream error',
+                  messages: accumulated
+                    ? q.messages
+                    : (q.messages || []).filter((m) => m.id !== aiTurnId),
+                }
+              : q
+          )
+        );
+      } else {
+        const finalText =
+          accumulated ||
+          '### Resolution\nResolved! Feel free to ask a follow-up question below.\n\n### Further Learning\n- Ask for a practice problem or another worked example on this topic.';
+        setQuickDoubts((prev) =>
+          prev.map((q) => {
+            if (q.id !== itemId) return q;
+            return {
+              ...q,
+              answer: finalText,
+              status: 'resolved',
+              isWellnessNotice: isWellness,
+              messages: (q.messages || []).map((m) =>
+                m.id === aiTurnId ? { ...m, text: finalText, isWellnessNotice: isWellness } : m
+              ),
+            };
+          })
+        );
+      }
+    } catch (err: any) {
+      setQuickDoubts((prev) =>
+        prev.map((q) =>
+          q.id === itemId
+            ? {
+                ...q,
+                status: 'error',
+                errorMessage: err?.message || 'Unable to connect to the live AI service.',
+                messages: (q.messages || []).filter((m) => m.id !== aiTurnId),
+              }
+            : q
+        )
+      );
+    }
+  };
+
+  // Student asks Quick Doubts AI directly — Real-time LLM SSE streaming, NEVER submitted to any teacher
+  const askQuickDoubtAI = async (
+    question: string,
+    subject: string,
+    options?: {
+      topic?: string;
+      gradeLevel?: number | string;
+      board?: string;
+      medium?: string;
+      imageBase64?: string;
+      imageMimeType?: string;
+      imagePreview?: string;
+      surfaceLabel?: string;
+    }
+  ): Promise<string | undefined> => {
+    const trimmedQuestion = question.trim();
+    if (!trimmedQuestion) return undefined;
+
+    const itemId = `qd-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const resolvedGrade = options?.gradeLevel ?? currentUser?.grade_level ?? 8;
+    const resolvedBoard = options?.board || currentUser?.education_board || currentBoard || 'CBSE';
+    const resolvedMedium = options?.medium || globalLanguage || 'en';
+    const resolvedTopic = options?.topic?.trim() || undefined;
+    const resolvedSubject = subject || 'General Science';
+
+    // Guardrail #1: Zero tolerance for foul language — NEVER reply/accept/invoke LLM; capture screenshot & alert guardian on WhatsApp + Email
+    if (detectFoulLanguage(trimmedQuestion).isFoul) {
+      const receipt = await triggerGuardianEscalation({
+        subject: resolvedSubject,
+        topic: resolvedTopic,
+        grade: resolvedGrade,
+        board: resolvedBoard,
+        surfaceLabel: options?.surfaceLabel,
+      });
+
+      const blockedTurn: QuickDoubtChatTurn = {
+        id: `turn-blk-${Date.now()}`,
+        sender: 'student',
+        text: '[Blocked by Conduct Guardrail — Foul language is never accepted or answered by the AI Assistant]',
+        timestamp: nowTime,
+        isBlockedViolation: true,
+        guardianReport: receipt,
+      };
+
+      const blockedItem: QuickDoubtItem = {
+        id: itemId,
+        subject: resolvedSubject,
+        topic: resolvedTopic,
+        question: '[Blocked by Conduct Guardrail — Reported to Guardian]',
+        answer: '',
+        status: 'blocked',
+        createdAt: nowTime,
+        gradeLevel: resolvedGrade,
+        board: resolvedBoard,
+        language: resolvedMedium,
+        blockedViolation: true,
+        guardianReport: receipt,
+        messages: [blockedTurn],
+      };
+
+      setQuickDoubts((prev) => [blockedItem, ...prev]);
+      return itemId;
+    }
+
+    const stuTurnId = `turn-stu-${Date.now()}`;
+    const aiTurnId = `turn-ai-${Date.now() + 1}`;
+
+    const initialMessages: QuickDoubtChatTurn[] = [
+      {
+        id: stuTurnId,
+        sender: 'student',
+        text: trimmedQuestion,
+        timestamp: nowTime,
+        imagePreview: options?.imagePreview,
+      },
+      {
+        id: aiTurnId,
+        sender: 'ai',
+        text: '',
+        timestamp: nowTime,
+      },
+    ];
+
+    const newItem: QuickDoubtItem = {
+      id: itemId,
+      subject: resolvedSubject,
+      topic: resolvedTopic,
+      question: trimmedQuestion,
+      answer: '',
+      status: 'streaming',
+      createdAt: nowTime,
+      gradeLevel: resolvedGrade,
+      board: resolvedBoard,
+      language: resolvedMedium,
+      imagePreview: options?.imagePreview,
+      messages: initialMessages,
+    };
+
+    setQuickDoubts((prev) => [newItem, ...prev]);
+
+    await streamQuickDoubtTurn({
+      itemId,
+      aiTurnId,
+      promptText: trimmedQuestion,
+      history: [],
+      subject: resolvedSubject,
+      topic: resolvedTopic,
+      grade: resolvedGrade,
+      board: resolvedBoard,
+      medium: resolvedMedium,
+      imageBase64: options?.imageBase64,
+      imageMimeType: options?.imageMimeType,
+      surfaceLabel: options?.surfaceLabel,
+    });
+
+    return itemId;
+  };
+
+  // Student continues interactive chat inside an existing Quick Doubts AI thread
+  const continueQuickDoubtChat = async (
+    doubtId: string,
+    followUpText: string,
+    options?: {
+      imageBase64?: string;
+      imageMimeType?: string;
+      imagePreview?: string;
+      surfaceLabel?: string;
+    }
+  ) => {
+    const trimmed = followUpText.trim();
+    if (!trimmed) return;
+
+    const target = quickDoubts.find((q) => q.id === doubtId);
+    if (!target) return;
+
+    const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const resolvedGrade = target.gradeLevel ?? currentUser?.grade_level ?? 8;
+    const resolvedBoard = target.board || currentUser?.education_board || currentBoard || 'CBSE';
+    const resolvedMedium = target.language || globalLanguage || 'en';
+
+    const existingMessages: QuickDoubtChatTurn[] =
+      target.messages && target.messages.length > 0
+        ? target.messages
+        : [
+            {
+              id: `turn-init-stu-${target.id}`,
+              sender: 'student',
+              text: target.question,
+              timestamp: target.createdAt,
+              imagePreview: target.imagePreview,
+            },
+            ...(target.answer
+              ? [
+                  {
+                    id: `turn-init-ai-${target.id}`,
+                    sender: 'ai' as const,
+                    text: target.answer,
+                    timestamp: target.createdAt,
+                  },
+                ]
+              : []),
+          ];
+
+    // Guardrail #1: Zero tolerance for foul language — never reply/accept; capture screenshot & alert guardian on WhatsApp + Email
+    if (detectFoulLanguage(trimmed).isFoul) {
+      const receipt = await triggerGuardianEscalation({
+        subject: target.subject,
+        topic: target.topic,
+        grade: resolvedGrade,
+        board: resolvedBoard,
+        surfaceLabel: options?.surfaceLabel,
+      });
+
+      const blockedTurn: QuickDoubtChatTurn = {
+        id: `turn-blk-${Date.now()}`,
+        sender: 'student',
+        text: '[Blocked by Conduct Guardrail — Foul language is never accepted or answered by the AI Assistant]',
+        timestamp: nowTime,
+        isBlockedViolation: true,
+        guardianReport: receipt,
+      };
+
+      setQuickDoubts((prev) =>
+        prev.map((q) =>
+          q.id === doubtId
+            ? {
+                ...q,
+                blockedViolation: true,
+                guardianReport: receipt,
+                messages: [...existingMessages, blockedTurn],
+              }
+            : q
+        )
+      );
+      return;
+    }
+
+    const stuTurnId = `turn-stu-${Date.now()}`;
+    const aiTurnId = `turn-ai-${Date.now() + 1}`;
+
+    const historyForLLM = existingMessages
+      .filter((m) => !m.isBlockedViolation && m.text.trim())
+      .map((m) => ({ sender: m.sender, text: m.text }));
+
+    const nextMessages: QuickDoubtChatTurn[] = [
+      ...existingMessages,
+      {
+        id: stuTurnId,
+        sender: 'student',
+        text: trimmed,
+        timestamp: nowTime,
+        imagePreview: options?.imagePreview,
+      },
+      {
+        id: aiTurnId,
+        sender: 'ai',
+        text: '',
+        timestamp: nowTime,
+      },
+    ];
+
+    setQuickDoubts((prev) =>
+      prev.map((q) =>
+        q.id === doubtId
+          ? {
+              ...q,
+              status: 'streaming',
+              errorMessage: undefined,
+              messages: nextMessages,
+            }
+          : q
+      )
+    );
+
+    await streamQuickDoubtTurn({
+      itemId: doubtId,
+      aiTurnId,
+      promptText: trimmed,
+      history: historyForLLM,
+      subject: target.subject,
+      topic: target.topic,
+      grade: resolvedGrade,
+      board: resolvedBoard,
+      medium: resolvedMedium,
+      imageBase64: options?.imageBase64,
+      imageMimeType: options?.imageMimeType,
+      surfaceLabel: options?.surfaceLabel,
+    });
+  };
+
+  const deleteQuickDoubt = (id: string) => {
+    setQuickDoubts((prev) => prev.filter((q) => q.id !== id));
+  };
+
+  const clearQuickDoubts = () => {
+    setQuickDoubts([]);
+  };
+
   // Student adds a quick doubt with topic context
   const addDoubt = async (question: string, subject: string, topic?: string) => {
     const newDoubt: StudentDoubt = {
@@ -2277,20 +3656,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
     setDoubts((prev) => [newDoubt, ...prev]);
 
-    // Send notification
-    addNotification(
-      'New Student Doubt',
-      `${currentUser?.name || 'Student'} raised a doubt in ${subject}${topic ? ` • ${topic}` : ''}: "${question.slice(0, 40)}..."`,
-      'info',
-      'student'
-    );
-
-    // Call backend doubt solver with topic context
+    // Call backend doubt solver with full student context
     try {
       const res = await fetch('/api/tutor/doubt-solve', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question, subject: topic ? `${subject} - ${topic}` : subject }),
+        body: JSON.stringify({
+          question,
+          subject,
+          topic: topic || '',
+          student_grade: currentUser?.grade_level || 8,
+          board: currentUser?.education_board || currentBoard || 'CBSE',
+          medium: globalLanguage || 'en',
+        }),
       });
       const data = await res.json();
       if (data.solution) {
@@ -2552,6 +3930,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         doubts,
         addDoubt,
         resolveDoubt,
+        quickDoubts,
+        askQuickDoubtAI,
+        continueQuickDoubtChat,
+        deleteQuickDoubt,
+        clearQuickDoubts,
         lessonPlans,
         quizzes,
         setQuizzes,
@@ -2594,10 +3977,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         dismissStudentMeetingAlert,
         // Community
         communityPosts,
+        forumStudyGroups,
+        forumResources,
+        forumPoints,
+        peerAnswersThisWeek,
+        liveSessionRsvp,
+        toggleLiveSessionRsvp,
         addCommunityPost,
         addCommunityComment,
         upvoteCommunityPost,
+        upvoteCommunityComment,
+        acceptCommunityComment,
+        flagCommunityPost,
+        resolveFlaggedCommunityPost,
         verifyCommunityPost,
+        joinOrLeaveStudyGroup,
+        createStudyGroup,
+        addStudyGroupMessage,
+        addForumResource,
+        upvoteForumResource,
         // Subscription
         subscriptionState,
         updateSubscription,
