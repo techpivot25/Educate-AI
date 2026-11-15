@@ -14,6 +14,7 @@ import { useApp } from '../../context/AppContext';
 import { useTheme } from '../../context/ThemeContext';
 import { getLocalizedSubjectName, formatEnrolledCourseEntry } from '../../data/curriculumData';
 import { SubjectIcon } from '../common/SubjectIcon';
+import { LottieIcon } from '../common/LottieIcon';
 import {
   BookOpen,
   TrendingUp,
@@ -347,7 +348,14 @@ export const CourseProgressTracker: React.FC = () => {
         <div>
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-xl bg-[#00A896]/10 text-[#00A896] flex items-center justify-center font-normal shrink-0">
-              <BarChart3 className="w-4 h-4" />
+              <LottieIcon
+                kind="nav"
+                name="barchart"
+                colorHex="#00A896"
+                sizeClass="w-4 h-4"
+                playMode="always"
+                fallback={<BarChart3 className="w-4 h-4" />}
+              />
             </div>
             <div>
               <div className="flex flex-wrap items-center gap-2">

@@ -56,6 +56,12 @@ export const AgileStudyRoadmap: React.FC = () => {
     activeCategories,
   } = useApp();
 
+  // Selected day state (defaults to today so Day view immediately shows current day's tasks)
+  const [selectedDate, setSelectedDate] = useState<Date>(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  });
+
   // Calendar date state (defaults to current month)
   const [currentDate, setCurrentDate] = useState<Date>(() => {
     const now = new Date();
@@ -66,8 +72,8 @@ export const AgileStudyRoadmap: React.FC = () => {
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
   const [dragOverDateStr, setDragOverDateStr] = useState<string | null>(null);
 
-  // View mode switcher: Month (calendar), Week (schedule), Sprint (kanban board)
-  const [calendarViewMode, setCalendarViewMode] = useState<'month' | 'week' | 'sprint'>('sprint');
+  // View mode switcher: Sprint (kanban board), Month (calendar), Week (schedule), Day (daily tasks)
+  const [calendarViewMode, setCalendarViewMode] = useState<'sprint' | 'month' | 'week' | 'day'>('sprint');
 
   // Active status filter: 'ALL' | 'To Do' | 'In Progress' | 'On Hold' | 'Revision' | 'Completed'
   const [activeStatusFilter, setActiveStatusFilter] = useState<'ALL' | StudyTaskStatus>('ALL');
@@ -263,13 +269,138 @@ export const AgileStudyRoadmap: React.FC = () => {
     return cells;
   }, [pickerYear, pickerMonthIndex, pickerDaysInMonth, pickerStartOffset]);
 
-  // Navigation handlers for month switcher
-  const handlePrevMonth = () => {
-    setCurrentDate((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+  const toDateStr = (d: Date): string =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+  const todayStr = toDateStr(new Date());
+  const selectedDateStr = toDateStr(selectedDate);
+  const selectedDayNum = selectedDate.getDate();
+
+  // Compute Monday–Sunday week days around selectedDate
+  const weekDays = useMemo(() => {
+    const offsetFromMonday = (selectedDate.getDay() + 6) % 7;
+    const monday = new Date(
+      selectedDate.getFullYear(),
+      selectedDate.getMonth(),
+      selectedDate.getDate() - offsetFromMonday
+    );
+    return Array.from({ length: 7 }, (_, idx) => {
+      const d = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + idx);
+      return {
+        dateObj: d,
+        dateStr: toDateStr(d),
+        dayNum: d.getDate(),
+        weekdayShort: d.toLocaleDateString('en-US', { weekday: 'short' }),
+        monthShort: d.toLocaleDateString('en-US', { month: 'short' }),
+        isToday: toDateStr(d) === todayStr,
+      };
+    });
+  }, [selectedDate, todayStr]);
+
+  const weekRangeLabel = useMemo(() => {
+    if (weekDays.length < 7) return currentMonthName;
+    const first = weekDays[0];
+    const last = weekDays[6];
+    if (first.dateObj.getMonth() === last.dateObj.getMonth()) {
+      return `${first.monthShort} ${first.dayNum}–${last.dayNum}, ${last.dateObj.getFullYear()}`;
+    }
+    return `${first.monthShort} ${first.dayNum} – ${last.monthShort} ${last.dayNum}`;
+  }, [weekDays, currentMonthName]);
+
+  const selectedDayShortLabel = useMemo(
+    () =>
+      selectedDate.toLocaleDateString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      }),
+    [selectedDate]
+  );
+
+  const selectedDayFullLabel = useMemo(
+    () =>
+      selectedDate.toLocaleDateString('en-US', {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric',
+      }),
+    [selectedDate]
+  );
+
+  // Jump straight to today's date & month
+  const handleJumpToToday = () => {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    setSelectedDate(today);
+    setCurrentDate(new Date(today.getFullYear(), today.getMonth(), 1));
   };
 
-  const handleNextMonth = () => {
-    setCurrentDate((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+  // Select a specific date (e.g. clicking a day in Month/Week view) and optionally switch to Day view
+  const handleSelectDayView = (dateStr: string) => {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    if (!y || !m || !d) return;
+    setSelectedDate(new Date(y, m - 1, d));
+    setCurrentDate(new Date(y, m - 1, 1));
+    setCalendarViewMode('day');
+  };
+
+  // Context-aware Prev/Next navigation (Month in month/sprint, 7 days in week, 1 day in day)
+  const handlePrevPeriod = () => {
+    if (calendarViewMode === 'day') {
+      const next = new Date(
+        selectedDate.getFullYear(),
+        selectedDate.getMonth(),
+        selectedDate.getDate() - 1
+      );
+      setSelectedDate(next);
+      setCurrentDate(new Date(next.getFullYear(), next.getMonth(), 1));
+      return;
+    }
+    if (calendarViewMode === 'week') {
+      const next = new Date(
+        selectedDate.getFullYear(),
+        selectedDate.getMonth(),
+        selectedDate.getDate() - 7
+      );
+      setSelectedDate(next);
+      setCurrentDate(new Date(next.getFullYear(), next.getMonth(), 1));
+      return;
+    }
+    setCurrentDate((prev) => {
+      const nextMonth = new Date(prev.getFullYear(), prev.getMonth() - 1, 1);
+      setSelectedDate(new Date(nextMonth.getFullYear(), nextMonth.getMonth(), 1));
+      return nextMonth;
+    });
+  };
+
+  const handleNextPeriod = () => {
+    if (calendarViewMode === 'day') {
+      const next = new Date(
+        selectedDate.getFullYear(),
+        selectedDate.getMonth(),
+        selectedDate.getDate() + 1
+      );
+      setSelectedDate(next);
+      setCurrentDate(new Date(next.getFullYear(), next.getMonth(), 1));
+      return;
+    }
+    if (calendarViewMode === 'week') {
+      const next = new Date(
+        selectedDate.getFullYear(),
+        selectedDate.getMonth(),
+        selectedDate.getDate() + 7
+      );
+      setSelectedDate(next);
+      setCurrentDate(new Date(next.getFullYear(), next.getMonth(), 1));
+      return;
+    }
+    setCurrentDate((prev) => {
+      const nextMonth = new Date(prev.getFullYear(), prev.getMonth() + 1, 1);
+      setSelectedDate(new Date(nextMonth.getFullYear(), nextMonth.getMonth(), 1));
+      return nextMonth;
+    });
   };
 
   // Month-specific tasks: changes whenever the month changes!
@@ -280,6 +411,17 @@ export const AgileStudyRoadmap: React.FC = () => {
     // Fallback if task lacks full date (matches October if day <= 31)
     return currentMonthIndex === 9 && (t.day || 0) <= 31;
   });
+
+  // Tasks for the selected day in Day View (sorted chronologically by study_time)
+  const selectedDayAllTasks = useMemo(() => {
+    const selMonthKey = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}`;
+    return dailyTasks
+      .filter((t) => {
+        if (t.date) return t.date === selectedDateStr;
+        return selectedDate.getMonth() === 9 && selMonthKey === currentMonthKey && t.day === selectedDayNum;
+      })
+      .sort((a, b) => (a.study_time || '99:99').localeCompare(b.study_time || '99:99'));
+  }, [dailyTasks, selectedDate, selectedDateStr, selectedDayNum, currentMonthKey]);
 
   // Determine whether a task is overdue or stalled without moving to the next workflow stage
   const getTaskOverdueInfo = (
@@ -695,36 +837,86 @@ export const AgileStudyRoadmap: React.FC = () => {
           </div>
         </div>
 
-        {/* ROW 2 & ROW 3: Active Month, View Mode Switcher, and Action Controls */}
+        {/* ROW 2 & ROW 3: Sprint + Date Switcher, Calendar Modes (Month | Week | Day), and Action Controls */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3.5">
-          {/* Active Month & View Modes (Month | Week | Sprint) */}
-          <div className="flex flex-wrap items-center gap-2.5">
-            {/* Month Switcher with chevron controls */}
-            <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-[#132036] px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700/80 shadow-2xs">
+          {/* Left Controls: [Sprint] + < Date > on top, [Month | Week | Day] right below */}
+          <div className="flex flex-col items-start gap-2.5">
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Standalone Sprint View Toggle */}
               <button
-                onClick={handlePrevMonth}
-                className="p-1 text-slate-500 dark:text-white hover:text-slate-900 dark:hover:text-white cursor-pointer rounded-lg hover:bg-slate-200/60 dark:hover:bg-slate-700 transition-colors"
-                title="Previous Month"
-                aria-label="Previous Month"
+                type="button"
+                onClick={() => setCalendarViewMode('sprint')}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 border ${
+                  calendarViewMode === 'sprint'
+                    ? 'bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white border-slate-300 dark:border-slate-600 shadow-xs'
+                    : 'bg-slate-100 dark:bg-[#132036] text-slate-600 dark:text-white/80 border-slate-200/80 dark:border-slate-700/80 hover:text-slate-900 dark:hover:text-white'
+                }`}
               >
-                <ChevronLeft className="w-4 h-4" />
+                <Layers className="w-3.5 h-3.5" />
+                <span>Sprint</span>
               </button>
-              <span className="text-xs sm:text-sm font-bold text-slate-800 dark:text-white min-w-[115px] text-center select-none">
-                {currentMonthName}
-              </span>
-              <button
-                onClick={handleNextMonth}
-                className="p-1 text-slate-500 dark:text-white hover:text-slate-900 dark:hover:text-white cursor-pointer rounded-lg hover:bg-slate-200/60 dark:hover:bg-slate-700 transition-colors"
-                title="Next Month"
-                aria-label="Next Month"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
+
+              {/* Context-aware Period Switcher (< Month / Week / Day >) */}
+              <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-[#132036] px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700/80 shadow-2xs">
+                <button
+                  type="button"
+                  onClick={handlePrevPeriod}
+                  className="p-1 text-slate-500 dark:text-white hover:text-slate-900 dark:hover:text-white cursor-pointer rounded-lg hover:bg-slate-200/60 dark:hover:bg-slate-700 transition-colors"
+                  title={
+                    calendarViewMode === 'day'
+                      ? 'Previous Day'
+                      : calendarViewMode === 'week'
+                      ? 'Previous Week'
+                      : 'Previous Month'
+                  }
+                  aria-label="Previous Period"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <span className="text-xs sm:text-sm font-bold text-slate-800 dark:text-white min-w-[125px] text-center select-none">
+                  {calendarViewMode === 'day'
+                    ? selectedDayShortLabel
+                    : calendarViewMode === 'week'
+                    ? weekRangeLabel
+                    : currentMonthName}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleNextPeriod}
+                  className="p-1 text-slate-500 dark:text-white hover:text-slate-900 dark:hover:text-white cursor-pointer rounded-lg hover:bg-slate-200/60 dark:hover:bg-slate-700 transition-colors"
+                  title={
+                    calendarViewMode === 'day'
+                      ? 'Next Day'
+                      : calendarViewMode === 'week'
+                      ? 'Next Week'
+                      : 'Next Month'
+                  }
+                  aria-label="Next Period"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+
+              {(calendarViewMode === 'day'
+                ? selectedDateStr !== todayStr
+                : calendarViewMode === 'week'
+                ? !weekDays.some((d) => d.isToday)
+                : currentMonthKey !== todayStr.slice(0, 7)) && (
+                <button
+                  type="button"
+                  onClick={handleJumpToToday}
+                  className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-white border border-slate-200 dark:border-slate-700 text-xs font-normal cursor-pointer transition-colors"
+                  title="Jump to current date"
+                >
+                  Today
+                </button>
+              )}
             </div>
 
-            {/* View switcher: Month | Week | Sprint Kanban */}
+            {/* Calendar Granularity Switcher: Month | Week | Day */}
             <div className="flex items-center bg-slate-100 dark:bg-[#132036] p-1 rounded-xl border border-slate-200/60 dark:border-slate-700/80">
               <button
+                type="button"
                 onClick={() => setCalendarViewMode('month')}
                 className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                   calendarViewMode === 'month'
@@ -735,6 +927,7 @@ export const AgileStudyRoadmap: React.FC = () => {
                 Month
               </button>
               <button
+                type="button"
                 onClick={() => setCalendarViewMode('week')}
                 className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                   calendarViewMode === 'week'
@@ -745,15 +938,15 @@ export const AgileStudyRoadmap: React.FC = () => {
                 Week
               </button>
               <button
-                onClick={() => setCalendarViewMode('sprint')}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                  calendarViewMode === 'sprint'
+                type="button"
+                onClick={() => setCalendarViewMode('day')}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  calendarViewMode === 'day'
                     ? 'bg-white dark:bg-[#1E3A5F] text-slate-900 dark:text-white shadow-xs'
                     : 'text-slate-500 dark:text-white/80 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
-                <Layers className="w-3.5 h-3.5" />
-                <span>Sprint</span>
+                Day
               </button>
             </div>
           </div>
@@ -767,7 +960,7 @@ export const AgileStudyRoadmap: React.FC = () => {
                 value={activeSubjectFilter}
                 onChange={(e) => setActiveSubjectFilter(e.target.value)}
                 aria-label="Filter tasks by subject"
-                className="pl-7 pr-6 py-1.5 rounded-xl bg-slate-50 dark:bg-[#132036] border border-slate-200 dark:border-slate-700/80 text-xs font-bold text-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#FF6B00] cursor-pointer max-w-[230px]"
+                className="pl-7 pr-6 py-1.5 rounded-xl bg-slate-50 dark:bg-[#132036] border border-slate-200 dark:border-slate-700/80 text-xs font-bold text-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-slate-400 cursor-pointer max-w-[230px]"
               >
                 <option value="ALL">All Subjects ({allDropdownSubjectNames.length})</option>
                 {enrolledSubjectNames.length > 0 && (
@@ -794,7 +987,7 @@ export const AgileStudyRoadmap: React.FC = () => {
             {/* Add New Task Button */}
             <button
               onClick={() => openAddTaskModal(1)}
-              className="px-3.5 py-1.5 rounded-xl bg-[#FF6B00]/50 hover:bg-[#FF6B00]/65 text-slate-900 dark:text-white text-xs font-bold flex items-center gap-1.5 shadow-sm shadow-orange-500/10 cursor-pointer transition-colors"
+              className="px-3.5 py-1.5 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white border border-slate-300 dark:border-slate-600 text-xs font-normal flex items-center gap-1.5 shadow-xs cursor-pointer transition-colors"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Add Task</span>
@@ -1140,17 +1333,23 @@ export const AgileStudyRoadmap: React.FC = () => {
                     >
                       {/* Day Number Header + Drag drop indicator + Add Task button */}
                       <div className="flex items-center justify-between">
-                        <span
-                          className={`text-xs font-bold ${
-                            isDragTarget
-                              ? 'text-indigo-600/75 dark:text-indigo-400/75 font-black'
-                              : hasMatchingFilterTasks && activeStatusFilter !== 'ALL'
+                        <button
+                          type="button"
+                          onClick={() => handleSelectDayView(dateStr)}
+                          title={`View ${currentMonthName} ${dayNum} schedule`}
+                          className={`text-xs font-bold inline-flex items-center gap-1 hover:underline cursor-pointer ${
+                            dateStr === todayStr
+                              ? 'px-1.5 py-0.5 rounded-md bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white'
+                              : isDragTarget || (hasMatchingFilterTasks && activeStatusFilter !== 'ALL')
                               ? 'text-indigo-600/75 dark:text-indigo-400/75 font-black'
                               : 'text-slate-600 dark:text-white'
                           }`}
                         >
-                          {dayNum}
-                        </span>
+                          <span>{dayNum}</span>
+                          {dateStr === todayStr && (
+                            <span className="text-[9px] font-normal uppercase tracking-wide">Today</span>
+                          )}
+                        </button>
 
                         <div className="flex items-center gap-1">
                           {isDragTarget && (
@@ -1312,144 +1511,369 @@ export const AgileStudyRoadmap: React.FC = () => {
               <div>
                 <h2 className="text-base font-light text-slate-900 dark:text-white flex items-center gap-2 tracking-wide">
                   <Calendar className="w-4 h-4 text-indigo-600/50 dark:text-indigo-400/50" />
-                  Sprint Week Schedule: {currentMonthName} (Days 8 to 14)
+                  Sprint Week Schedule: {weekRangeLabel}
                 </h2>
                 <p className="text-xs text-slate-500 dark:text-white mt-0.5">
-                  Drag tasks between days to rebalance workload. Guaranteed 1.5h core mathematics and electives.
+                  Drag tasks between days to rebalance workload. Click a day header to inspect that day&apos;s full schedule.
                 </p>
               </div>
               <span className="text-xs font-bold text-indigo-600/75 dark:text-indigo-400/75 bg-indigo-50/50 dark:bg-indigo-950/30 px-2.5 py-1 rounded-xl self-start sm:self-auto border border-indigo-200/50 dark:border-indigo-800/50">
-                {currentMonthName}
+                {weekRangeLabel}
               </span>
             </div>
 
             <div className="mt-4 grid grid-cols-1 md:grid-cols-7 gap-3">
-              {[8, 9, 10, 11, 12, 13, 14]
-                .filter((d) => d <= daysInCurrentMonth)
-                .map((dayNum) => {
-                  const dateStr = `${currentYear}-${String(currentMonthIndex + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
-                  const dayTasks = monthTasks.filter(
-                    (t) => (t.date === dateStr || t.day === dayNum) && isTaskVisible(t)
-                  );
-                  const isDragTarget = dragOverDateStr === dateStr;
+              {weekDays.map((wk) => {
+                const { dateStr, dayNum, weekdayShort, monthShort, isToday } = wk;
+                const dayTasks = dailyTasks.filter((t) => {
+                  const matchesDate = t.date
+                    ? t.date === dateStr
+                    : t.day === dayNum && dateStr.startsWith(currentMonthKey);
+                  return matchesDate && isTaskVisible(t);
+                });
+                const isDragTarget = dragOverDateStr === dateStr;
 
-                  return (
-                    <div
-                      key={`week-day-${dayNum}`}
-                      onDragOver={(e) => {
-                        e.preventDefault();
-                        e.dataTransfer.dropEffect = 'move';
-                        if (dragOverDateStr !== dateStr) setDragOverDateStr(dateStr);
-                      }}
-                      onDragLeave={(e) => {
-                        if (e.currentTarget.contains(e.relatedTarget as Node)) return;
-                        if (dragOverDateStr === dateStr) setDragOverDateStr(null);
-                      }}
-                      onDrop={(e) => {
-                        e.preventDefault();
-                        const taskId = e.dataTransfer.getData('text/plain') || draggedTaskId;
-                        if (taskId) {
-                          handleDropTaskOnDate(taskId, dateStr, dayNum);
-                        }
-                        setDraggedTaskId(null);
-                        setDragOverDateStr(null);
-                      }}
-                      className={`rounded-xl p-3 border transition-all flex flex-col justify-between min-h-[170px] ${
-                        isDragTarget
-                          ? 'bg-indigo-100/35 dark:bg-indigo-950/30 border-indigo-500/50 ring-2 ring-indigo-500/50 ring-inset shadow-inner'
-                          : 'bg-slate-50/50 dark:bg-slate-800/40 border-slate-200/50 dark:border-slate-700/50'
-                      }`}
-                    >
-                      <div>
-                        <div className="flex items-center justify-between pb-2 border-b border-slate-200/60 dark:border-slate-700/60">
-                          <span className={`text-xs font-black ${isDragTarget ? 'text-indigo-600/75 dark:text-indigo-400/75' : 'text-slate-800 dark:text-white'}`}>
-                            Day {dayNum}
+                return (
+                  <div
+                    key={`week-day-${dateStr}`}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      e.dataTransfer.dropEffect = 'move';
+                      if (dragOverDateStr !== dateStr) setDragOverDateStr(dateStr);
+                    }}
+                    onDragLeave={(e) => {
+                      if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+                      if (dragOverDateStr === dateStr) setDragOverDateStr(null);
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      const taskId = e.dataTransfer.getData('text/plain') || draggedTaskId;
+                      if (taskId) {
+                        handleDropTaskOnDate(taskId, dateStr, dayNum);
+                      }
+                      setDraggedTaskId(null);
+                      setDragOverDateStr(null);
+                    }}
+                    className={`rounded-xl p-3 border transition-all flex flex-col justify-between min-h-[170px] ${
+                      isDragTarget
+                        ? 'bg-indigo-100/35 dark:bg-indigo-950/30 border-indigo-500/50 ring-2 ring-indigo-500/50 ring-inset shadow-inner'
+                        : isToday
+                        ? 'bg-slate-100/70 dark:bg-slate-800/70 border-slate-300 dark:border-slate-600 ring-1 ring-slate-300/60 dark:ring-slate-600/60'
+                        : 'bg-slate-50/50 dark:bg-slate-800/40 border-slate-200/50 dark:border-slate-700/50'
+                    }`}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between pb-2 border-b border-slate-200/60 dark:border-slate-700/60">
+                        <button
+                          type="button"
+                          onClick={() => handleSelectDayView(dateStr)}
+                          className={`text-xs font-black flex items-center gap-1 hover:underline cursor-pointer ${
+                            isDragTarget ? 'text-indigo-600/75 dark:text-indigo-400/75' : 'text-slate-800 dark:text-white'
+                          }`}
+                        >
+                          <span>
+                            {weekdayShort}, {monthShort} {dayNum}
                           </span>
-                          <div className="flex items-center gap-1">
-                            {isDragTarget && (
-                              <span className="text-[9px] font-black bg-indigo-600/50 text-slate-900 dark:text-white px-1 rounded animate-pulse">
-                                Drop
-                              </span>
-                            )}
-                            <button
-                              onClick={() => openAddTaskModal(dayNum, dateStr)}
-                              className="text-slate-400 hover:text-indigo-600/75 dark:hover:text-white cursor-pointer"
-                              title={`Add task for Day ${dayNum}`}
-                            >
-                              <Plus className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </div>
-
-                        <div className="mt-2.5 space-y-2">
-                          {dayTasks.map((task) => {
-                            const badge = getStatusBadge(task.status);
-                            const isBeingDragged = draggedTaskId === task.id;
-                            const overdueInfo = getTaskOverdueInfo(task);
-                            return (
-                              <div
-                                key={task.id}
-                                draggable
-                                onDragStart={(e) => {
-                                  e.dataTransfer.setData('text/plain', task.id);
-                                  e.dataTransfer.effectAllowed = 'move';
-                                  setDraggedTaskId(task.id);
-                                }}
-                                onDragEnd={() => {
-                                  setDraggedTaskId(null);
-                                  setDragOverDateStr(null);
-                                }}
-                                onClick={() => handleOpenTask(task)}
-                                title={overdueInfo.isOverdue ? overdueInfo.reason : undefined}
-                                className={`p-2 rounded-lg shadow-xs cursor-grab active:cursor-grabbing hover:opacity-95 transition-all border ${
-                                  overdueInfo.isOverdue
-                                    ? 'border-red-500/80 dark:border-red-400/75 ring-1 ring-red-500/35'
-                                    : 'border-slate-900/10 dark:border-white/15'
-                                } ${badge.chipBg} ${isBeingDragged ? 'opacity-40 scale-95 ring-2 ring-white/50' : ''}`}
-                              >
-                                <div className="flex items-center justify-between text-[11px] font-bold">
-                                  <span className="flex items-center gap-1.5 font-normal truncate">
-                                    <SubjectIcon subject={task.subject} size="xs" />
-                                    <span className="truncate">{task.subject}</span>
-                                  </span>
-                                  <span className="text-[9px] bg-black/15 dark:bg-black/25 px-1 rounded">{task.points || 20} pts</span>
-                                </div>
-                                <p className="text-[10px] text-slate-800/85 dark:text-white/90 line-clamp-2 mt-0.5">{task.topic}</p>
-                                {overdueInfo.isOverdue && (
-                                  <div className="mt-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-600 text-white text-[8px] font-normal">
-                                    <Flag className="w-2.5 h-2.5 fill-white text-white shrink-0" />
-                                    <span>Overdue</span>
-                                  </div>
-                                )}
-                                <div className="mt-1.5 pt-1 border-t border-slate-900/10 dark:border-white/15 flex items-center justify-between text-[9px]">
-                                  <span className="font-semibold">{task.status}</span>
-                                  <span>
-                                    {task.study_time ? `${formatStudyTime(task.study_time)} · ` : ''}
-                                    {task.duration_hrs}h
-                                  </span>
-                                </div>
-                              </div>
-                            );
-                          })}
-
-                          {dayTasks.length === 0 && (
-                            <div className="text-xs text-slate-400 dark:text-white italic py-4 text-center">
-                              {getEmptyDayLabel(dayNum)}
-                            </div>
+                          {isToday && (
+                            <span className="text-[9px] font-normal px-1.5 py-0.2 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white">
+                              Today
+                            </span>
                           )}
+                        </button>
+                        <div className="flex items-center gap-1">
+                          {isDragTarget && (
+                            <span className="text-[9px] font-black bg-indigo-600/50 text-slate-900 dark:text-white px-1 rounded animate-pulse">
+                              Drop
+                            </span>
+                          )}
+                          <button
+                            onClick={() => openAddTaskModal(dayNum, dateStr)}
+                            className="text-slate-400 hover:text-indigo-600/75 dark:hover:text-white cursor-pointer"
+                            title={`Add task for ${monthShort} ${dayNum}`}
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                       </div>
 
-                      <div className="pt-2 text-[10px] font-semibold text-slate-400 dark:text-white">
-                        Target: 1.5h core practice
+                      <div className="mt-2.5 space-y-2">
+                        {dayTasks.map((task) => {
+                          const badge = getStatusBadge(task.status);
+                          const isBeingDragged = draggedTaskId === task.id;
+                          const overdueInfo = getTaskOverdueInfo(task);
+                          return (
+                            <div
+                              key={task.id}
+                              draggable
+                              onDragStart={(e) => {
+                                e.dataTransfer.setData('text/plain', task.id);
+                                e.dataTransfer.effectAllowed = 'move';
+                                setDraggedTaskId(task.id);
+                              }}
+                              onDragEnd={() => {
+                                setDraggedTaskId(null);
+                                setDragOverDateStr(null);
+                              }}
+                              onClick={() => handleOpenTask(task)}
+                              title={overdueInfo.isOverdue ? overdueInfo.reason : undefined}
+                              className={`p-2 rounded-lg shadow-xs cursor-grab active:cursor-grabbing hover:opacity-95 transition-all border ${
+                                overdueInfo.isOverdue
+                                  ? 'border-red-500/80 dark:border-red-400/75 ring-1 ring-red-500/35'
+                                  : 'border-slate-900/10 dark:border-white/15'
+                              } ${badge.chipBg} ${isBeingDragged ? 'opacity-40 scale-95 ring-2 ring-white/50' : ''}`}
+                            >
+                              <div className="flex items-center justify-between text-[11px] font-bold">
+                                <span className="flex items-center gap-1.5 font-normal truncate">
+                                  <SubjectIcon subject={task.subject} size="xs" />
+                                  <span className="truncate">{task.subject}</span>
+                                </span>
+                                <span className="text-[9px] bg-black/15 dark:bg-black/25 px-1 rounded">{task.points || 20} pts</span>
+                              </div>
+                              <p className="text-[10px] text-slate-800/85 dark:text-white/90 line-clamp-2 mt-0.5">{task.topic}</p>
+                              {overdueInfo.isOverdue && (
+                                <div className="mt-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-600 text-white text-[8px] font-normal">
+                                  <Flag className="w-2.5 h-2.5 fill-white text-white shrink-0" />
+                                  <span>Overdue</span>
+                                </div>
+                              )}
+                              <div className="mt-1.5 pt-1 border-t border-slate-900/10 dark:border-white/15 flex items-center justify-between text-[9px]">
+                                <span className="font-semibold">{task.status}</span>
+                                <span>
+                                  {task.study_time ? `${formatStudyTime(task.study_time)} · ` : ''}
+                                  {task.duration_hrs}h
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+
+                        {dayTasks.length === 0 && (
+                          <div className="text-xs text-slate-400 dark:text-white italic py-4 text-center">
+                            {getEmptyDayLabel(dayNum)}
+                          </div>
+                        )}
                       </div>
                     </div>
-                  );
-                })}
+
+                    <div className="pt-2 text-[10px] font-semibold text-slate-400 dark:text-white">
+                      Target: 1.5h core practice
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
       )}
+
+      {/* 4B. DAILY STUDY SCHEDULE VIEW (Current Day / Selected Day Tasks) */}
+      {calendarViewMode === 'day' && (() => {
+        const visibleDayTasks = selectedDayAllTasks.filter(isTaskVisible);
+        const dayDoneCount = visibleDayTasks.filter((t) => t.status === 'Completed').length;
+        const dayHours = visibleDayTasks.reduce((sum, t) => sum + (t.duration_hrs || 1.5), 0);
+        const dayTotalPts = visibleDayTasks.reduce((sum, t) => sum + (t.points || 20), 0);
+        const dayEarnedPts = visibleDayTasks
+          .filter((t) => t.status === 'Completed')
+          .reduce((sum, t) => sum + (t.points || 20), 0);
+
+        return (
+          <div className="bg-white dark:bg-[#111827] rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3.5 border-b border-slate-100 dark:border-slate-800">
+              <div className="space-y-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Calendar className="w-4 h-4 text-slate-600 dark:text-slate-300" />
+                  <h2 className="text-base font-light text-slate-900 dark:text-white tracking-wide">
+                    {selectedDateStr === todayStr ? "Today's Tasks" : 'Daily Study Tasks'} &bull;{' '}
+                    <span className="font-medium">{selectedDayFullLabel}</span>
+                  </h2>
+                  {selectedDateStr === todayStr && (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-normal bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-white border border-slate-300 dark:border-slate-600">
+                      Today
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-300">
+                  Review your focus tasks for this day, update workflow status, or add a new study block.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 shrink-0">
+                <span className="px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-700 dark:text-slate-200 tabular-nums">
+                  {dayDoneCount} / {visibleDayTasks.length} Done
+                </span>
+                <span className="px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-700 dark:text-slate-200 tabular-nums">
+                  {dayHours}h planned
+                </span>
+                <span className="px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-700 dark:text-slate-200 tabular-nums">
+                  {dayEarnedPts} / {dayTotalPts} pts
+                </span>
+                <button
+                  type="button"
+                  onClick={() => openAddTaskModal(selectedDayNum, selectedDateStr)}
+                  className="px-3 py-1.5 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white border border-slate-300 dark:border-slate-600 text-xs font-normal inline-flex items-center gap-1 cursor-pointer transition-colors"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add Task</span>
+                </button>
+              </div>
+            </div>
+
+            {visibleDayTasks.length === 0 ? (
+              <div className="p-8 rounded-2xl bg-slate-50/70 dark:bg-slate-800/35 border border-dashed border-slate-200 dark:border-slate-700 text-center space-y-3">
+                <Clock className="w-6 h-6 text-slate-400 dark:text-slate-300 mx-auto" />
+                <div className="space-y-1">
+                  <p className="text-sm font-normal text-slate-800 dark:text-white">
+                    {selectedDayAllTasks.length > 0
+                      ? `${selectedDayAllTasks.length} ${selectedDayAllTasks.length === 1 ? 'task is' : 'tasks are'} hidden by the active status or subject filter.`
+                      : `No study tasks scheduled for ${selectedDayShortLabel} (${getEmptyDayLabel(selectedDayNum)}).`}
+                  </p>
+                  <p className="text-xs text-slate-500 dark:text-slate-300">
+                    Schedule a study session for this day or use Prev/Next arrows above to browse other days.
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  {selectedDayAllTasks.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveStatusFilter('ALL');
+                        setActiveSubjectFilter('ALL');
+                      }}
+                      className="px-3.5 py-1.5 rounded-xl border border-slate-300 dark:border-slate-600 text-xs font-normal text-slate-700 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                    >
+                      Reset Filters
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => openAddTaskModal(selectedDayNum, selectedDateStr)}
+                    className="px-4 py-1.5 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white border border-slate-300 dark:border-slate-600 text-xs font-normal inline-flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Schedule Task for This Day</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+                {visibleDayTasks.map((task) => {
+                  const badge = getStatusBadge(task.status);
+                  const overdueInfo = getTaskOverdueInfo(task);
+                  const timeWindow = task.study_time
+                    ? formatStudyWindow(task.study_time, task.duration_hrs)
+                    : `${task.duration_hrs}h flexible slot`;
+
+                  return (
+                    <div
+                      key={`day-task-${task.id}`}
+                      onClick={() => handleOpenTask(task)}
+                      className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between gap-3 h-full hover:shadow-sm ${
+                        overdueInfo.isOverdue
+                          ? 'bg-red-50/40 dark:bg-red-950/20 border-red-400/80 dark:border-red-500/65 border-t-4 border-t-red-600 dark:border-t-red-500'
+                          : 'bg-slate-50/70 dark:bg-slate-800/45 border-slate-200/80 dark:border-slate-700/70 hover:border-slate-300 dark:hover:border-slate-600'
+                      }`}
+                    >
+                      <div className="space-y-2.5 min-w-0">
+                        <div className="flex items-start gap-2.5 min-w-0">
+                          <div className="w-9 h-9 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0">
+                            <SubjectIcon subject={task.subject} size="sm" />
+                          </div>
+                          <div className="min-w-0 flex-1 space-y-1">
+                            <div className="text-xs font-medium text-slate-900 dark:text-white truncate" title={task.subject}>
+                              {task.subject}
+                            </div>
+                            <div className="flex flex-wrap items-center gap-1">
+                              {task.is_core && (
+                                <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                                  Core
+                                </span>
+                              )}
+                              <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] border ${badge.bg}`}>
+                                {badge.icon}
+                                <span>{badge.label}</span>
+                              </span>
+                              {overdueInfo.isOverdue && (
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-red-600/15 dark:bg-red-500/20 border border-red-500/45 text-red-600 dark:text-red-400 text-[10px]">
+                                  <Flag className="w-2.5 h-2.5 fill-red-600 text-red-600 dark:fill-red-400 dark:text-red-400 shrink-0" />
+                                  <span>Overdue</span>
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        <p className="text-sm text-slate-800 dark:text-white leading-snug line-clamp-2" title={task.topic}>
+                          {task.topic}
+                        </p>
+
+                        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px] text-slate-500 dark:text-slate-300 tabular-nums">
+                          <span className="inline-flex items-center gap-1">
+                            <Clock className="w-3 h-3 shrink-0" />
+                            <span>{timeWindow}</span>
+                          </span>
+                          <span>&bull; {task.duration_hrs}h</span>
+                          <span>&bull; +{task.points ?? 20} pts</span>
+                        </div>
+
+                        {task.notes && (
+                          <p className="text-xs text-slate-500 dark:text-slate-300 italic line-clamp-2">
+                            {task.notes}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Inline Quick Status & Edit Actions */}
+                      <div
+                        className="pt-2.5 border-t border-slate-200/70 dark:border-slate-700/60 flex flex-wrap items-center justify-between gap-1.5"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          {task.status !== 'In Progress' && task.status !== 'Completed' && (
+                            <button
+                              type="button"
+                              onClick={() => handleQuickStatusChange(task.id, 'In Progress')}
+                              className="px-2.5 py-1 rounded-lg text-[11px] bg-blue-50/70 hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-900/40 text-blue-700 dark:text-blue-300 border border-blue-200/70 dark:border-blue-800/60 cursor-pointer transition-colors"
+                            >
+                              Start
+                            </button>
+                          )}
+                          {task.status !== 'Completed' && (
+                            <button
+                              type="button"
+                              onClick={() => handleQuickStatusChange(task.id, 'Completed')}
+                              className="px-2.5 py-1 rounded-lg text-[11px] bg-emerald-50/70 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/70 dark:border-emerald-800/60 cursor-pointer transition-colors"
+                            >
+                              ✓ Done
+                            </button>
+                          )}
+                          {task.status === 'Completed' && (
+                            <button
+                              type="button"
+                              onClick={() => handleQuickStatusChange(task.id, 'Revision')}
+                              className="px-2.5 py-1 rounded-lg text-[11px] bg-purple-50/70 hover:bg-purple-100 dark:bg-purple-950/40 dark:hover:bg-purple-900/40 text-purple-700 dark:text-purple-300 border border-purple-200/70 dark:border-purple-800/60 cursor-pointer transition-colors"
+                            >
+                              ↺ Revision
+                            </button>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenTask(task)}
+                          className="p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white cursor-pointer"
+                          title="Edit task details"
+                          aria-label="Edit task details"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* 5. AGILE SPRINT KANBAN BOARD VIEW (To Do, In Progress, On Hold, Revision, Done) */}
       {calendarViewMode === 'sprint' && (
@@ -2049,7 +2473,7 @@ export const AgileStudyRoadmap: React.FC = () => {
                           {dayScheduledCount > 0 && (
                             <span
                               className={`w-1 h-1 rounded-full mt-0.5 ${
-                                isSelected ? 'bg-amber-300/75' : 'bg-[#FF6B00]/50'
+                                isSelected ? 'bg-slate-200 dark:bg-slate-300' : 'bg-slate-400 dark:bg-slate-500'
                               }`}
                             />
                           )}
@@ -2091,7 +2515,7 @@ export const AgileStudyRoadmap: React.FC = () => {
                 <div className="md:col-span-5 space-y-3 md:border-l md:border-slate-200 dark:md:border-slate-700 md:pl-4">
                   <div>
                     <label className="block text-xs font-normal text-slate-800 dark:text-white mb-1 flex items-center gap-1.5">
-                      <Clock className="w-3.5 h-3.5 text-[#FF6B00]/50" />
+                      <Clock className="w-3.5 h-3.5 text-slate-500 dark:text-slate-300" />
                       <span>Study Start Time</span>
                     </label>
                     <input
@@ -2120,8 +2544,8 @@ export const AgileStudyRoadmap: React.FC = () => {
                           onClick={() => setNewTaskTime(slot.val)}
                           className={`px-2 py-1 rounded-lg text-[10px] font-normal border transition-colors cursor-pointer ${
                             newTaskTime === slot.val
-                              ? 'bg-[#FF6B00]/50 text-slate-900 dark:text-white border-[#FF6B00]/50'
-                              : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-white border-slate-200 dark:border-slate-700 hover:border-[#FF6B00]/50'
+                              ? 'bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white border-slate-400 dark:border-slate-500'
+                              : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-white border-slate-200 dark:border-slate-700 hover:border-slate-400'
                           }`}
                         >
                           {slot.label}

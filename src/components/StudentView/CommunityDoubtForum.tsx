@@ -420,7 +420,7 @@ export const CommunityDoubtForum: React.FC<CommunityDoubtForumProps> = ({
             onClick={() => setIsDigestModalOpen(true)}
             className="px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-white text-xs sm:text-sm font-lollipop-regular flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
           >
-            <Sparkles className="w-4 h-4 text-[#FF6B00]" />
+            <Sparkles className="w-4 h-4 text-slate-600 dark:text-slate-300" />
             <span>Weekly Digest</span>
           </button>
 
@@ -436,7 +436,7 @@ export const CommunityDoubtForum: React.FC<CommunityDoubtForumProps> = ({
           <button
             type="button"
             onClick={() => setIsAskModalOpen(true)}
-            className="px-4 py-2.5 rounded-xl bg-[#FF6B00] hover:bg-[#E56000] text-white text-xs sm:text-sm font-lollipop-regular shadow-xs flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+            className="px-4 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white border border-slate-300 dark:border-slate-600 text-xs sm:text-sm font-lollipop-regular shadow-xs flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
           >
             <Plus className="w-4 h-4" />
             <span>Ask a Doubt</span>
@@ -449,7 +449,7 @@ export const CommunityDoubtForum: React.FC<CommunityDoubtForumProps> = ({
         {/* 1. Doubt of the Day */}
         <div className="bg-white dark:bg-[#0E1A2D] rounded-2xl p-5 border border-slate-200/90 dark:border-slate-800/80 shadow-xs flex flex-col justify-between gap-3">
           <div className="space-y-1.5">
-            <div className="flex items-center justify-between text-xs font-lollipop-regular text-[#FF6B00]">
+            <div className="flex items-center justify-between text-xs font-lollipop-regular text-slate-700 dark:text-slate-200">
               <span className="flex items-center gap-1.5">
                 <Flame className="w-4 h-4" />
                 <span>Doubt of the Day</span>
@@ -480,7 +480,7 @@ export const CommunityDoubtForum: React.FC<CommunityDoubtForumProps> = ({
                   setSelectedChapter('All Chapters');
                   setExpandedPostId(doubtOfTheDay.id);
                 }}
-                className="text-[#FF6B00] hover:underline cursor-pointer whitespace-nowrap"
+                className="text-slate-600 dark:text-slate-300 hover:underline cursor-pointer whitespace-nowrap"
               >
                 Open Thread →
               </button>
@@ -523,7 +523,7 @@ export const CommunityDoubtForum: React.FC<CommunityDoubtForumProps> = ({
           <div className="space-y-1.5">
             <div className="flex items-center justify-between text-xs font-lollipop-regular text-slate-600 dark:text-slate-300">
               <span className="flex items-center gap-1.5 text-slate-900 dark:text-white">
-                <Video className="w-4 h-4 text-[#FF6B00]" />
+                <Video className="w-4 h-4 text-slate-600 dark:text-slate-300" />
                 <span>Weekly Live Doubt-Clearing</span>
               </span>
               <span className="text-emerald-600 dark:text-emerald-400">Thu · 5:00 PM</span>
@@ -591,7 +591,7 @@ export const CommunityDoubtForum: React.FC<CommunityDoubtForumProps> = ({
               onClick={() => setActiveSpace(tab.id)}
               className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-lollipop-regular flex items-center gap-2 transition-colors cursor-pointer whitespace-nowrap shrink-0 tabular-nums ${
                 active
-                  ? 'bg-[#FF6B00] text-white shadow-xs'
+                  ? 'bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-600 shadow-xs'
                   : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
               }`}
             >
@@ -624,7 +624,7 @@ export const CommunityDoubtForum: React.FC<CommunityDoubtForumProps> = ({
                 ? 'Search notes, previous papers, revision guides, or videos...'
                 : 'Search doubts by title, chapter (e.g. Class 10 Algebra), or keyword...'
             }
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-lollipop-regular text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#FF6B00]"
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-lollipop-regular text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-slate-400"
           />
         </div>
 
@@ -786,7 +786,7 @@ export const CommunityDoubtForum: React.FC<CommunityDoubtForumProps> = ({
               <span>
                 Priority Queue: Questions awaiting an accepted or teacher-verified answer appear here first so no student doubt goes unanswered.
               </span>
-              <span className="text-[#FF6B00] whitespace-nowrap tabular-nums">
+              <span className="text-slate-700 dark:text-slate-200 whitespace-nowrap tabular-nums">
                 {filteredPosts.length} Open Doubts
               </span>
             </div>
@@ -816,7 +816,7 @@ export const CommunityDoubtForum: React.FC<CommunityDoubtForumProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsAskModalOpen(true)}
-                  className="px-4 py-2 rounded-xl bg-[#FF6B00] text-white text-sm font-lollipop-regular cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white border border-slate-300 dark:border-slate-600 text-sm font-lollipop-regular cursor-pointer"
                 >
                   Ask a Doubt
                 </button>
@@ -862,7 +862,7 @@ export const CommunityDoubtForum: React.FC<CommunityDoubtForumProps> = ({
                           {post.space === 'assignment-exam' && (
                             <>
                               <span aria-hidden="true">·</span>
-                              <span className="text-[#FF6B00]">Assignment &amp; Exam Help</span>
+                              <span className="text-slate-700 dark:text-slate-200">Assignment &amp; Exam Help</span>
                             </>
                           )}
                           <span aria-hidden="true">·</span>
@@ -872,7 +872,7 @@ export const CommunityDoubtForum: React.FC<CommunityDoubtForumProps> = ({
                         <button
                           type="button"
                           onClick={() => setExpandedPostId(isExpanded ? null : post.id)}
-                          className="text-left text-base sm:text-lg font-lollipop-regular text-slate-900 dark:text-white hover:text-[#FF6B00] transition-colors cursor-pointer"
+                          className="text-left text-base sm:text-lg font-lollipop-regular text-slate-900 dark:text-white hover:text-slate-600 dark:hover:text-slate-300 transition-colors cursor-pointer"
                         >
                           {post.title}
                         </button>
@@ -912,7 +912,7 @@ export const CommunityDoubtForum: React.FC<CommunityDoubtForumProps> = ({
                     <button
                       type="button"
                       onClick={() => upvoteCommunityPost(post.id)}
-                      className="min-h-[40px] px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-orange-50 dark:hover:bg-orange-950/50 hover:text-[#FF6B00] text-xs sm:text-sm font-lollipop-regular text-slate-700 dark:text-white transition-colors cursor-pointer flex items-center gap-1.5 shrink-0 tabular-nums"
+                      className="min-h-[40px] px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs sm:text-sm font-lollipop-regular text-slate-700 dark:text-white transition-colors cursor-pointer flex items-center gap-1.5 shrink-0 tabular-nums"
                       title="Upvote this question"
                     >
                       <ThumbsUp className="w-4 h-4" />
@@ -1103,7 +1103,7 @@ export const CommunityDoubtForum: React.FC<CommunityDoubtForumProps> = ({
                               <button
                                 type="button"
                                 onClick={() => upvoteCommunityComment(post.id, comment.id)}
-                                className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-[#FF6B00] text-xs font-lollipop-regular text-slate-700 dark:text-white flex items-center gap-1 cursor-pointer tabular-nums"
+                                className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-slate-400 text-xs font-lollipop-regular text-slate-700 dark:text-white flex items-center gap-1 cursor-pointer tabular-nums"
                               >
                                 <ThumbsUp className="w-3 h-3" />
                                 <span>{comment.upvotes}</span>
@@ -1139,13 +1139,13 @@ export const CommunityDoubtForum: React.FC<CommunityDoubtForumProps> = ({
                             value={replyDrafts[post.id] || ''}
                             onChange={(e) => setReplyDrafts((prev) => ({ ...prev, [post.id]: e.target.value }))}
                             placeholder="Step 1: Identify the concept... Step 2: Show the transformation..."
-                            className="flex-1 p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-lollipop-regular text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#FF6B00] resize-none"
+                            className="flex-1 p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-lollipop-regular text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-slate-400 resize-none"
                           />
                           <button
                             type="button"
                             disabled={!(replyDrafts[post.id] || '').trim() || submittingReplyId === post.id}
                             onClick={() => handleSubmitReply(post.id)}
-                            className="px-4 py-2.5 rounded-xl bg-[#FF6B00] hover:bg-[#E56000] disabled:opacity-40 text-white text-sm font-lollipop-regular flex items-center justify-center gap-1.5 cursor-pointer shrink-0 whitespace-nowrap self-end sm:self-stretch"
+                            className="px-4 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 disabled:opacity-40 text-slate-800 dark:text-white border border-slate-300 dark:border-slate-600 text-sm font-lollipop-regular flex items-center justify-center gap-1.5 cursor-pointer shrink-0 whitespace-nowrap self-end sm:self-stretch"
                           >
                             <Send className="w-4 h-4" />
                             <span>{submittingReplyId === post.id ? 'Posting...' : 'Post Reply'}</span>
@@ -1204,7 +1204,7 @@ export const CommunityDoubtForum: React.FC<CommunityDoubtForumProps> = ({
                       className={`px-3.5 py-2 rounded-xl text-xs font-lollipop-regular cursor-pointer whitespace-nowrap shrink-0 transition-colors ${
                         isMember
                           ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
-                          : 'bg-[#FF6B00] hover:bg-[#E56000] text-white'
+                          : 'bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white border border-slate-300 dark:border-slate-600'
                       }`}
                     >
                       {isMember ? 'Joined · Leave' : 'Join Group'}
@@ -1217,7 +1217,7 @@ export const CommunityDoubtForum: React.FC<CommunityDoubtForumProps> = ({
 
                   <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-lollipop-regular text-slate-500 dark:text-slate-400 tabular-nums">
                     <span className="flex items-center gap-1.5">
-                      <Calendar className="w-3.5 h-3.5 text-[#FF6B00]" />
+                      <Calendar className="w-3.5 h-3.5 text-slate-500 dark:text-slate-300" />
                       <span>{group.availability}</span>
                     </span>
                     <span>
@@ -1303,7 +1303,7 @@ export const CommunityDoubtForum: React.FC<CommunityDoubtForumProps> = ({
             >
               <div className="space-y-2">
                 <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-lollipop-regular">
-                  <span className="flex items-center gap-1.5 text-[#FF6B00]">
+                  <span className="flex items-center gap-1.5 text-slate-700 dark:text-slate-200">
                     {res.resource_type === 'Recommended Video' ? (
                       <Play className="w-3.5 h-3.5" />
                     ) : (
@@ -1336,7 +1336,7 @@ export const CommunityDoubtForum: React.FC<CommunityDoubtForumProps> = ({
                 <button
                   type="button"
                   onClick={() => upvoteForumResource(res.id)}
-                  className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-orange-50 dark:hover:bg-orange-950/50 hover:text-[#FF6B00] text-slate-700 dark:text-white flex items-center gap-1.5 cursor-pointer tabular-nums whitespace-nowrap"
+                  className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-white flex items-center gap-1.5 cursor-pointer tabular-nums whitespace-nowrap"
                 >
                   <ThumbsUp className="w-3.5 h-3.5" />
                   <span>Helpful ({res.helpful_count})</span>
@@ -1444,7 +1444,7 @@ export const CommunityDoubtForum: React.FC<CommunityDoubtForumProps> = ({
                   value={askTitle}
                   onChange={(e) => setAskTitle(e.target.value)}
                   placeholder="e.g., Why does this integration step work?"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-lollipop-regular text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#FF6B00]"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-lollipop-regular text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-slate-400"
                 />
               </div>
 
@@ -1457,7 +1457,7 @@ export const CommunityDoubtForum: React.FC<CommunityDoubtForumProps> = ({
                   value={askContent}
                   onChange={(e) => setAskContent(e.target.value)}
                   placeholder="Include the complete problem statement, conditions, and what concept feels unclear..."
-                  className="w-full p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-lollipop-regular text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#FF6B00]"
+                  className="w-full p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-lollipop-regular text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-slate-400"
                 />
               </div>
 
@@ -1470,13 +1470,13 @@ export const CommunityDoubtForum: React.FC<CommunityDoubtForumProps> = ({
                   value={askAttempt}
                   onChange={(e) => setAskAttempt(e.target.value)}
                   placeholder="Show what you have tried so far so peers and teachers can guide the next step..."
-                  className="w-full p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-lollipop-regular text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#FF6B00]"
+                  className="w-full p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-lollipop-regular text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-slate-400"
                 />
               </div>
 
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <label className="px-3.5 py-2 rounded-xl border border-dashed border-slate-300 dark:border-slate-600 text-xs font-lollipop-regular text-slate-600 dark:text-slate-300 hover:border-[#FF6B00] flex items-center gap-2 cursor-pointer">
-                  <ImageIcon className="w-4 h-4 text-[#FF6B00]" />
+                <label className="px-3.5 py-2 rounded-xl border border-dashed border-slate-300 dark:border-slate-600 text-xs font-lollipop-regular text-slate-600 dark:text-slate-300 hover:border-slate-400 flex items-center gap-2 cursor-pointer">
+                  <ImageIcon className="w-4 h-4 text-slate-600 dark:text-slate-300" />
                   <span>{askAttachment ? 'Change Screenshot' : 'Attach Screenshot (optional)'}</span>
                   <input
                     type="file"
@@ -1491,7 +1491,7 @@ export const CommunityDoubtForum: React.FC<CommunityDoubtForumProps> = ({
                     type="checkbox"
                     checked={askHighPriority}
                     onChange={(e) => setAskHighPriority(e.target.checked)}
-                    className="rounded border-slate-300 text-[#FF6B00] focus:ring-[#FF6B00]"
+                    className="rounded border-slate-300 text-slate-700 focus:ring-slate-400"
                   />
                   <span>Mark as High-Priority (upcoming exam/deadline)</span>
                 </label>
@@ -1527,7 +1527,7 @@ export const CommunityDoubtForum: React.FC<CommunityDoubtForumProps> = ({
                 <button
                   type="submit"
                   disabled={isSubmittingAsk}
-                  className="px-5 py-2.5 rounded-xl bg-[#FF6B00] hover:bg-[#E56000] disabled:opacity-50 text-white text-sm font-lollipop-regular cursor-pointer"
+                  className="px-5 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 disabled:opacity-50 text-slate-800 dark:text-white border border-slate-300 dark:border-slate-600 text-sm font-lollipop-regular cursor-pointer"
                 >
                   {isSubmittingAsk ? 'Publishing...' : 'Publish Doubt'}
                 </button>
@@ -1581,7 +1581,7 @@ export const CommunityDoubtForum: React.FC<CommunityDoubtForumProps> = ({
               <button
                 type="button"
                 onClick={() => setIsRulesModalOpen(false)}
-                className="px-4 py-2 rounded-xl bg-[#FF6B00] text-white text-sm font-lollipop-regular cursor-pointer"
+                className="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white border border-slate-300 dark:border-slate-600 text-sm font-lollipop-regular cursor-pointer"
               >
                 Got It
               </button>
@@ -1631,7 +1631,7 @@ export const CommunityDoubtForum: React.FC<CommunityDoubtForumProps> = ({
                     className="w-full text-left p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-between gap-3 cursor-pointer"
                   >
                     <span className="text-slate-900 dark:text-white truncate">{q.title}</span>
-                    <span className="text-xs text-[#FF6B00] shrink-0 tabular-nums">{q.upvotes} upvotes</span>
+                    <span className="text-xs text-slate-600 dark:text-slate-300 shrink-0 tabular-nums">{q.upvotes} upvotes</span>
                   </button>
                 ))}
               </div>

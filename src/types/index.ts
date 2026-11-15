@@ -321,6 +321,7 @@ export interface CurriculumItem {
 
 export type StudentNavTab =
   | 'dashboard'
+  | 'pomodoro'
   | 'my-courses'
   | 'grades'
   | 'formulas-graphs'
@@ -331,7 +332,8 @@ export type StudentNavTab =
   | 'subjects'
   | 'practice'
   | 'progress'
-  | 'certificates';
+  | 'certificates'
+  | 'subscription';
 
 export interface MeetingInvite {
   id: string;
@@ -484,16 +486,25 @@ export interface MasterChapterItem {
 }
 
 export interface SubscriptionState {
-  tier: '7-Day Free Trial' | 'Student Pro' | 'Annual Mastery';
+  tier:
+    | '7-Day Free Trial'
+    | 'Monthly Plan'
+    | 'Quarterly Plan'
+    | 'Annual Plan'
+    | 'Student Pro'
+    | 'Annual Mastery';
   trialStartDate: string;
   trialEndDate: string;
   trialDaysLeft: number;
   isActive: boolean;
   paymentMethod?: {
-    type: 'UPI' | 'Card' | 'Apple Pay';
+    type: 'Credit Card' | 'Debit Card' | 'PayPal' | 'UPI' | 'Net Banking' | 'Card' | 'Apple Pay';
     detail: string;
   };
   autoRenew: boolean;
+  recurringMonthly?: boolean;
+  lastBilledAmountINR?: number;
+  activePlanId?: 'monthly' | 'quarterly' | 'annual';
 }
 
 export interface StudentGradeGrowth {

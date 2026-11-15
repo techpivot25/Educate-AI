@@ -11,11 +11,16 @@ import { FormulasAndGraphsTab } from './FormulasAndGraphsTab';
 import { AgileStudyRoadmap } from './AgileStudyRoadmap';
 import { CourseProgressTracker } from './CourseProgressTracker';
 import { StudentGamificationHub } from './StudentGamificationHub';
+import { PomodoroStudyTimer } from './PomodoroStudyTimer';
 import { OfflineStudyPackModal } from './OfflineStudyPackModal';
 import { ParentWeeklyDigestModal } from './ParentWeeklyDigestModal';
 import { CommunityDoubtForum } from './CommunityDoubtForum';
+import { SubscriptionPaymentPage } from './SubscriptionPaymentPage';
 import { PivotIQLogo } from '../common/PivotIQLogo';
 import { SubjectIcon } from '../common/SubjectIcon';
+import { LottieIcon } from '../common/LottieIcon';
+import { LiveChatbotLottie } from '../common/LiveChatbotLottie';
+import type { NavLottieName } from '../../utils/studentLottieAnimations';
 import {
   GraduationCap,
   BookOpen,
@@ -27,7 +32,6 @@ import {
   Lightbulb,
   UploadCloud,
   FileQuestion,
-  HelpCircle,
   ArrowRight,
   RefreshCw,
   Clock,
@@ -408,7 +412,7 @@ export const StudentView: React.FC = () => {
           if (/^#{1,6}\s+/.test(line)) {
             const cleanHeading = line.replace(/^#{1,6}\s+/, '');
             return (
-              <h4 key={idx} className="text-xs text-[#FF6B00] pt-1">
+              <h4 key={idx} className="text-xs text-slate-700 dark:text-slate-200 font-semibold pt-1">
                 {renderInline(cleanHeading)}
               </h4>
             );
@@ -610,7 +614,7 @@ export const StudentView: React.FC = () => {
                       <div>
                         {renderFormattedQuickAnswer(hasStructured ? parsed.resolution : turn.text)}
                         {isStreamingThis && isLastTurn && !parsed.furtherLearning && (
-                          <span className="inline-block w-1.5 h-3.5 ml-1 bg-[#FF6B00] animate-pulse align-middle rounded-xs" />
+                          <span className="inline-block w-1.5 h-3.5 ml-1 bg-slate-500 dark:bg-slate-400 animate-pulse align-middle rounded-xs" />
                         )}
                       </div>
                     </div>
@@ -619,13 +623,13 @@ export const StudentView: React.FC = () => {
                     {parsed.furtherLearning && (
                       <div className="pt-2.5 border-t border-slate-100 dark:border-slate-800 space-y-2">
                         <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
-                          <Lightbulb className="w-3 h-3 text-[#FF6B00]" />
+                          <Lightbulb className="w-3 h-3 text-slate-600 dark:text-slate-300" />
                           Further Learning
                         </span>
                         <div className="bg-slate-50/80 dark:bg-slate-800/40 rounded-xl p-2.5 border border-slate-200/60 dark:border-slate-700/50">
                           {renderFormattedQuickAnswer(parsed.furtherLearning)}
                           {isStreamingThis && isLastTurn && (
-                            <span className="inline-block w-1.5 h-3.5 ml-1 bg-[#FF6B00] animate-pulse align-middle rounded-xs" />
+                            <span className="inline-block w-1.5 h-3.5 ml-1 bg-slate-500 dark:bg-slate-400 animate-pulse align-middle rounded-xs" />
                           )}
                         </div>
 
@@ -645,7 +649,7 @@ export const StudentView: React.FC = () => {
                                     surfaceLabel
                                   );
                                 }}
-                                className="text-left text-[10px] px-2.5 py-1 rounded-lg bg-orange-50/70 dark:bg-orange-950/30 hover:bg-orange-100 dark:hover:bg-orange-950/60 text-[#FF6B00] border border-orange-200/70 dark:border-orange-800/60 inline-flex items-center gap-1 cursor-pointer transition-colors"
+                                className="text-left text-[10px] px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800/70 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 inline-flex items-center gap-1 cursor-pointer transition-colors"
                               >
                                 <CornerDownRight className="w-2.5 h-2.5 shrink-0" />
                                 <span className="line-clamp-1">{sug}</span>
@@ -658,7 +662,7 @@ export const StudentView: React.FC = () => {
                   </div>
                 ) : isStreamingThis && isLastTurn ? (
                   <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-white py-2 px-1">
-                    <Loader2 className="w-3.5 h-3.5 animate-spin text-[#FF6B00]" />
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-500 dark:text-slate-300" />
                     <span>Preparing interactive resolution &amp; further learning for {item.subject}...</span>
                   </div>
                 ) : null}
@@ -683,7 +687,7 @@ export const StudentView: React.FC = () => {
               }
               disabled={isStreamingThis || replyingThreadId === item.id}
               placeholder="Reply to AI Agent for follow-up or deeper explanation..."
-              className="flex-1 bg-white dark:bg-[#0E1A2D] border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#FF6B00]"
+              className="flex-1 bg-white dark:bg-[#0E1A2D] border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-slate-400"
             />
             <button
               type="submit"
@@ -692,7 +696,7 @@ export const StudentView: React.FC = () => {
                 isStreamingThis ||
                 replyingThreadId === item.id
               }
-              className="px-3 py-2 rounded-xl bg-[#FF6B00] hover:bg-[#E56000] disabled:opacity-40 text-white text-xs font-semibold inline-flex items-center gap-1 cursor-pointer transition-colors shrink-0"
+              className="px-3 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 disabled:opacity-40 text-slate-800 dark:text-white border border-slate-300 dark:border-slate-600 text-xs font-semibold inline-flex items-center gap-1 cursor-pointer transition-colors shrink-0"
             >
               {replyingThreadId === item.id ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -832,16 +836,23 @@ export const StudentView: React.FC = () => {
     }
   };
 
-  // Nav Items matching the theme in the image
-  const navTabs: { id: StudentNavTab; label: string; icon: React.ReactNode; badge?: string }[] = [
-    { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard className="w-4 h-4" /> },
-    { id: 'formulas-graphs', label: 'Formulas & Graphs', icon: <Binary className="w-4 h-4" />, badge: 'New' },
-    { id: 'my-courses', label: 'Skills Passport', icon: <BookOpen className="w-4 h-4" /> },
-    { id: 'grades', label: 'Grades & Mastery', icon: <BarChart3 className="w-4 h-4" /> },
-    { id: 'practice', label: 'Practice Quizzes', icon: <FileQuestion className="w-4 h-4" /> },
-    { id: 'ai-tutor', label: 'Ask Doubts AI', icon: <Sparkles className="w-4 h-4" /> },
-    { id: 'certificates', label: 'Certificates', icon: <Award className="w-4 h-4" /> },
-    { id: 'community', label: 'Community Q&A', icon: <Users className="w-4 h-4" /> },
+  // Nav Items with lazy Lottie animations (zero initial load delay)
+  const navTabs: {
+    id: StudentNavTab;
+    label: string;
+    lottieName: NavLottieName;
+    icon: React.ReactNode;
+    badge?: string;
+  }[] = [
+    { id: 'dashboard', label: 'Dashboard', lottieName: 'dashboard', icon: <LayoutDashboard className="w-4 h-4" /> },
+    { id: 'pomodoro', label: 'Pomodoro Study Timer', lottieName: 'timer', icon: <Clock className="w-4 h-4" /> },
+    { id: 'formulas-graphs', label: 'Formulas & Graphs', lottieName: 'formulas', icon: <Binary className="w-4 h-4" />, badge: 'New' },
+    { id: 'my-courses', label: 'Skills Passport', lottieName: 'passport', icon: <BookOpen className="w-4 h-4" /> },
+    { id: 'grades', label: 'Grades & Mastery', lottieName: 'grades', icon: <BarChart3 className="w-4 h-4" /> },
+    { id: 'practice', label: 'Practice Quizzes', lottieName: 'quiz', icon: <FileQuestion className="w-4 h-4" /> },
+    { id: 'ai-tutor', label: 'Ask Doubts AI', lottieName: 'sparkles', icon: <Sparkles className="w-4 h-4" /> },
+    { id: 'certificates', label: 'Certificates', lottieName: 'award', icon: <Award className="w-4 h-4" /> },
+    { id: 'community', label: 'Community Q&A', lottieName: 'community', icon: <Users className="w-4 h-4" /> },
   ];
 
   const currentDateStr = new Date().toLocaleDateString('en-US', {
@@ -951,8 +962,15 @@ export const StudentView: React.FC = () => {
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <span className={`${isActive ? 'text-white' : 'text-white/80'}`}>
-                        {tab.icon}
+                      <span className={`${isActive ? 'text-white' : 'text-white/80'} inline-flex items-center`}>
+                        <LottieIcon
+                          kind="nav"
+                          name={tab.lottieName}
+                          colorHex={isActive ? '#FFFFFF' : '#CBD5E1'}
+                          sizeClass="w-4 h-4"
+                          playMode="always"
+                          fallback={tab.icon}
+                        />
                       </span>
                       <span className="font-normal">{tab.label}</span>
                     </div>
@@ -979,22 +997,40 @@ export const StudentView: React.FC = () => {
         <div className="p-4 sm:p-5 border-t border-[#152B4D] dark:border-slate-800/80 space-y-3 bg-[#08182E]/60">
           {/* 7-Day Free Trial Card */}
           <div className="p-3 rounded-xl bg-[#132A4C]/80 border border-[#1E3E6B]/60 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-normal text-white flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-[#00A896] animate-pulse" />
-                <span>{subscriptionState.tier}</span>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[11px] font-normal text-white flex items-center gap-1.5 truncate">
+                <span className="w-2 h-2 rounded-full bg-[#00A896] animate-pulse shrink-0" />
+                <span className="truncate">{subscriptionState.tier}</span>
               </span>
-              <span className="text-[10px] font-normal px-1.5 py-0.5 rounded-md bg-[#00A896] text-white">
-                {subscriptionState.trialDaysLeft}d left
+              <span className="text-[10px] font-normal px-2 py-0.5 rounded-md bg-[#00A896] text-white shrink-0">
+                {subscriptionState.tier === '7-Day Free Trial'
+                  ? `${subscriptionState.trialDaysLeft} days left`
+                  : 'Active'}
               </span>
             </div>
             {/* Progress bar */}
             <div className="w-full bg-[#0D1B3E] rounded-full h-1.5 overflow-hidden">
               <div
                 className="bg-[#00A896] h-full rounded-full transition-all"
-                style={{ width: `${Math.min(100, Math.max(15, (7 - subscriptionState.trialDaysLeft) * 14.2))}%` }}
+                style={{
+                  width:
+                    subscriptionState.tier === '7-Day Free Trial'
+                      ? `${Math.min(100, Math.max(15, (7 - subscriptionState.trialDaysLeft) * 14.2))}%`
+                      : '100%',
+                }}
               />
             </div>
+            {/* Subscribe Now Button beneath progress bar */}
+            <button
+              type="button"
+              onClick={() => {
+                setStudentNav('subscription');
+                setMobileSidebarOpen(false);
+              }}
+              className="w-full py-1.5 px-3 rounded-lg bg-[#00A896] hover:bg-[#009282] text-white text-[11px] font-normal transition-colors cursor-pointer text-center shadow-2xs"
+            >
+              {subscriptionState.tier === '7-Day Free Trial' ? 'Subscribe now' : 'Manage subscription'}
+            </button>
           </div>
 
           {/* Quick Footer Links: Profile, Theme, Role Switch */}
@@ -1057,6 +1093,7 @@ export const StudentView: React.FC = () => {
                 <h2 className="text-base sm:text-lg font-light text-slate-900 dark:text-white tracking-wide flex items-center gap-2">
                   <span>
                     {studentNav === 'dashboard' && 'Agile Study Roadmap & Daily Planner'}
+                    {studentNav === 'pomodoro' && 'Pomodoro Study Timer'}
                     {studentNav === 'formulas-graphs' && 'Master Formulas & Board Diagrams'}
                     {studentNav === 'my-courses' && 'Skills Passport & Enrolled Curriculum'}
                     {studentNav === 'grades' && 'Academic Performance & Mastery KPIs'}
@@ -1065,6 +1102,7 @@ export const StudentView: React.FC = () => {
                     {studentNav === 'certificates' && 'Verified Digital Credentials'}
                     {studentNav === 'community' && 'Community Doubt & Q&A Forum'}
                     {studentNav === 'settings' && 'Student Account Preferences'}
+                    {studentNav === 'subscription' && 'Subscription Plans & Checkout'}
                   </span>
                 </h2>
                 <p className="text-[11px] text-slate-500 dark:text-white hidden sm:block">
@@ -1225,7 +1263,7 @@ export const StudentView: React.FC = () => {
         {/* =========================================================================
             3. MAIN CONTAINER FOR CONDITIONAL STUDENT TABS
             ========================================================================= */}
-        <main className="p-4 sm:p-6 lg:p-8 max-w-[1680px] mx-auto w-full flex-1 space-y-6">
+        <main className="p-4 sm:p-6 lg:p-8 pb-32 sm:pb-36 max-w-[1680px] mx-auto w-full flex-1 space-y-6">
           {/* TAB 1: MAIN DASHBOARD VIEW (Top Progress & Filters + Full-Width Agile Study Roadmap + Quick Doubts AI) */}
           {studentNav === 'dashboard' && (
             <div className="space-y-6">
@@ -1242,7 +1280,7 @@ export const StudentView: React.FC = () => {
                     </span>
                     <button
                       onClick={() => setIsCurriculumModalOpen(true)}
-                      className="font-normal text-[#FF6B00] hover:underline cursor-pointer"
+                      className="font-normal text-slate-600 dark:text-slate-300 hover:underline cursor-pointer"
                     >
                       View Syllabus &rarr;
                     </button>
@@ -1266,7 +1304,7 @@ export const StudentView: React.FC = () => {
                             grade_level: nextGrade,
                           });
                         }}
-                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-normal text-slate-900 dark:text-white rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#FF6B00] appearance-none cursor-pointer"
+                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-normal text-slate-900 dark:text-white rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-slate-400 appearance-none cursor-pointer"
                       >
                         {gradeOptions.map((g) => (
                           <option key={g} value={g}>
@@ -1292,7 +1330,7 @@ export const StudentView: React.FC = () => {
                           setCurrentBoard(nextBoard);
                           updateCurrentUser({ education_board: nextBoard });
                         }}
-                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-normal text-slate-900 dark:text-white rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#FF6B00] appearance-none cursor-pointer"
+                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-normal text-slate-900 dark:text-white rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-slate-400 appearance-none cursor-pointer"
                       >
                         {SUPPORTED_BOARDS.map((b) => (
                           <option key={b.value} value={b.value}>
@@ -1307,7 +1345,7 @@ export const StudentView: React.FC = () => {
                   {/* Multilingual Medium Selector Dropdown */}
                   <div className="space-y-1.5">
                     <label className="text-xs font-normal text-slate-700 dark:text-white flex items-center gap-1.5">
-                      <Languages className="w-3.5 h-3.5 text-[#FF6B00]" />
+                      <Languages className="w-3.5 h-3.5 text-slate-600 dark:text-slate-300" />
                       <span>Language Medium</span>
                     </label>
                     <div className="relative">
@@ -1318,7 +1356,7 @@ export const StudentView: React.FC = () => {
                           setGlobalLanguage(nextLang);
                           updateCurrentUser({ preferred_language: nextLang });
                         }}
-                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-normal text-slate-900 dark:text-white rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#FF6B00] appearance-none cursor-pointer"
+                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-normal text-slate-900 dark:text-white rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-slate-400 appearance-none cursor-pointer"
                       >
                         {SUPPORTED_LANGUAGES.map((l) => (
                           <option key={l.value} value={l.value}>
@@ -1360,10 +1398,10 @@ export const StudentView: React.FC = () => {
               <div className="font-lollipop-regular w-full bg-white dark:bg-[#0E1A2D] rounded-2xl p-4 sm:p-5 border border-slate-200/90 dark:border-slate-800/80 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-center gap-3 shrink-0">
                   <h3 className="text-xs font-normal uppercase tracking-wider text-slate-500 dark:text-white flex items-center gap-1.5">
-                    <Flame className="w-4 h-4 text-[#FF6B00]" />
+                    <Flame className="w-4 h-4 text-slate-600 dark:text-slate-300" />
                     <span>Study Momentum</span>
                   </h3>
-                  <span className="text-[11px] font-normal text-[#FF6B00] bg-orange-50 dark:bg-orange-950/60 px-2.5 py-0.5 rounded-full border border-orange-200 dark:border-orange-800/60">
+                  <span className="text-[11px] font-normal text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-full border border-slate-200 dark:border-slate-700">
                     5-Day Streak 🔥
                   </span>
                 </div>
@@ -1374,17 +1412,17 @@ export const StudentView: React.FC = () => {
                     <span className="font-normal text-slate-900 dark:text-white">10.5 / 10.5 hrs</span>
                   </div>
                   <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
-                    <div className="bg-gradient-to-r from-[#FF6B00] to-[#FFA04D] h-full rounded-full w-4/5" />
+                    <div className="bg-slate-400 dark:bg-slate-500 h-full rounded-full w-4/5" />
                   </div>
                 </div>
 
                 <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-white shrink-0">
-                  <Target className="w-3.5 h-3.5 text-[#FF6B00]" />
+                  <Target className="w-3.5 h-3.5 text-slate-500 dark:text-slate-300" />
                   <span>Next Milestone: Quadratic Formula Drills</span>
                 </div>
               </div>
 
-              {/* ROW 2: FULL-WIDTH AGILE STUDY ROADMAP & DAILY PLANNER */}
+              {/* ROW 4: FULL-WIDTH AGILE STUDY ROADMAP & DAILY PLANNER */}
               <div className="w-full">
                 <AgileStudyRoadmap />
               </div>
@@ -1396,8 +1434,15 @@ export const StudentView: React.FC = () => {
                   <div className="lg:col-span-5 space-y-4">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-2.5">
-                        <div className="w-9 h-9 rounded-xl bg-orange-50 dark:bg-orange-950/80 text-[#FF6B00] flex items-center justify-center font-bold shrink-0">
-                          <Sparkles className="w-4 h-4" />
+                        <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 text-[#00A896] flex items-center justify-center shrink-0">
+                          <LottieIcon
+                            kind="nav"
+                            name="sparkles"
+                            colorHex="#00A896"
+                            sizeClass="w-5 h-5"
+                            playMode="always"
+                            fallback={<Sparkles className="w-4 h-4" />}
+                          />
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
@@ -1408,16 +1453,15 @@ export const StudentView: React.FC = () => {
                               Real-Time LLM
                             </span>
                           </div>
-                          <p className="text-[11px] text-slate-500 dark:text-white/80 mt-0.5 flex items-center gap-1">
-                            <Lock className="w-3 h-3 text-[#00A896]" />
-                            <span>Private AI tutor &bull; Not submitted to any teacher</span>
+                          <p className="text-xs text-slate-500 dark:text-white/80 mt-0.5">
+                            Feeling stuck? Don’t hesitate to ask
                           </p>
                         </div>
                       </div>
                     </div>
 
                     <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/60 text-xs leading-relaxed text-slate-700 dark:text-white">
-                      <div className="flex items-center gap-2 mb-1 text-[11px] font-bold text-[#FF6B00]">
+                      <div className="flex items-center gap-2 mb-1 text-[11px] font-bold text-slate-700 dark:text-slate-200">
                         <Sparkles className="w-3.5 h-3.5" />
                         <span>Interactive Resolution &amp; Further Learning</span>
                       </div>
@@ -1435,7 +1479,7 @@ export const StudentView: React.FC = () => {
                             value={sidebarDoubtSubject}
                             onChange={(e) => setSidebarDoubtSubject(e.target.value)}
                             aria-label="Select subject for Quick Doubts AI"
-                            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-white px-3 py-2.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FF6B00] cursor-pointer"
+                            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-white px-3 py-2.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-400 cursor-pointer"
                           >
                             {displaySubjects.map((s) => {
                               const localized = getLocalizedSubjectName(s.name, currentBoard);
@@ -1457,7 +1501,7 @@ export const StudentView: React.FC = () => {
                             value={sidebarDoubtTopic}
                             onChange={(e) => setSidebarDoubtTopic(e.target.value)}
                             aria-label="Select topic for Quick Doubts AI"
-                            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-white px-3 py-2.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FF6B00] cursor-pointer"
+                            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-white px-3 py-2.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-400 cursor-pointer"
                           >
                             {sidebarTopicsForSubject.map((t) => (
                               <option key={`sb-topic-${t.id}`} value={t.title}>
@@ -1476,17 +1520,17 @@ export const StudentView: React.FC = () => {
                           value={sidebarCustomTopic}
                           onChange={(e) => setSidebarCustomTopic(e.target.value)}
                           placeholder={`Enter specific ${sidebarDoubtSubject} topic (e.g., Quadratic Equations)...`}
-                          className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white px-3.5 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FF6B00]"
+                          className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white px-3.5 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-400"
                         />
                       )}
 
                       {sidebarImageData && (
-                        <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-orange-50/70 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800/60">
+                        <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-slate-100 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700">
                           <div className="flex items-center gap-2 min-w-0">
                             <img
                               src={sidebarImageData.preview}
                               alt="Attached diagram"
-                              className="w-9 h-9 rounded-lg object-cover border border-orange-300"
+                              className="w-9 h-9 rounded-lg object-cover border border-slate-300 dark:border-slate-600"
                             />
                             <span className="text-[11px] font-semibold text-slate-700 dark:text-white truncate">
                               Diagram attached for AI vision
@@ -1495,7 +1539,7 @@ export const StudentView: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => setSidebarImageData(null)}
-                            className="p-1 rounded-lg hover:bg-orange-100 dark:hover:bg-orange-900/50 text-slate-500 dark:text-white cursor-pointer"
+                            className="p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-white cursor-pointer"
                           >
                             <X className="w-3.5 h-3.5" />
                           </button>
@@ -1518,12 +1562,12 @@ export const StudentView: React.FC = () => {
                               ? ` • ${sidebarDoubtTopic}`
                               : ''
                           } question...`}
-                          className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FF6B00] resize-none transition-all"
+                          className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-400 resize-none transition-all"
                         />
 
                         <div className="flex items-center justify-between gap-2">
-                          <label className="flex items-center gap-1.5 py-1.5 px-3 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 text-xs text-slate-600 dark:text-white cursor-pointer hover:border-[#FF6B00] transition-colors">
-                            <UploadCloud className="w-3.5 h-3.5 text-[#FF6B00]" />
+                          <label className="flex items-center gap-1.5 py-1.5 px-3 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 text-xs text-slate-600 dark:text-white cursor-pointer hover:border-slate-400 transition-colors">
+                            <UploadCloud className="w-3.5 h-3.5 text-slate-600 dark:text-slate-300" />
                             <span>Attach Diagram</span>
                             <input
                               type="file"
@@ -1536,7 +1580,7 @@ export const StudentView: React.FC = () => {
                           <button
                             type="submit"
                             disabled={(!sidebarDoubtText.trim() && !sidebarImageData) || isSidebarSubmitting}
-                            className="px-4 py-2 rounded-xl bg-[#FF6B00] hover:bg-[#E56000] disabled:opacity-40 text-white font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
+                            className="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 disabled:opacity-40 text-slate-800 dark:text-white border border-slate-300 dark:border-slate-600 font-lollipop-regular text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
                           >
                             {isSidebarSubmitting ? (
                               <>
@@ -1579,7 +1623,7 @@ export const StudentView: React.FC = () => {
 
                     {quickDoubts.length === 0 ? (
                       <div className="p-8 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-dashed border-slate-200 dark:border-slate-700 text-center space-y-1.5">
-                        <Sparkles className="w-5 h-5 text-[#FF6B00] mx-auto" />
+                        <Sparkles className="w-5 h-5 text-slate-500 dark:text-slate-300 mx-auto" />
                         <p className="text-xs font-semibold text-slate-700 dark:text-white">
                           Ask any Subject &amp; Topic question on the left
                         </p>
@@ -1599,7 +1643,7 @@ export const StudentView: React.FC = () => {
                               key={item.id}
                               className={`rounded-2xl border transition-all ${
                                 item.status === 'streaming'
-                                  ? 'bg-orange-50/40 dark:bg-orange-950/20 border-[#FF6B00]/50 shadow-xs'
+                                  ? 'bg-slate-100/80 dark:bg-slate-800/60 border-slate-300 dark:border-slate-600 shadow-xs'
                                   : item.status === 'error'
                                   ? 'bg-rose-50/50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-800/70'
                                   : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200/80 dark:border-slate-800'
@@ -1633,7 +1677,7 @@ export const StudentView: React.FC = () => {
 
                                 <div className="flex items-center gap-1.5 shrink-0">
                                   {item.status === 'streaming' ? (
-                                    <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-[#FF6B00]/15 text-[#FF6B00] flex items-center gap-1">
+                                    <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 flex items-center gap-1">
                                       <Loader2 className="w-3 h-3 animate-spin" />
                                       Streaming
                                     </span>
@@ -1719,6 +1763,17 @@ export const StudentView: React.FC = () => {
             </div>
           )}
 
+          {/* TAB 1B: DEDICATED POMODORO STUDY TIMER TAB */}
+          {studentNav === 'pomodoro' && (
+            <div className="space-y-6">
+              <PomodoroStudyTimer
+                subjects={displaySubjects.map((s) =>
+                  getLocalizedSubjectName(s.name, currentBoard)
+                )}
+              />
+            </div>
+          )}
+
           {/* TAB 2: DEDICATED FORMULAS & GRAPHS TAB */}
           {studentNav === 'formulas-graphs' && (
             <FormulasAndGraphsTab
@@ -1754,7 +1809,7 @@ export const StudentView: React.FC = () => {
                     </button>
                     <button
                       onClick={() => setIsCurriculumModalOpen(true)}
-                      className="px-4 py-2 rounded-xl bg-[#FF6B00] text-white text-xs font-bold hover:bg-[#E56000] transition-colors cursor-pointer shadow-sm flex items-center gap-1.5"
+                      className="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white border border-slate-300 dark:border-slate-600 text-xs font-lollipop-regular transition-colors cursor-pointer shadow-xs flex items-center gap-1.5"
                     >
                       <Compass className="w-4 h-4" />
                       <span>Browse Full Grades 6-12 Curriculum</span>
@@ -1795,9 +1850,9 @@ export const StudentView: React.FC = () => {
                         key={cat}
                         type="button"
                         onClick={() => setCoursesCategoryFilter(cat)}
-                        className={`px-2.5 py-1 rounded-full text-[11px] font-bold transition-colors cursor-pointer ${
+                        className={`px-2.5 py-1 rounded-full text-[11px] font-lollipop-regular transition-colors cursor-pointer ${
                           coursesCategoryFilter === cat
-                            ? 'bg-[#FF6B00] text-white'
+                            ? 'bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-600'
                             : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-white hover:bg-slate-200 dark:hover:bg-slate-700'
                         }`}
                       >
@@ -1938,7 +1993,7 @@ export const StudentView: React.FC = () => {
                                   className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700/60 flex items-center justify-between gap-2 text-xs"
                                 >
                                   <div className="flex items-center gap-1.5 truncate">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-[#FF6B00] shrink-0" />
+                                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-500 shrink-0" />
                                     <span className="truncate text-slate-700 dark:text-white font-medium">{top.title}</span>
                                   </div>
                                   <button
@@ -1975,7 +2030,7 @@ export const StudentView: React.FC = () => {
                             setStudentNav('ai-tutor');
                             sendTutorMessage(`Let's start tutoring on ${localizedSubName} - ${topicsForSub[0]?.title || 'Core Syllabus'}.`);
                           }}
-                          className="py-2 rounded-xl bg-orange-50 hover:bg-[#FF6B00] hover:text-white dark:bg-orange-950/60 text-[#FF6B00] text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer"
+                          className="py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-white border border-slate-200 dark:border-slate-700 text-xs font-lollipop-regular transition-all flex items-center justify-center gap-1 cursor-pointer"
                         >
                           <Sparkles className="w-3.5 h-3.5" />
                           <span>Launch AI Drill</span>
@@ -2033,7 +2088,7 @@ export const StudentView: React.FC = () => {
               {/* Dynamic KPI Scorecards */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <div className="bg-white dark:bg-[#0E1A2D] p-5 rounded-2xl border border-slate-200/90 dark:border-slate-800/80 text-center shadow-xs">
-                  <div className="text-3xl font-black text-[#FF6B00]">{currentUser?.overallProgress ?? 88}%</div>
+                  <div className="text-3xl font-black text-slate-700 dark:text-slate-200">{currentUser?.overallProgress ?? 88}%</div>
                   <div className="text-xs font-bold text-slate-500 dark:text-white mt-1">Overall Mastery</div>
                   <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold block mt-0.5">Top 5% Cohort</span>
                 </div>
@@ -2151,7 +2206,7 @@ export const StudentView: React.FC = () => {
                                   setStudentNav('ai-tutor');
                                   sendTutorMessage(`Let's launch a practice drill on ${localized} (Grade ${activeGradeFilter}, ${currentBoard}).`);
                                 }}
-                                className="px-2.5 py-1 rounded-lg bg-orange-50 hover:bg-[#FF6B00] hover:text-white dark:bg-orange-950/60 text-[#FF6B00] text-[10px] font-bold transition-colors cursor-pointer"
+                                className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-white border border-slate-200 dark:border-slate-700 text-[10px] font-lollipop-regular transition-colors cursor-pointer"
                               >
                                 Launch Drill
                               </button>
@@ -2165,8 +2220,8 @@ export const StudentView: React.FC = () => {
               </div>
 
               {/* Remedial drill banner */}
-              <div className="p-5 rounded-2xl bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-900/60 space-y-2">
-                <div className="flex items-center gap-2 text-[#FF6B00] font-extrabold text-sm">
+              <div className="p-5 rounded-2xl bg-slate-100 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 space-y-2">
+                <div className="flex items-center gap-2 text-slate-700 dark:text-slate-200 font-extrabold text-sm">
                   <Sparkles className="w-4 h-4" />
                   <span>AI Targeted Remedial Opportunity</span>
                 </div>
@@ -2178,7 +2233,7 @@ export const StudentView: React.FC = () => {
                     setStudentNav('ai-tutor');
                     sendTutorMessage("Can we practice Newton's 3rd Law action-reaction pairs?");
                   }}
-                  className="px-4 py-2 rounded-xl bg-[#FF6B00] text-white text-xs font-bold hover:bg-[#E56000] transition-colors cursor-pointer shadow-sm"
+                  className="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white border border-slate-300 dark:border-slate-600 text-xs font-lollipop-regular transition-colors cursor-pointer shadow-xs"
                 >
                   Start Targeted Practice
                 </button>
@@ -2203,7 +2258,7 @@ export const StudentView: React.FC = () => {
                     30-question board-compliant assessments, one question at a time · Score ≥ 80% earns verified credentials
                   </p>
                 </div>
-                <div className="text-sm font-lollipop-regular text-[#FF6B00] whitespace-nowrap shrink-0 tabular-nums">
+                <div className="text-sm font-lollipop-regular text-slate-600 dark:text-slate-300 whitespace-nowrap shrink-0 tabular-nums">
                   {quizzes.length} Quizzes · 30 Questions Each
                 </div>
               </div>
@@ -2226,7 +2281,7 @@ export const StudentView: React.FC = () => {
                       }}
                       className={`text-left p-5 rounded-2xl border transition-all cursor-pointer ${
                         isSelected
-                          ? 'bg-orange-50/60 dark:bg-orange-950/25 border-[#FF6B00] ring-2 ring-[#FF6B00]/20'
+                          ? 'bg-slate-100/90 dark:bg-slate-800/80 border-slate-400 dark:border-slate-500 ring-2 ring-slate-300/70 dark:ring-slate-600'
                           : 'bg-white dark:bg-[#0E1A2D] border-slate-200/90 dark:border-slate-800/80 hover:border-slate-300 dark:hover:border-slate-700'
                       }`}
                     >
@@ -2235,7 +2290,7 @@ export const StudentView: React.FC = () => {
                           <SubjectIcon subject={quiz.topic || quiz.title} size="sm" />
                           <span>{quiz.grade || `Grade ${studentGradeLevel}`}</span>
                         </span>
-                        <span className="text-[#FF6B00] tabular-nums">
+                        <span className="text-slate-600 dark:text-slate-300 tabular-nums">
                           {quiz.questions?.length || 30} Questions
                         </span>
                       </div>
@@ -2374,7 +2429,7 @@ export const StudentView: React.FC = () => {
                           </div>
 
                           {/* Result Actions: Retake or Step-by-Step Question Review */}
-                          <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-200/70 dark:border-slate-700/70">
+                          <div className="flex flex-wrap items-center justify-between gap-3 pt-3 sm:pr-44 md:pr-52 border-t border-slate-200/70 dark:border-slate-700/70">
                             <button
                               type="button"
                               onClick={() => {
@@ -2389,7 +2444,7 @@ export const StudentView: React.FC = () => {
                             <button
                               type="button"
                               onClick={handleRetakeQuiz}
-                              className="px-5 py-2.5 rounded-xl bg-[#FF6B00] hover:bg-[#E56000] text-white text-sm font-lollipop-regular shadow-xs flex items-center gap-2 cursor-pointer whitespace-nowrap"
+                              className="px-5 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white border border-slate-300 dark:border-slate-600 text-sm font-lollipop-regular shadow-xs flex items-center gap-2 cursor-pointer whitespace-nowrap"
                             >
                               <RefreshCw className="w-4 h-4" />
                               <span>Retake Quiz</span>
@@ -2417,7 +2472,7 @@ export const StudentView: React.FC = () => {
                               <button
                                 type="button"
                                 onClick={handleRetakeQuiz}
-                                className="px-3.5 py-2 rounded-xl bg-[#FF6B00] hover:bg-[#E56000] text-white text-xs font-lollipop-regular flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+                                className="px-3.5 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white border border-slate-300 dark:border-slate-600 text-xs font-lollipop-regular flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
                               >
                                 <RefreshCw className="w-3.5 h-3.5" />
                                 <span>Retake Quiz</span>
@@ -2430,7 +2485,7 @@ export const StudentView: React.FC = () => {
                         <div className="space-y-3">
                           <div className="w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
                             <div
-                              className="h-full bg-[#FF6B00] transition-all duration-200 rounded-full"
+                              className="h-full bg-slate-400 dark:bg-slate-400 transition-all duration-200 rounded-full"
                               style={{ width: `${progressPercent}%` }}
                             />
                           </div>
@@ -2450,12 +2505,12 @@ export const StudentView: React.FC = () => {
                                   : 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-700';
                               } else if (isAnswered) {
                                 stepClass =
-                                  'bg-orange-50 dark:bg-orange-950/40 text-[#FF6B00] border-orange-300 dark:border-orange-700';
+                                  'bg-slate-200/80 dark:bg-slate-700/80 text-slate-800 dark:text-slate-100 border-slate-300 dark:border-slate-600';
                               }
 
                               if (isCurrent) {
                                 stepClass =
-                                  'bg-[#FF6B00] text-white border-[#FF6B00] ring-2 ring-[#FF6B00]/25';
+                                  'bg-slate-300 dark:bg-slate-600 text-slate-900 dark:text-white border-slate-400 dark:border-slate-400 ring-2 ring-slate-300/70 dark:ring-slate-500';
                               }
 
                               return (
@@ -2477,7 +2532,7 @@ export const StudentView: React.FC = () => {
                         <div className="p-5 sm:p-6 rounded-2xl bg-slate-50/90 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/70 space-y-5">
                           <div className="flex items-start justify-between gap-4">
                             <p className="text-base sm:text-lg font-lollipop-regular text-slate-900 dark:text-white leading-relaxed">
-                              <span className="text-[#FF6B00] mr-2 tabular-nums">Q{safeIndex + 1}.</span>
+                              <span className="text-slate-600 dark:text-slate-300 mr-2 tabular-nums">Q{safeIndex + 1}.</span>
                               {currentQuestion.question}
                             </p>
                           </div>
@@ -2500,7 +2555,7 @@ export const StudentView: React.FC = () => {
                                 }
                               } else if (isOptionSelected) {
                                 optionStyle =
-                                  'bg-[#FF6B00] text-white border-[#FF6B00] shadow-xs';
+                                  'bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white border-slate-400 dark:border-slate-500 shadow-xs';
                               }
 
                               return (
@@ -2550,7 +2605,7 @@ export const StudentView: React.FC = () => {
                         </div>
 
                         {/* Bottom Navigation Bar: Back, Next, Submit & Retake */}
-                        <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+                        <div className="flex flex-wrap items-center justify-between gap-3 pt-4 sm:pr-44 md:pr-52 border-t border-slate-100 dark:border-slate-800">
                           <div className="flex items-center gap-2">
                             <button
                               type="button"
@@ -2579,7 +2634,7 @@ export const StudentView: React.FC = () => {
                                 setCurrentQuestionIndex((prev) => Math.min(totalQuestions - 1, prev + 1))
                               }
                               disabled={safeIndex === totalQuestions - 1}
-                              className="px-5 py-2.5 rounded-xl bg-[#FF6B00] hover:bg-[#E56000] disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-lollipop-regular shadow-xs shadow-orange-500/20 flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+                              className="px-5 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed text-slate-800 dark:text-white border border-slate-300 dark:border-slate-600 text-sm font-lollipop-regular shadow-xs flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
                             >
                               <span>Next</span>
                               <ChevronRight className="w-4 h-4" />
@@ -2612,8 +2667,15 @@ export const StudentView: React.FC = () => {
               {/* Header */}
               <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-[#FF6B00] text-white flex items-center justify-center font-bold shadow-md shadow-orange-500/20">
-                    <Sparkles className="w-5 h-5" />
+                  <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-[#00A896] flex items-center justify-center shadow-xs">
+                    <LottieIcon
+                      kind="nav"
+                      name="sparkles"
+                      colorHex="#00A896"
+                      sizeClass="w-5 h-5"
+                      playMode="always"
+                      fallback={<Sparkles className="w-5 h-5" />}
+                    />
                   </div>
                   <div>
                     <h2 className="font-light text-slate-900 dark:text-white text-base">
@@ -2649,26 +2711,26 @@ export const StudentView: React.FC = () => {
                   >
                     {msg.sender === 'ai' && (
                       <div className="w-8 h-8 rounded-xl bg-[#0B1E38] text-white flex items-center justify-center shrink-0">
-                        <Lightbulb className="w-4 h-4 text-orange-400" />
+                        <Lightbulb className="w-4 h-4 text-slate-300" />
                       </div>
                     )}
 
                     <div
                       className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-xs ${
                         msg.sender === 'student'
-                          ? 'bg-[#FF6B00] text-white rounded-br-xs font-medium'
+                          ? 'bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-white border border-slate-300 dark:border-slate-600 rounded-br-xs font-medium'
                           : 'bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded-bl-xs'
                       }`}
                     >
                       <div className="whitespace-pre-wrap">{msg.text}</div>
                       {msg.mathFormula && (
-                        <div className="mt-2 p-2 rounded-lg bg-black/5 dark:bg-black/30 font-mono text-xs text-[#FF6B00] font-bold">
+                        <div className="mt-2 p-2 rounded-lg bg-black/5 dark:bg-black/30 font-mono text-xs text-slate-700 dark:text-slate-200 font-bold">
                           {msg.mathFormula}
                         </div>
                       )}
                       <span
                         className={`text-[10px] block mt-1 text-right ${
-                          msg.sender === 'student' ? 'text-white/70' : 'text-slate-400 dark:text-white'
+                          msg.sender === 'student' ? 'text-slate-500 dark:text-slate-300' : 'text-slate-400 dark:text-white'
                         }`}
                       >
                         {msg.timestamp}
@@ -2676,7 +2738,7 @@ export const StudentView: React.FC = () => {
                     </div>
 
                     {msg.sender === 'student' && (
-                      <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 ring-2 ring-[#FF6B00] bg-[#FF6B00] flex items-center justify-center text-white font-bold text-xs">
+                      <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 ring-2 ring-slate-300 dark:ring-slate-600 bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-800 dark:text-white font-bold text-xs">
                         {currentUser?.avatar ? (
                           <img src={currentUser.avatar} alt="Student" className="w-full h-full object-cover" />
                         ) : (
@@ -2690,7 +2752,7 @@ export const StudentView: React.FC = () => {
                 {isAiTyping && (
                   <div className="flex items-start gap-3">
                     <div className="w-8 h-8 rounded-xl bg-[#0B1E38] text-white flex items-center justify-center shrink-0">
-                      <Sparkles className="w-4 h-4 animate-spin text-orange-400" />
+                      <Sparkles className="w-4 h-4 animate-spin text-slate-300" />
                     </div>
                     <div className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-3 rounded-2xl text-xs text-slate-500 dark:text-white">
                       Thinking Socratically...
@@ -2702,10 +2764,10 @@ export const StudentView: React.FC = () => {
 
               {/* Homework preview if attached */}
               {attachedImagePreview && (
-                <div className="px-6 py-2 bg-orange-50 dark:bg-orange-950/40 border-t border-orange-100 dark:border-orange-900 flex items-center justify-between text-xs">
+                <div className="px-6 py-2 bg-slate-100 dark:bg-slate-800/70 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2">
                     <img src={attachedImagePreview} alt="Problem" className="w-10 h-10 object-cover rounded-lg border" />
-                    <span className="font-bold text-[#FF6B00]">Homework photo ready for step-by-step breakdown</span>
+                    <span className="font-bold text-slate-700 dark:text-slate-200">Homework photo ready for step-by-step breakdown</span>
                   </div>
                   <button onClick={() => setAttachedImagePreview(null)} className="p-1 text-slate-400 dark:text-white hover:text-slate-600">
                     <X className="w-4 h-4" />
@@ -2739,13 +2801,13 @@ export const StudentView: React.FC = () => {
                   value={inputMessage}
                   onChange={(e) => setInputMessage(e.target.value)}
                   placeholder="Ask any concept, formula, or problem..."
-                  className="flex-1 bg-slate-50 dark:bg-slate-800 text-xs sm:text-sm px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#FF6B00]"
+                  className="flex-1 bg-slate-50 dark:bg-slate-800 text-xs sm:text-sm px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-slate-400"
                 />
 
                 <button
                   type="submit"
                   disabled={(!inputMessage.trim() && !attachedImagePreview) || isAiTyping}
-                  className="w-10 h-10 rounded-xl bg-[#FF6B00] hover:bg-[#E56000] disabled:opacity-40 text-white flex items-center justify-center transition-colors cursor-pointer shrink-0 shadow-sm"
+                  className="w-10 h-10 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 disabled:opacity-40 text-slate-800 dark:text-white border border-slate-300 dark:border-slate-600 flex items-center justify-center transition-colors cursor-pointer shrink-0 shadow-xs"
                 >
                   <Send className="w-4 h-4" />
                 </button>
@@ -2772,7 +2834,7 @@ export const StudentView: React.FC = () => {
                     className="p-6 rounded-2xl bg-white dark:bg-[#0E1A2D] border border-slate-200/90 dark:border-slate-800/80 shadow-xs space-y-4 relative overflow-hidden"
                   >
                     <div className="flex items-start justify-between">
-                      <div className="w-12 h-12 rounded-2xl bg-orange-50 dark:bg-orange-950/60 text-[#FF6B00] flex items-center justify-center font-bold">
+                      <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 flex items-center justify-center font-bold">
                         <Award className="w-6 h-6" />
                       </div>
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">
@@ -2812,7 +2874,7 @@ export const StudentView: React.FC = () => {
                 </div>
                 <button
                   onClick={() => setIsProfileOpen(true)}
-                  className="px-4 py-2 rounded-xl bg-[#FF6B00] text-white text-xs font-bold hover:bg-[#E56000] transition-colors cursor-pointer shadow-sm"
+                  className="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white border border-slate-300 dark:border-slate-600 text-xs font-lollipop-regular transition-colors cursor-pointer shadow-xs"
                 >
                   Edit Personal Info
                 </button>
@@ -2820,14 +2882,25 @@ export const StudentView: React.FC = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="bg-white dark:bg-[#0E1A2D] rounded-2xl p-5 border border-slate-200/90 dark:border-slate-800/80 shadow-xs space-y-3">
-                  <h3 className="font-light text-base text-slate-900 dark:text-white">Active Plan & Free Trial</h3>
-                  <div className="p-4 rounded-xl bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-800/60 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="font-light text-base text-slate-900 dark:text-white">Active Plan &amp; Free Trial</h3>
+                    <button
+                      type="button"
+                      onClick={() => setStudentNav('subscription')}
+                      className="px-3 py-1 rounded-lg bg-[#00A896] hover:bg-[#009282] text-white text-xs font-normal cursor-pointer transition-colors"
+                    >
+                      {subscriptionState.tier === '7-Day Free Trial' ? 'Subscribe now' : 'Manage Plan'}
+                    </button>
+                  </div>
+                  <div className="p-4 rounded-xl bg-slate-100 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="font-extrabold text-sm text-[#FF6B00]">{subscriptionState.tier}</span>
-                      <span className="text-xs font-bold text-emerald-600">Active</span>
+                      <span className="font-normal text-sm text-slate-800 dark:text-white">{subscriptionState.tier}</span>
+                      <span className="text-xs font-normal text-emerald-600">Active</span>
                     </div>
                     <p className="text-xs text-slate-600 dark:text-white">
-                      Full access trial expires on {subscriptionState.trialEndDate} ({subscriptionState.trialDaysLeft} days remaining).
+                      {subscriptionState.tier === '7-Day Free Trial'
+                        ? `Full access trial expires on ${subscriptionState.trialEndDate} (${subscriptionState.trialDaysLeft} days remaining).`
+                        : `Active subscription (${subscriptionState.recurringMonthly ? 'Monthly recurring auto-pay enabled' : 'Standard cycle'}).`}
                     </p>
                   </div>
                 </div>
@@ -2906,6 +2979,11 @@ export const StudentView: React.FC = () => {
               </div>
             </div>
           )}
+
+          {/* TAB 10: SUBSCRIPTION PLANS & PAYMENT PAGE */}
+          {studentNav === 'subscription' && (
+            <SubscriptionPaymentPage onBackToDashboard={() => setStudentNav('dashboard')} />
+          )}
         </main>
       </div>
 
@@ -2917,8 +2995,15 @@ export const StudentView: React.FC = () => {
           <div className="quick-doubts-lollipop mb-3 w-[420px] max-w-[calc(100vw-2rem)] max-h-[82vh] flex flex-col bg-white dark:bg-[#0E1A2D] text-slate-900 dark:text-white rounded-3xl p-5 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-3 animate-in fade-in slide-in-from-bottom-5">
             <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800 shrink-0">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-orange-50 dark:bg-orange-950/80 text-[#FF6B00] flex items-center justify-center">
-                  <Sparkles className="w-4 h-4" />
+                <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 text-[#00A896] flex items-center justify-center">
+                  <LottieIcon
+                    kind="nav"
+                    name="sparkles"
+                    colorHex="#00A896"
+                    sizeClass="w-4 h-4"
+                    playMode="always"
+                    fallback={<Sparkles className="w-4 h-4" />}
+                  />
                 </div>
                 <div>
                   <h3 className="font-semibold text-sm">Quick Doubts AI</h3>
@@ -2976,17 +3061,17 @@ export const StudentView: React.FC = () => {
                   value={quickCustomTopic}
                   onChange={(e) => setQuickCustomTopic(e.target.value)}
                   placeholder={`Specify ${quickDoubtSubject} topic...`}
-                  className="w-full bg-slate-50 dark:bg-slate-800 text-xs px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#FF6B00]"
+                  className="w-full bg-slate-50 dark:bg-slate-800 text-xs px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-slate-400"
                 />
               )}
 
               {quickImageData && (
-                <div className="flex items-center justify-between gap-2 p-1.5 rounded-xl bg-orange-50/70 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800/60">
+                <div className="flex items-center justify-between gap-2 p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700">
                   <div className="flex items-center gap-2 min-w-0">
                     <img
                       src={quickImageData.preview}
                       alt="Diagram preview"
-                      className="w-8 h-8 rounded-lg object-cover border border-orange-300"
+                      className="w-8 h-8 rounded-lg object-cover border border-slate-300 dark:border-slate-600"
                     />
                     <span className="text-[10px] font-semibold truncate">Diagram ready for AI</span>
                   </div>
@@ -3011,12 +3096,12 @@ export const StudentView: React.FC = () => {
                   }
                 }}
                 placeholder="Ask a question on this subject & topic..."
-                className="w-full bg-slate-50 dark:bg-slate-800 text-xs p-3 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#FF6B00] resize-none"
+                className="w-full bg-slate-50 dark:bg-slate-800 text-xs p-3 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-slate-400 resize-none"
               />
 
               <div className="flex items-center justify-between gap-2">
-                <label className="flex items-center gap-1.5 py-1.5 px-3 rounded-xl border border-dashed text-xs text-slate-500 dark:text-white cursor-pointer hover:border-[#FF6B00]">
-                  <UploadCloud className="w-3.5 h-3.5 text-[#FF6B00]" />
+                <label className="flex items-center gap-1.5 py-1.5 px-3 rounded-xl border border-dashed text-xs text-slate-500 dark:text-white cursor-pointer hover:border-slate-400">
+                  <UploadCloud className="w-3.5 h-3.5 text-slate-600 dark:text-slate-300" />
                   <span>Diagram</span>
                   <input
                     type="file"
@@ -3029,7 +3114,7 @@ export const StudentView: React.FC = () => {
                 <button
                   type="submit"
                   disabled={(!quickDoubtText.trim() && !quickImageData) || isSubmittingDoubt}
-                  className="px-4 py-2 rounded-xl bg-[#FF6B00] hover:bg-[#E56000] disabled:opacity-40 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-sm"
+                  className="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 disabled:opacity-40 text-slate-800 dark:text-white border border-slate-300 dark:border-slate-600 font-lollipop-regular text-xs flex items-center gap-1.5 cursor-pointer shadow-xs"
                 >
                   {isSubmittingDoubt ? (
                     <>
@@ -3061,7 +3146,7 @@ export const StudentView: React.FC = () => {
                       <span
                         className={`px-1.5 py-0.5 rounded-full font-bold shrink-0 ${
                           qd.status === 'streaming'
-                            ? 'bg-orange-100 text-[#FF6B00]'
+                            ? 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200'
                             : qd.status === 'blocked'
                             ? 'bg-rose-100 text-rose-700'
                             : qd.status === 'error'
@@ -3091,11 +3176,26 @@ export const StudentView: React.FC = () => {
 
         <button
           onClick={() => setIsQuickDoubtsOpen(!isQuickDoubtsOpen)}
-          className="w-14 h-14 rounded-full bg-gradient-to-tr from-[#FF6B00] to-[#FFA04D] text-white flex items-center justify-center shadow-xl hover:scale-105 active:scale-95 transition-all cursor-pointer relative"
-          title="Open Quick Doubts AI"
+          className={
+            isQuickDoubtsOpen
+              ? 'w-12 h-12 rounded-full bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white border border-slate-300 dark:border-slate-600 flex items-center justify-center shadow-xl hover:scale-105 active:scale-95 transition-all cursor-pointer relative'
+              : 'group relative w-40 h-[132px] sm:w-48 sm:h-[158px] flex items-center justify-center bg-transparent hover:scale-105 active:scale-95 transition-transform duration-200 cursor-pointer focus:outline-none'
+          }
+          title={isQuickDoubtsOpen ? 'Close Quick Doubts AI' : 'Open Quick Doubts AI'}
+          aria-label={isQuickDoubtsOpen ? 'Close Quick Doubts AI' : 'Open Quick Doubts AI'}
         >
-          {isQuickDoubtsOpen ? <X className="w-6 h-6" /> : <HelpCircle className="w-6 h-6" />}
-          <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-emerald-400 rounded-full border-2 border-white animate-pulse" />
+          {isQuickDoubtsOpen ? (
+            <X className="w-5 h-5" />
+          ) : (
+            <>
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-4 rounded-full bg-sky-400/15 dark:bg-cyan-400/15 blur-xl"
+              />
+              <LiveChatbotLottie />
+              <span className="absolute top-3 right-5 w-3.5 h-3.5 bg-emerald-400 rounded-full border-2 border-white dark:border-slate-900 animate-pulse shadow-xs" />
+            </>
+          )}
         </button>
       </div>
 

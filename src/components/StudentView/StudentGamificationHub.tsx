@@ -14,6 +14,7 @@ import {
   TrendingUp,
   Info,
 } from 'lucide-react';
+import { LottieIcon } from '../common/LottieIcon';
 
 interface GamificationState {
   streakDays: number;
@@ -112,18 +113,24 @@ export const StudentGamificationHub: React.FC = () => {
             setActiveTab('streak');
             setIsOpen(true);
           }}
-          className="group relative flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/15 via-orange-500/15 to-amber-500/10 dark:from-amber-500/20 dark:via-orange-500/20 dark:to-amber-500/15 border border-amber-400/40 dark:border-amber-500/40 text-amber-600 dark:text-amber-400 hover:border-amber-500 shadow-2xs hover:shadow-xs hover:scale-102 transition-all cursor-pointer"
+          className="group relative flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 shadow-2xs hover:shadow-xs hover:scale-102 transition-all cursor-pointer"
           title="Daily Learning Streak - Click to view Streak Calendar & Shields"
         >
-          <div className="relative">
-            <Flame className="w-4 h-4 fill-amber-500 text-amber-500 animate-pulse" />
-            <span className="absolute -top-1 -right-1 w-1.5 h-1.5 bg-orange-500 rounded-full animate-ping" />
+          <div className="relative flex items-center">
+            <LottieIcon
+              kind="nav"
+              name="flame"
+              colorHex="#64748B"
+              sizeClass="w-4 h-4"
+              playMode="always"
+              fallback={<Flame className="w-4 h-4 fill-slate-500 text-slate-500" />}
+            />
           </div>
           <div className="flex items-baseline gap-1">
-            <span className="text-xs font-black tracking-tight text-amber-700 dark:text-amber-300">
+            <span className="text-xs font-black tracking-tight text-slate-800 dark:text-white">
               {state.streakDays}
             </span>
-            <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 hidden md:inline">
+            <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300 hidden md:inline">
               Days
             </span>
           </div>
@@ -138,7 +145,14 @@ export const StudentGamificationHub: React.FC = () => {
           className="group relative flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-gradient-to-r from-indigo-500/15 via-purple-500/15 to-teal-500/10 dark:from-indigo-500/20 dark:via-purple-500/20 dark:to-teal-500/15 border border-indigo-400/40 dark:border-indigo-500/40 text-indigo-700 dark:text-indigo-300 hover:border-indigo-500 shadow-2xs hover:shadow-xs hover:scale-102 transition-all cursor-pointer"
           title="Total XP Points & Learning Level - Click for Quest Details"
         >
-          <Zap className="w-4 h-4 fill-indigo-500 text-indigo-500" />
+          <LottieIcon
+            kind="nav"
+            name="zap"
+            colorHex="#6366F1"
+            sizeClass="w-4 h-4"
+            playMode="always"
+            fallback={<Zap className="w-4 h-4 fill-indigo-500 text-indigo-500" />}
+          />
           <div className="flex items-baseline gap-1">
             <span className="text-xs font-black tracking-tight text-indigo-700 dark:text-indigo-200">
               {state.xpPoints.toLocaleString()}
@@ -169,7 +183,7 @@ export const StudentGamificationHub: React.FC = () => {
             className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-slate-900/70 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-200"
           >
             <div
-              className="relative w-full max-w-xl my-auto bg-white dark:bg-[#0E1A2D] rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+              className="font-lollipop-regular relative w-full max-w-xl my-auto bg-white dark:bg-[#0E1A2D] rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
               onClick={(e) => e.stopPropagation()}
             >
             {/* Header banner with playful flame & XP gradient */}
@@ -180,19 +194,19 @@ export const StudentGamificationHub: React.FC = () => {
 
               <div className="relative z-10 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg shadow-orange-500/30 text-white">
+                  <div className="w-12 h-12 rounded-2xl bg-slate-700 border border-slate-600 flex items-center justify-center shadow-xs text-white">
                     <Flame className="w-7 h-7 fill-white animate-pulse" />
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <h3 className="text-xl font-bold tracking-tight">
+                      <h3 className="text-xl font-normal tracking-tight">
                         {state.streakDays}-Day Learning Streak!
                       </h3>
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wide bg-amber-400/20 text-amber-300 border border-amber-400/30">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-normal uppercase tracking-wide bg-amber-400/20 text-amber-300 border border-amber-400/30">
                         {state.league}
                       </span>
                     </div>
-                    <p className="text-xs text-slate-300 mt-0.5">
+                    <p className="text-xs font-normal text-slate-300 mt-0.5">
                       You are studying consistently every day. Keep the fire burning!
                     </p>
                   </div>
@@ -211,7 +225,7 @@ export const StudentGamificationHub: React.FC = () => {
               <div className="flex items-center gap-2 mt-5">
                 <button
                   onClick={() => setActiveTab('streak')}
-                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-normal transition-all flex items-center gap-1.5 cursor-pointer ${
                     activeTab === 'streak'
                       ? 'bg-amber-500 text-white shadow-md shadow-amber-500/30'
                       : 'bg-white/10 text-slate-300 hover:bg-white/15'
@@ -222,7 +236,7 @@ export const StudentGamificationHub: React.FC = () => {
                 </button>
                 <button
                   onClick={() => setActiveTab('xp')}
-                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-normal transition-all flex items-center gap-1.5 cursor-pointer ${
                     activeTab === 'xp'
                       ? 'bg-indigo-500 text-white shadow-md shadow-indigo-500/30'
                       : 'bg-white/10 text-slate-300 hover:bg-white/15'
@@ -233,7 +247,7 @@ export const StudentGamificationHub: React.FC = () => {
                 </button>
                 <button
                   onClick={() => setActiveTab('badges')}
-                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-normal transition-all flex items-center gap-1.5 cursor-pointer ${
                     activeTab === 'badges'
                       ? 'bg-[#00A896] text-white shadow-md shadow-teal-500/30'
                       : 'bg-white/10 text-slate-300 hover:bg-white/15'
@@ -246,7 +260,7 @@ export const StudentGamificationHub: React.FC = () => {
             </div>
 
             {/* Modal Body */}
-            <div className="p-5 sm:p-6 overflow-y-auto space-y-5 text-slate-800 dark:text-white">
+            <div className="p-5 sm:p-6 overflow-y-auto space-y-5 text-slate-800 dark:text-white font-normal">
               {/* TAB 1: STREAK & CALENDAR */}
               {activeTab === 'streak' && (
                 <div className="space-y-5">
@@ -255,11 +269,11 @@ export const StudentGamificationHub: React.FC = () => {
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-2">
                         <Calendar className="w-4 h-4 text-amber-500" />
-                        <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-white">
+                        <span className="text-xs font-normal uppercase tracking-wider text-slate-700 dark:text-white">
                           Current Week Streak Tracker
                         </span>
                       </div>
-                      <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                      <span className="text-xs font-normal text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
                         <CheckCircle2 className="w-3.5 h-3.5" />
                         5 of 7 Days Active
                       </span>
@@ -277,21 +291,21 @@ export const StudentGamificationHub: React.FC = () => {
                               : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 opacity-60'
                           }`}
                         >
-                          <span className="text-[11px] font-bold text-slate-500 dark:text-white">
+                          <span className="text-[11px] font-normal text-slate-500 dark:text-white">
                             {w.day}
                           </span>
                           <div className="my-1.5 flex items-center justify-center">
                             {w.completed ? (
-                              <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-amber-500 to-orange-400 flex items-center justify-center text-white shadow-xs">
-                                <Flame className="w-4 h-4 fill-white" />
+                              <div className="w-7 h-7 rounded-full bg-slate-200 dark:bg-slate-600 border border-slate-300 dark:border-slate-500 flex items-center justify-center text-slate-700 dark:text-white shadow-xs">
+                                <Flame className="w-4 h-4 fill-slate-600 dark:fill-white" />
                               </div>
                             ) : (
-                              <div className="w-7 h-7 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-white text-xs font-bold">
+                              <div className="w-7 h-7 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-white text-xs font-normal">
                                 {idx + 1}
                               </div>
                             )}
                           </div>
-                          <span className="text-[10px] font-bold text-slate-600 dark:text-white">
+                          <span className="text-[10px] font-normal text-slate-600 dark:text-white tabular-nums">
                             {w.completed ? `+${w.xp} XP` : '0 XP'}
                           </span>
                         </div>
@@ -307,11 +321,11 @@ export const StudentGamificationHub: React.FC = () => {
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <h4 className="text-xs font-bold text-slate-900 dark:text-white">
+                          <h4 className="text-xs font-normal text-slate-900 dark:text-white">
                             Streak Freeze Protection
                           </h4>
                           <span
-                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-normal ${
                               state.streakFreezeEquipped
                                 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300'
                                 : 'bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-white'
@@ -320,7 +334,7 @@ export const StudentGamificationHub: React.FC = () => {
                             {state.streakFreezeEquipped ? 'Shield Active' : 'Standby'}
                           </span>
                         </div>
-                        <p className="text-[11px] text-slate-500 dark:text-white mt-0.5">
+                        <p className="text-[11px] font-normal text-slate-500 dark:text-white mt-0.5">
                           Protects your streak if you miss study time due to illness or holidays. (
                           {state.streakFreezeCount} freezes remaining)
                         </p>
@@ -329,7 +343,7 @@ export const StudentGamificationHub: React.FC = () => {
 
                     <button
                       onClick={handleToggleFreeze}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold cursor-pointer transition-all ${
+                      className={`px-3 py-1.5 rounded-xl text-xs font-normal cursor-pointer transition-all whitespace-nowrap ${
                         state.streakFreezeEquipped
                           ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-xs'
                           : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-white hover:bg-slate-300'
@@ -340,16 +354,16 @@ export const StudentGamificationHub: React.FC = () => {
                   </div>
 
                   {/* Daily Goal & Claim Bonus */}
-                  <div className="p-4 rounded-2xl bg-amber-500/10 dark:bg-amber-500/15 border border-amber-300 dark:border-amber-700/60 flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/70 flex flex-col sm:flex-row items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-500 flex items-center justify-center shrink-0">
+                      <div className="w-10 h-10 rounded-xl bg-slate-200/80 dark:bg-slate-700 text-slate-600 dark:text-slate-300 flex items-center justify-center shrink-0">
                         <Sparkles className="w-5 h-5" />
                       </div>
                       <div>
-                        <h4 className="text-xs font-bold text-slate-900 dark:text-white">
+                        <h4 className="text-xs font-normal text-slate-900 dark:text-white">
                           Daily Study Streak Bonus (+25 XP)
                         </h4>
-                        <p className="text-[11px] text-slate-500 dark:text-white mt-0.5">
+                        <p className="text-[11px] font-normal text-slate-500 dark:text-white mt-0.5">
                           {state.claimedBonusToday
                             ? 'Bonus collected for today! Check back tomorrow.'
                             : 'Solve 1 more practice question to claim bonus XP today.'}
@@ -360,10 +374,10 @@ export const StudentGamificationHub: React.FC = () => {
                     <button
                       onClick={handleClaimBonus}
                       disabled={state.claimedBonusToday}
-                      className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all ${
+                      className={`px-4 py-2 rounded-xl text-xs font-normal flex items-center gap-1.5 cursor-pointer transition-all whitespace-nowrap ${
                         state.claimedBonusToday
-                          ? 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-white/60 cursor-not-allowed'
-                          : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-md shadow-orange-500/30'
+                          ? 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-white/60 border border-slate-200 dark:border-slate-700 cursor-not-allowed'
+                          : 'bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white border border-slate-300 dark:border-slate-600 shadow-xs'
                       }`}
                     >
                       <Sparkles className="w-3.5 h-3.5" />
@@ -379,10 +393,10 @@ export const StudentGamificationHub: React.FC = () => {
                   {/* Today's XP Progress */}
                   <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-bold text-slate-700 dark:text-white">
+                      <span className="text-xs font-normal text-slate-700 dark:text-white">
                         Today's XP Target
                       </span>
-                      <span className="text-xs font-black text-indigo-600 dark:text-indigo-400">
+                      <span className="text-xs font-normal text-indigo-600 dark:text-indigo-400 tabular-nums">
                         {state.dailyXpCurrent} / {state.dailyXpGoal} XP
                       </span>
                     </div>
@@ -393,14 +407,14 @@ export const StudentGamificationHub: React.FC = () => {
                         style={{ width: `${Math.min(100, (state.dailyXpCurrent / state.dailyXpGoal) * 100)}%` }}
                       />
                     </div>
-                    <p className="text-[11px] text-slate-500 dark:text-white mt-2">
+                    <p className="text-[11px] font-normal text-slate-500 dark:text-white mt-2">
                       Reach 50 XP daily to unlock streak multipliers and rise up in the Emerald League.
                     </p>
                   </div>
 
                   {/* Active Daily Quests */}
                   <div className="space-y-2">
-                    <h5 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-white">
+                    <h5 className="text-xs font-normal uppercase tracking-wider text-slate-500 dark:text-white">
                       Today's Learning Quests
                     </h5>
 
@@ -408,13 +422,13 @@ export const StudentGamificationHub: React.FC = () => {
                       <div className="flex items-center gap-2.5">
                         <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                         <div>
-                          <p className="text-xs font-bold text-slate-900 dark:text-white">
+                          <p className="text-xs font-normal text-slate-900 dark:text-white">
                             Complete Core Algebra Task (1.5 hrs)
                           </p>
-                          <p className="text-[10px] text-slate-500 dark:text-white">Earned +25 XP</p>
+                          <p className="text-[10px] font-normal text-slate-500 dark:text-white">Earned +25 XP</p>
                         </div>
                       </div>
-                      <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 text-[10px] font-bold">
+                      <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 text-[10px] font-normal">
                         Completed
                       </span>
                     </div>
@@ -423,13 +437,13 @@ export const StudentGamificationHub: React.FC = () => {
                       <div className="flex items-center gap-2.5">
                         <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                         <div>
-                          <p className="text-xs font-bold text-slate-900 dark:text-white">
+                          <p className="text-xs font-normal text-slate-900 dark:text-white">
                             Ask Socratic AI 1 Concept Clarification
                           </p>
-                          <p className="text-[10px] text-slate-500 dark:text-white">Earned +20 XP</p>
+                          <p className="text-[10px] font-normal text-slate-500 dark:text-white">Earned +20 XP</p>
                         </div>
                       </div>
-                      <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 text-[10px] font-bold">
+                      <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 text-[10px] font-normal">
                         Completed
                       </span>
                     </div>
@@ -438,13 +452,13 @@ export const StudentGamificationHub: React.FC = () => {
                       <div className="flex items-center gap-2.5">
                         <div className="w-4 h-4 rounded-full border-2 border-slate-300 dark:border-slate-700" />
                         <div>
-                          <p className="text-xs font-bold text-slate-900 dark:text-white">
+                          <p className="text-xs font-normal text-slate-900 dark:text-white">
                             Score 85%+ on Rapid Practice Quiz
                           </p>
-                          <p className="text-[10px] text-slate-500 dark:text-white">Reward: +30 XP</p>
+                          <p className="text-[10px] font-normal text-slate-500 dark:text-white">Reward: +30 XP</p>
                         </div>
                       </div>
-                      <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-white text-[10px] font-bold">
+                      <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-white text-[10px] font-normal">
                         In Progress
                       </span>
                     </div>
@@ -453,13 +467,13 @@ export const StudentGamificationHub: React.FC = () => {
                   {/* Level & Rank status */}
                   <div className="p-4 rounded-2xl bg-gradient-to-r from-purple-500/10 via-indigo-500/10 to-[#00A896]/10 border border-indigo-200 dark:border-indigo-800 flex items-center justify-between">
                     <div>
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-500">
+                      <span className="text-[10px] font-normal uppercase tracking-wider text-indigo-500">
                         Academic Standing
                       </span>
-                      <h4 className="text-sm font-bold text-slate-900 dark:text-white">
+                      <h4 className="text-sm font-normal text-slate-900 dark:text-white">
                         Level {state.level}: Master Scholar
                       </h4>
-                      <p className="text-[11px] text-slate-500 dark:text-white">
+                      <p className="text-[11px] font-normal text-slate-500 dark:text-white">
                         80 XP remaining to unlock Level 5: Senior Polymath.
                       </p>
                     </div>
@@ -471,7 +485,7 @@ export const StudentGamificationHub: React.FC = () => {
               {/* TAB 3: MILESTONES & BADGES */}
               {activeTab === 'badges' && (
                 <div className="space-y-3">
-                  <p className="text-xs text-slate-500 dark:text-white">
+                  <p className="text-xs font-normal text-slate-500 dark:text-white">
                     Earn achievement badges by keeping your daily learning streak alive, mastering formulas, and solving doubt questions.
                   </p>
 
@@ -488,7 +502,7 @@ export const StudentGamificationHub: React.FC = () => {
                         <div
                           className={`w-11 h-11 rounded-2xl flex items-center justify-center text-xl shadow-xs shrink-0 ${
                             b.unlocked
-                              ? 'bg-gradient-to-br from-amber-400 to-orange-500 text-white'
+                              ? 'bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-white'
                               : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-white'
                           }`}
                         >
@@ -496,20 +510,20 @@ export const StudentGamificationHub: React.FC = () => {
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center justify-between">
-                            <h5 className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                            <h5 className="text-xs font-normal text-slate-900 dark:text-white truncate">
                               {b.name}
                             </h5>
                             {b.unlocked ? (
-                              <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                              <span className="text-[10px] font-normal text-emerald-600 dark:text-emerald-400">
                                 Unlocked
                               </span>
                             ) : (
-                              <span className="text-[10px] font-bold text-slate-400 dark:text-white">
+                              <span className="text-[10px] font-normal text-slate-400 dark:text-white">
                                 {b.progress}
                               </span>
                             )}
                           </div>
-                          <p className="text-[11px] text-slate-500 dark:text-white truncate">
+                          <p className="text-[11px] font-normal text-slate-500 dark:text-white truncate">
                             {b.desc}
                           </p>
                         </div>
@@ -521,14 +535,14 @@ export const StudentGamificationHub: React.FC = () => {
             </div>
 
             {/* Footer */}
-            <div className="p-4 bg-slate-50 dark:bg-slate-900/80 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 dark:text-white">
+            <div className="p-4 bg-slate-50 dark:bg-slate-900/80 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs font-normal text-slate-500 dark:text-white">
               <span className="flex items-center gap-1.5">
                 <Info className="w-3.5 h-3.5 text-amber-500" />
                 Streak updates automatically after completing daily sprint tasks.
               </span>
               <button
                 onClick={() => setIsOpen(false)}
-                className="px-4 py-1.5 rounded-xl bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-white font-bold transition-colors cursor-pointer"
+                className="px-4 py-1.5 rounded-xl bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-white font-normal transition-colors cursor-pointer"
               >
                 Close
               </button>
@@ -542,9 +556,9 @@ export const StudentGamificationHub: React.FC = () => {
       {confettiActive &&
         typeof document !== 'undefined' &&
         createPortal(
-          <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[110] bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white px-6 py-2.5 rounded-2xl shadow-2xl flex items-center gap-2 animate-bounce">
-            <Sparkles className="w-5 h-5 text-white" />
-            <span className="text-sm font-black tracking-wide">
+          <div className="font-lollipop-regular fixed top-5 left-1/2 -translate-x-1/2 z-[110] bg-slate-200 dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white px-6 py-2.5 rounded-2xl shadow-2xl flex items-center gap-2 animate-bounce">
+            <Sparkles className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+            <span className="text-sm font-normal tracking-wide">
               +25 XP Streak Bonus Claimed! Momentum Unstoppable! 🔥
             </span>
           </div>,
