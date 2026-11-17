@@ -23,6 +23,7 @@ import {
   DBTopic,
   DBSchool,
   StudentNavTab,
+  AdminNavTab,
   MeetingInvite,
   CommunityPost,
   CommunityComment,
@@ -35,11 +36,31 @@ import {
   EducationBoard,
   QuickDoubtChatTurn,
   GuardianEscalationReceipt,
+  ProfileAuditEntry,
+  QuizAttemptLog,
+  CertAutoTriggerConfig,
+  CertificateDownloadLog,
+  BillingTransaction,
+  CustomTaskApprovalStatus,
+  SubscriptionPlan,
+  SubscriptionPlanAuditEntry,
+  BillingCadence,
+  AiTokenUsageLog,
+  StudentAiQuotaRecord,
+  AiModelRoutingTier,
+  SubscriberRecord,
+  BoardConfig,
+  BoardSubjectMapping,
+  SubjectType,
 } from '../types';
+import { AI_ADDON_PACKS, estimateTurnCostINR } from '../utils/tokenPricing';
 import {
+  DEFAULT_BOARDS_CONFIG,
+  DEFAULT_BOARD_SUBJECT_MAPPINGS,
   DEFAULT_SUBJECTS_DB,
   DEFAULT_TOPICS_DB,
   SAMPLE_STUDENT_ACADEMIC_GROWTH,
+  resolveSubjectsForBoard,
 } from '../data/curriculumData';
 import {
   PLANT_CELLS_QUIZ_QUESTIONS,
@@ -83,12 +104,19 @@ interface AppContextType {
   ecosystemOverviewMode: boolean;
   setEcosystemOverviewMode: (val: boolean) => void;
 
-  // Real-Time Dynamic Subjects & Topics DB State
+  // Real-Time Dynamic Subjects, Topics & Relational Board-to-Subject Mappings State
+  boardsConfig: BoardConfig[];
+  boardSubjectMappings: BoardSubjectMapping[];
   subjectsDB: DBSubject[];
   topicsDB: DBTopic[];
   isCurriculumSyncing: boolean;
+  isBoardSubjectsLoading: boolean;
+  selectedBoardSubjectIds: string[];
+  setSelectedBoardSubjectIds: React.Dispatch<React.SetStateAction<string[]>>;
   fetchCurriculum: () => Promise<void>;
-  createSubject: (subject: { name: string; grade_level: number; board?: EducationBoard | 'ALL'; category?: any; code?: string; description?: string; status?: 'ACTIVE' | 'INACTIVE' }) => Promise<DBSubject | null>;
+  fetchSubjectsForBoard: (boardId: EducationBoard | 'ALL' | string) => Promise<(DBSubject & { resolvedSubjectType: SubjectType })[]>;
+  addBoardSubjectMapping: (boardId: EducationBoard | 'ALL' | string, subjectId: string, subjectType: SubjectType, isRequired?: boolean) => Promise<void>;
+  createSubject: (subject: { name: string; grade_level: number; board?: EducationBoard | 'ALL'; subject_type?: SubjectType; category?: any; code?: string; description?: string; status?: 'ACTIVE' | 'INACTIVE' }) => Promise<DBSubject | null>;
   updateSubject: (id: string, updates: Partial<DBSubject>) => Promise<DBSubject | null>;
   deleteSubject: (id: string) => Promise<boolean>;
   createTopic: (topic: { subject_id: string; title: string; description?: string; status?: 'ACTIVE' | 'INACTIVE' }) => Promise<DBTopic | null>;
@@ -104,11 +132,15 @@ interface AppContextType {
   setIsProfileOpen: (open: boolean) => void;
   updateCurrentUser: (updates: Partial<AppUser>) => void;
 
-  // User Management (Admin CRUD)
+  // User Management (Admin CRUD) & Module 1 Profile Sync/Audit/Overrides
   usersList: AppUser[];
   addUser: (user: Omit<AppUser, 'id' | 'createdAt'>) => void;
   updateUser: (id: string, updates: Partial<AppUser>) => void;
   deleteUser: (id: string) => void;
+  profileAuditLogs: ProfileAuditEntry[];
+  flagUserAccount: (userId: string, flagged: boolean, reason?: string) => void;
+  triggerCredentialReset: (userId: string) => void;
+  toggleUserActiveStatus: (userId: string) => void;
 
   // Role & Navigation
   currentRole: UserRole;
@@ -120,8 +152,8 @@ interface AppContextType {
   setGlobalSearch: (term: string) => void;
   studentNav: StudentNavTab;
   setStudentNav: (nav: StudentNavTab) => void;
-  adminNav: 'dashboard' | 'users' | 'curriculum' | 'teachers' | 'students' | 'config' | 'certificates' | 'analytics';
-  setAdminNav: (nav: 'dashboard' | 'users' | 'curriculum' | 'teachers' | 'students' | 'config' | 'certificates' | 'analytics') => void;
+  adminNav: AdminNavTab;
+  setAdminNav: (nav: AdminNavTab) => void;
 
   // Google Maps & Institutional Schools
   schools: DBSchool[];
@@ -171,16 +203,100 @@ interface AppContextType {
   }) => void;
   upvoteForumResource: (resourceId: string) => void;
 
-  // Subscription & 7-Day Free Trial
+  // Subscription, Catalog Lifecycle, Financial Ledger & Access Provisioning (Module 6)
+  subscriptionPlans: SubscriptionPlan[];
+  subscriptionPlanAuditLogs: SubscriptionPlanAuditEntry[];
+  createSubscriptionPlan: (
+    plan: Omit<
+      SubscriptionPlan,
+      | 'id'
+      | 'createdAt'
+      | 'lastModifiedAt'
+      | 'lastModifiedByAdminId'
+      | 'version'
+      | 'activeSubscribersCount'
+      | 'billingCycleLabel'
+    >
+  ) => SubscriptionPlan;
+  updateSubscriptionPlan: (
+    planId: string,
+    updates: Partial<SubscriptionPlan>,
+    options?: {
+      integrityMode?: 'new-enrollments-only' | 'next-renewal-cycle';
+      changeSummary?: string;
+    }
+  ) => void;
+  discontinueSubscriptionPlan: (planId: string, reason?: string) => void;
+  reactivateSubscriptionPlan: (planId: string, reason?: string) => void;
   subscriptionState: SubscriptionState;
   updateSubscription: (updates: Partial<SubscriptionState>) => void;
+  billingLedger: BillingTransaction[];
+  recordBillingTransaction: (
+    tx: Omit<BillingTransaction, 'id' | 'invoiceId' | 'createdAt'>
+  ) => BillingTransaction;
+  subscribers: SubscriberRecord[];
+  addSubscriber: (
+    input: Omit<SubscriberRecord, 'id' | 'studentId' | 'invoiceId'>
+  ) => SubscriberRecord;
+  updateSubscriberRecord: (
+    subscriberId: string,
+    updates: Partial<SubscriberRecord>
+  ) => void;
+  toggleStudentModuleAccess: (enabled: boolean, reason?: string) => void;
+  simulatePaymentLapse: () => void;
 
-  // Agile Study Planner
+  // AI Token Quota Metering, Add-On Credit Packs & FinOps Cost Ledger
+  aiTokenUsageLogs: AiTokenUsageLog[];
+  studentAiQuotas: StudentAiQuotaRecord[];
+  currentStudentAiQuota: StudentAiQuotaRecord;
+  aiQuotaExhaustedModalOpen: boolean;
+  setAiQuotaExhaustedModalOpen: (open: boolean) => void;
+  recordAiTokenUsage: (params: {
+    surface: 'Quick Doubts AI' | 'Socratic AI Tutor';
+    subject: string;
+    model: string;
+    promptTokens: number;
+    outputTokens: number;
+    cachedTokens?: number;
+    isVision?: boolean;
+  }) => void;
+  purchaseAddonTokenPack: (
+    packId: string,
+    paymentMethod: BillingTransaction['paymentMethod']
+  ) => BillingTransaction | null;
+  grantBonusTokensToStudent: (studentId: string, bonusTokens: number, note?: string) => void;
+  updateStudentMonthlyQuotaOverride: (studentId: string, newMonthlyLimit: number) => void;
+
+  // Agile Study Planner, Submissions & Custom Task Approvals (Modules 2 & 5)
   dailyTasks: DailyStudyTask[];
   setDailyTasks: React.Dispatch<React.SetStateAction<DailyStudyTask[]>>;
   updateStudyTask: (taskId: string, updates: Partial<DailyStudyTask>) => void;
   addStudyTask: (task: DailyStudyTask) => void;
   deleteStudyTask: (taskId: string) => void;
+  submitTaskDeliverable: (
+    taskId: string,
+    payload: {
+      submissionType: 'Code' | 'Document' | 'Link' | 'Note';
+      submissionTitle: string;
+      submissionContent: string;
+      submissionFileName?: string;
+    }
+  ) => void;
+  gradeTaskDeliverable: (
+    taskId: string,
+    payload: {
+      score: number;
+      maxScore: number;
+      feedback: string;
+      status: 'Graded' | 'Revision Required' | 'Under Review';
+    }
+  ) => void;
+  reviewCustomTask: (
+    taskId: string,
+    decision: CustomTaskApprovalStatus,
+    reviewNote?: string,
+    updatedFields?: Partial<DailyStudyTask>
+  ) => void;
   weeklySprints: WeeklySprintAllocation[];
   masterChapters: MasterChapterItem[];
   generateStudyPlan: (params?: any) => Promise<void>;
@@ -249,6 +365,15 @@ interface AppContextType {
   ) => Promise<void>;
   deleteQuickDoubt: (id: string) => void;
   clearQuickDoubts: () => void;
+  quizAttemptLogs: QuizAttemptLog[];
+  assignDoubtToMentor: (source: 'doubt' | 'quickDoubt', id: string, mentorName: string) => void;
+  resolveDoubtWithFeedback: (
+    source: 'doubt' | 'quickDoubt',
+    id: string,
+    reply: string,
+    resolutionStatus?: 'Resolved' | 'Closed'
+  ) => void;
+  closeDoubtItem: (source: 'doubt' | 'quickDoubt', id: string) => void;
 
   // Teacher State
   lessonPlans: LessonPlan[];
@@ -283,7 +408,13 @@ interface AppContextType {
   setStudentsList: React.Dispatch<React.SetStateAction<StudentProfile[]>>;
   teachersList: TeacherProfile[];
   certificates: DigitalCertificate[];
-  issueCertificate: (studentName: string, courseTitle: string, score: number) => DigitalCertificate;
+  issueCertificate: (studentName: string, courseTitle: string, score: number, triggerSource?: 'Auto' | 'Manual') => DigitalCertificate;
+  certAutoTriggerConfig: CertAutoTriggerConfig;
+  setCertAutoTriggerConfig: React.Dispatch<React.SetStateAction<CertAutoTriggerConfig>>;
+  approveCertificate: (certId: string) => void;
+  revokeCertificate: (certId: string) => void;
+  logCertificateDownload: (certId: string, format?: string) => void;
+  certificateDownloadLogs: CertificateDownloadLog[];
 
   // Proctoring Settings
   sensitivity: {
@@ -501,9 +632,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Theme state managed via ThemeContext with localStorage persistence & root DOM synchronization
   const { theme, setTheme, toggleTheme } = useTheme();
 
-  // Dynamic Subjects & Topics DB State synchronized in real-time (seeded across all Grades 6-12 & all 11 Boards)
+  // Dynamic Subjects, Topics & Relational Board-to-Subject Mappings synchronized in real-time
+  const [boardsConfig, setBoardsConfig] = useState<BoardConfig[]>(DEFAULT_BOARDS_CONFIG);
+  const [boardSubjectMappings, setBoardSubjectMappings] = useState<BoardSubjectMapping[]>(DEFAULT_BOARD_SUBJECT_MAPPINGS);
   const [subjectsDB, setSubjectsDB] = useState<DBSubject[]>(DEFAULT_SUBJECTS_DB);
   const [topicsDB, setTopicsDB] = useState<DBTopic[]>(DEFAULT_TOPICS_DB);
+  const [isBoardSubjectsLoading, setIsBoardSubjectsLoading] = useState<boolean>(false);
+  const [selectedBoardSubjectIds, setSelectedBoardSubjectIds] = useState<string[]>([]);
 
   // Derive live CurriculumItem catalog from active subjectsDB & topicsDB
   const curriculumList = React.useMemo<CurriculumItem[]>(() => {
@@ -514,6 +649,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         grade: s.grade_level,
         gradeLabel: `Grade ${s.grade_level}`,
         board: s.board || 'CBSE',
+        subject_type: s.subject_type,
         category: s.category || 'STEM',
         subjectName: s.name,
         code: s.code || `${s.name.slice(0, 3).toUpperCase()}-${s.grade_level}01`,
@@ -538,13 +674,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [isCurriculumSyncing, setIsCurriculumSyncing] = useState<boolean>(false);
 
-  // Fetch full curriculum from REST API
+  // Fetch full curriculum & relational board mappings from REST API
   const fetchCurriculum = async () => {
     try {
       setIsCurriculumSyncing(true);
       const res = await fetch('/api/curriculum/full');
       if (res.ok) {
         const data = await res.json();
+        if (data.boardsConfig) setBoardsConfig(data.boardsConfig);
+        if (data.boardSubjectMappings) setBoardSubjectMappings(data.boardSubjectMappings);
         if (data.subjects) setSubjectsDB(data.subjects);
         if (data.topics) setTopicsDB(data.topics);
       }
@@ -553,6 +691,72 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } finally {
       setIsCurriculumSyncing(false);
     }
+  };
+
+  // Async relational fetch when Governing Board dropdown changes
+  const fetchSubjectsForBoard = async (boardId: EducationBoard | 'ALL' | string) => {
+    setIsBoardSubjectsLoading(true);
+    try {
+      const res = await fetch(`/api/curriculum/subjects?board=${encodeURIComponent(String(boardId))}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.boardsConfig) setBoardsConfig(data.boardsConfig);
+        if (data.boardSubjectMappings) setBoardSubjectMappings(data.boardSubjectMappings);
+        if (Array.isArray(data.subjects)) {
+          return data.subjects as (DBSubject & { resolvedSubjectType: SubjectType })[];
+        }
+      }
+    } catch (err) {
+      console.warn('Fallback to local relational board mapping resolution:', err);
+    } finally {
+      setIsBoardSubjectsLoading(false);
+    }
+    return resolveSubjectsForBoard(boardId, subjectsDB, boardSubjectMappings);
+  };
+
+  // Create or update a board_id -> subject_id mapping row
+  const addBoardSubjectMapping = async (
+    boardId: EducationBoard | 'ALL' | string,
+    subjectId: string,
+    subjectType: SubjectType,
+    isRequired = true
+  ) => {
+    const fallbackRow: BoardSubjectMapping = {
+      id: `map-${String(boardId).toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${subjectId}`,
+      board_id: boardId as any,
+      subject_id: subjectId,
+      subject_type: subjectType,
+      is_required: isRequired,
+      created_at: new Date().toISOString().split('T')[0],
+    };
+    try {
+      const res = await fetch('/api/curriculum/mappings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          board_id: boardId,
+          subject_id: subjectId,
+          subject_type: subjectType,
+          is_required: isRequired,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.boardSubjectMappings) {
+          setBoardSubjectMappings(data.boardSubjectMappings);
+          return;
+        }
+      }
+    } catch (err) {
+      console.warn('Offline fallback for board-subject mapping:', err);
+    }
+    setBoardSubjectMappings((prev) => {
+      const idx = prev.findIndex((m) => m.board_id === boardId && m.subject_id === subjectId);
+      if (idx >= 0) {
+        return prev.map((m, i) => (i === idx ? fallbackRow : m));
+      }
+      return [fallbackRow, ...prev];
+    });
   };
 
   // Real-Time WebSocket synchronization for CurriculumState channel
@@ -576,9 +780,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           try {
             const data = JSON.parse(event.data);
             if (data.type === 'CURRICULUM_STATE_INIT' && data.payload) {
+              if (data.payload.boardsConfig) setBoardsConfig(data.payload.boardsConfig);
+              if (data.payload.boardSubjectMappings) setBoardSubjectMappings(data.payload.boardSubjectMappings);
               if (data.payload.subjects) setSubjectsDB(data.payload.subjects);
               if (data.payload.topics) setTopicsDB(data.payload.topics);
             } else if (data.type === 'CURRICULUM_UPDATED' && data.payload) {
+              if (data.payload.boardsConfig) setBoardsConfig(data.payload.boardsConfig);
+              if (data.payload.boardSubjectMappings) setBoardSubjectMappings(data.payload.boardSubjectMappings);
               if (data.payload.subjects) setSubjectsDB(data.payload.subjects);
               if (data.payload.topics) setTopicsDB(data.payload.topics);
 
@@ -635,37 +843,67 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
 
   // CRUD handlers for Admin Curriculum Management
-  const createSubject = async (newSubj: { name: string; grade_level: number; board?: EducationBoard | 'ALL'; category?: any; code?: string; description?: string; status?: 'ACTIVE' | 'INACTIVE' }) => {
+  const createSubject = async (newSubj: {
+    name: string;
+    grade_level: number;
+    board?: EducationBoard | 'ALL';
+    subject_type?: SubjectType;
+    category?: any;
+    code?: string;
+    description?: string;
+    status?: 'ACTIVE' | 'INACTIVE';
+  }) => {
+    const resolvedType: SubjectType =
+      newSubj.subject_type ||
+      (newSubj.category === 'Arts & Electives' ? 'ELECTIVE' : 'CORE');
     try {
       const res = await fetch('/api/curriculum/subjects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newSubj),
+        body: JSON.stringify({ ...newSubj, subject_type: resolvedType }),
       });
       if (res.ok) {
         const data = await res.json();
-        // Optimistic update
+        // Optimistic update for subject + relational mapping
         setSubjectsDB((prev) => {
           const exists = prev.some((s) => s.id === data.subject.id);
           return exists ? prev : [data.subject, ...prev];
         });
+        if (data.mapping) {
+          setBoardSubjectMappings((prev) => {
+            const exists = prev.some((m) => m.id === data.mapping.id);
+            return exists ? prev : [data.mapping, ...prev];
+          });
+        }
         return data.subject;
       }
     } catch (err) {
       console.error('Error creating subject:', err);
       // Fallback local creation if offline
+      const subjId = `subj-${Date.now()}`;
+      const boardVal = newSubj.board || 'CBSE';
       const fallback: DBSubject = {
-        id: `subj-${Date.now()}`,
+        id: subjId,
         name: newSubj.name,
         grade_level: newSubj.grade_level,
-        board: newSubj.board || 'CBSE',
+        board: boardVal,
+        subject_type: resolvedType,
         category: newSubj.category || 'STEM',
         code: newSubj.code || `${newSubj.name.slice(0, 3).toUpperCase()}-${newSubj.grade_level}01`,
         description: newSubj.description || '',
         status: newSubj.status || 'ACTIVE',
         created_at: new Date().toISOString().split('T')[0],
       };
+      const fallbackMapping: BoardSubjectMapping = {
+        id: `map-${String(boardVal).toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${subjId}`,
+        board_id: boardVal,
+        subject_id: subjId,
+        subject_type: resolvedType,
+        is_required: resolvedType === 'CORE' || resolvedType === 'REGIONAL_LANGUAGE',
+        created_at: new Date().toISOString().split('T')[0],
+      };
       setSubjectsDB((prev) => [fallback, ...prev]);
+      setBoardSubjectMappings((prev) => [fallbackMapping, ...prev]);
       return fallback;
     }
     return null;
@@ -681,6 +919,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (res.ok) {
         const data = await res.json();
         setSubjectsDB((prev) => prev.map((s) => (s.id === id ? data.subject : s)));
+        if (updates.board !== undefined || updates.subject_type !== undefined) {
+          setBoardSubjectMappings((prev) =>
+            prev.map((m) =>
+              m.subject_id === id
+                ? {
+                    ...m,
+                    board_id: updates.board !== undefined ? updates.board : m.board_id,
+                    subject_type: updates.subject_type !== undefined ? updates.subject_type : m.subject_type,
+                  }
+                : m
+            )
+          );
+        }
         return data.subject;
       }
     } catch (err) {
@@ -696,6 +947,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (res.ok) {
         setSubjectsDB((prev) => prev.filter((s) => s.id !== id));
         setTopicsDB((prev) => prev.filter((t) => t.subject_id !== id));
+        setBoardSubjectMappings((prev) => prev.filter((m) => m.subject_id !== id));
         return true;
       }
     } catch (err) {
@@ -703,6 +955,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
     setSubjectsDB((prev) => prev.filter((s) => s.id !== id));
     setTopicsDB((prev) => prev.filter((t) => t.subject_id !== id));
+    setBoardSubjectMappings((prev) => prev.filter((m) => m.subject_id !== id));
     return true;
   };
 
@@ -820,7 +1073,37 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [globalSearch, setGlobalSearch] = useState<string>('');
   const toggleSidebar = () => setSidebarCollapsed((prev) => !prev);
   const [studentNav, setStudentNav] = useState<StudentNavTab>('dashboard');
-  const [adminNav, setAdminNav] = useState<'dashboard' | 'users' | 'curriculum' | 'teachers' | 'students' | 'config' | 'certificates' | 'analytics'>('dashboard');
+  const [adminNav, setAdminNav] = useState<AdminNavTab>('dashboard');
+
+  // Module 1: Profile & Identity Audit Trail
+  const [profileAuditLogs, setProfileAuditLogs] = useState<ProfileAuditEntry[]>([
+    {
+      id: 'aud-1',
+      userId: 'user-stu-1',
+      userName: 'Sarah Connor',
+      userEmail: 'sarah.c@educateai.org',
+      field: 'education_board',
+      oldValue: 'ICSE',
+      newValue: 'CBSE',
+      actorRole: 'student',
+      actorName: 'Sarah Connor',
+      timestamp: 'Today, 09:42 AM',
+      changeType: 'profile_edit',
+    },
+    {
+      id: 'aud-2',
+      userId: 'user-stu-2',
+      userName: 'Alex Rivera',
+      userEmail: 'alex.r@educateai.org',
+      field: 'school_name',
+      oldValue: 'St. Xavier High School',
+      newValue: 'D.A.V. Public School, Sector 8',
+      actorRole: 'student',
+      actorName: 'Alex Rivera',
+      timestamp: 'Yesterday, 04:18 PM',
+      changeType: 'profile_edit',
+    },
+  ]);
 
   // Global Language & Board Configuration
   const [globalLanguage, setGlobalLanguage] = useState<string>('en');
@@ -1802,23 +2085,1341 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
   };
 
-  // Subscription & 7-Day Free Trial State
+  const getCycleLabelForCadence = (cadence: BillingCadence): string => {
+    switch (cadence) {
+      case 'Monthly':
+        return 'per month';
+      case 'Quarterly':
+        return 'per 3 months';
+      case 'Annually':
+        return 'per year';
+      case 'One-Time':
+        return 'one-time';
+    }
+  };
+
+  // Seeded Subscription Plans aligned 1:1 with Student Pricing UI & AI Token Economics
+  const [subscriptionPlans, setSubscriptionPlans] = useState<SubscriptionPlan[]>([
+    {
+      id: 'monthly',
+      name: 'Monthly Plan',
+      subtitle: 'Flexible month-to-month access',
+      currency: 'INR',
+      basePrice: 250,
+      billingFrequency: 'Monthly',
+      billingCycleLabel: 'per month',
+      gstApplicable: true,
+      courseAccessLevel: 'All Grades 6-12 & Boards',
+      usageQuotas: '350K AI Tokens/mo (~350 doubts) + Quizzes',
+      monthlyTokenQuota: 350000,
+      aiModelTier: 'flash-lite-hybrid',
+      overagePolicy: 'prompt-upgrade-or-addon',
+      maxVisionDoubtsPerMonth: 25,
+      contextCachingEnabled: true,
+      features: [
+        'Full Agile Study Roadmap & Daily Planner',
+        '350K AI Tutor Tokens/mo + 25 Vision Doubts',
+        'Interactive Practice Quizzes & Mock Tests',
+        'Pomodoro Study Timer & Progress Analytics',
+      ],
+      status: 'Active',
+      version: 1,
+      activeSubscribersCount: 14,
+      createdAt: '2026-09-01 09:00 AM',
+      effectiveStartDate: '2026-09-01',
+      lastModifiedAt: '2026-09-01 09:00 AM',
+      lastModifiedByAdminId: 'user-adm-1',
+      grandfatherExistingSubscribers: true,
+    },
+    {
+      id: 'quarterly',
+      name: 'Quarterly Plan',
+      subtitle: 'Save INR 150 vs. monthly (INR 200/mo)',
+      badge: 'Recommended',
+      currency: 'INR',
+      basePrice: 600,
+      billingFrequency: 'Quarterly',
+      billingCycleLabel: 'per 3 months',
+      gstApplicable: true,
+      courseAccessLevel: 'Full Curriculum + Board Diagrams',
+      usageQuotas: '500K AI Tokens/mo (1.5M/qtr) + Vision Priority',
+      monthlyTokenQuota: 500000,
+      aiModelTier: 'hydrogen-vision',
+      overagePolicy: 'prompt-upgrade-or-addon',
+      maxVisionDoubtsPerMonth: 80,
+      contextCachingEnabled: true,
+      features: [
+        'Everything in Monthly Plan included',
+        '500K AI Tokens/mo + 80 Diagram Vision Doubts',
+        'Full Master Formulas & Board Diagrams Library',
+        'Parental Weekly Digest & Offline Study Pack',
+      ],
+      status: 'Active',
+      version: 1,
+      activeSubscribersCount: 28,
+      createdAt: '2026-09-01 09:00 AM',
+      effectiveStartDate: '2026-09-01',
+      lastModifiedAt: '2026-09-01 09:00 AM',
+      lastModifiedByAdminId: 'user-adm-1',
+      grandfatherExistingSubscribers: true,
+    },
+    {
+      id: 'annual',
+      name: 'Annual Plan',
+      subtitle: 'Save INR 1,900/year vs. monthly (~INR 92/mo)',
+      badge: 'Best Value',
+      currency: 'INR',
+      basePrice: 1100,
+      billingFrequency: 'Annually',
+      billingCycleLabel: 'per year',
+      gstApplicable: true,
+      courseAccessLevel: 'All-Access Institutional Mastery',
+      usageQuotas: '250K AI Tokens/mo (3.0M/yr Fair-Use Cap)',
+      monthlyTokenQuota: 250000,
+      aiModelTier: 'hydrogen-standard',
+      overagePolicy: 'prompt-upgrade-or-addon',
+      maxVisionDoubtsPerMonth: 40,
+      contextCachingEnabled: true,
+      features: [
+        'Everything in Quarterly Plan for 12 months',
+        '250K AI Tokens/mo (3.0M/yr) + 40 Vision Doubts',
+        'Verified Digital Skill & Mastery Certificates',
+        'Full-Year Exam Sprint & Lowest Effective Rate',
+      ],
+      status: 'Active',
+      version: 1,
+      activeSubscribersCount: 42,
+      createdAt: '2026-09-01 09:00 AM',
+      effectiveStartDate: '2026-09-01',
+      lastModifiedAt: '2026-09-01 09:00 AM',
+      lastModifiedByAdminId: 'user-adm-1',
+      grandfatherExistingSubscribers: true,
+    },
+  ]);
+
+  const [subscriptionPlanAuditLogs, setSubscriptionPlanAuditLogs] = useState<
+    SubscriptionPlanAuditEntry[]
+  >([
+    {
+      id: 'planaudit-1',
+      planId: 'monthly',
+      planName: 'Monthly Plan',
+      action: 'Created',
+      adminId: 'user-adm-1',
+      adminName: 'Marcus Sterling',
+      timestamp: '2026-09-01 09:00 AM',
+      summary: 'Initial publication of Monthly Plan (INR 250 / Monthly + GST).',
+      versionSnapshot: 1,
+    },
+    {
+      id: 'planaudit-2',
+      planId: 'quarterly',
+      planName: 'Quarterly Plan',
+      action: 'Created',
+      adminId: 'user-adm-1',
+      adminName: 'Marcus Sterling',
+      timestamp: '2026-09-01 09:00 AM',
+      summary: 'Initial publication of Quarterly Plan (INR 600 / Quarterly + GST).',
+      versionSnapshot: 1,
+    },
+    {
+      id: 'planaudit-3',
+      planId: 'annual',
+      planName: 'Annual Plan',
+      action: 'Created',
+      adminId: 'user-adm-1',
+      adminName: 'Marcus Sterling',
+      timestamp: '2026-09-01 09:00 AM',
+      summary: 'Initial publication of Annual Plan (INR 1,100 / Annually + GST).',
+      versionSnapshot: 1,
+    },
+  ]);
+
+  const createSubscriptionPlan = (
+    planInput: Omit<
+      SubscriptionPlan,
+      | 'id'
+      | 'createdAt'
+      | 'lastModifiedAt'
+      | 'lastModifiedByAdminId'
+      | 'version'
+      | 'activeSubscribersCount'
+      | 'billingCycleLabel'
+    >
+  ): SubscriptionPlan => {
+    const nowStr = new Date().toLocaleString('en-IN', {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    });
+    const adminId = currentUser?.id || 'user-adm-1';
+    const adminName = currentUser?.name || 'Admin';
+    const newPlan: SubscriptionPlan = {
+      ...planInput,
+      id: `plan-${planInput.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}-${Date.now().toString().slice(-4)}`,
+      billingCycleLabel: getCycleLabelForCadence(planInput.billingFrequency),
+      version: 1,
+      activeSubscribersCount: 0,
+      createdAt: nowStr,
+      lastModifiedAt: nowStr,
+      lastModifiedByAdminId: adminId,
+      grandfatherExistingSubscribers: true,
+    };
+
+    setSubscriptionPlans((prev) => [...prev, newPlan]);
+    setSubscriptionPlanAuditLogs((prev) => [
+      {
+        id: `planaudit-${Date.now()}`,
+        planId: newPlan.id,
+        planName: newPlan.name,
+        action: 'Created',
+        adminId,
+        adminName,
+        timestamp: nowStr,
+        summary: `Published ${newPlan.name} (${newPlan.currency} ${newPlan.basePrice} / ${newPlan.billingFrequency}).`,
+        versionSnapshot: 1,
+      },
+      ...prev,
+    ]);
+    addNotification(
+      'Subscription Plan Published',
+      `${newPlan.name} (${newPlan.currency} ${newPlan.basePrice} / ${newPlan.billingFrequency}) is now live in the Student Catalog.`,
+      'success',
+      'admin'
+    );
+    return newPlan;
+  };
+
+  const updateSubscriptionPlan = (
+    planId: string,
+    updates: Partial<SubscriptionPlan>,
+    options?: {
+      integrityMode?: 'new-enrollments-only' | 'next-renewal-cycle';
+      changeSummary?: string;
+    }
+  ) => {
+    const nowStr = new Date().toLocaleString('en-IN', {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    });
+    const adminId = currentUser?.id || 'user-adm-1';
+    const adminName = currentUser?.name || 'Admin';
+    const integrityMode = options?.integrityMode || 'new-enrollments-only';
+
+    setSubscriptionPlans((prev) =>
+      prev.map((plan) => {
+        if (plan.id !== planId) return plan;
+        const pricingOrEntitlementsChanged =
+          (updates.basePrice !== undefined && updates.basePrice !== plan.basePrice) ||
+          (updates.currency !== undefined && updates.currency !== plan.currency) ||
+          (updates.billingFrequency !== undefined && updates.billingFrequency !== plan.billingFrequency) ||
+          (updates.features !== undefined && JSON.stringify(updates.features) !== JSON.stringify(plan.features)) ||
+          (updates.courseAccessLevel !== undefined && updates.courseAccessLevel !== plan.courseAccessLevel) ||
+          (updates.usageQuotas !== undefined && updates.usageQuotas !== plan.usageQuotas) ||
+          (updates.monthlyTokenQuota !== undefined && updates.monthlyTokenQuota !== plan.monthlyTokenQuota) ||
+          (updates.aiModelTier !== undefined && updates.aiModelTier !== plan.aiModelTier) ||
+          (updates.overagePolicy !== undefined && updates.overagePolicy !== plan.overagePolicy) ||
+          (updates.maxVisionDoubtsPerMonth !== undefined &&
+            updates.maxVisionDoubtsPerMonth !== plan.maxVisionDoubtsPerMonth);
+
+        const nextVersion =
+          plan.status === 'Active' && pricingOrEntitlementsChanged
+            ? plan.version + 1
+            : plan.version;
+        const nextFrequency = updates.billingFrequency || plan.billingFrequency;
+        const updatedPlan: SubscriptionPlan = {
+          ...plan,
+          ...updates,
+          billingCycleLabel: getCycleLabelForCadence(nextFrequency),
+          version: nextVersion,
+          lastModifiedAt: nowStr,
+          lastModifiedByAdminId: adminId,
+          grandfatherExistingSubscribers: integrityMode === 'new-enrollments-only',
+        };
+
+        // Sync monthly token cap for subscribers if applying at renewal or matching plan
+        if (
+          integrityMode === 'next-renewal-cycle' &&
+          (updates.monthlyTokenQuota !== undefined || updates.maxVisionDoubtsPerMonth !== undefined)
+        ) {
+          setStudentAiQuotas((qPrev) =>
+            qPrev.map((rec) =>
+              rec.planName === plan.name || rec.planName === updatedPlan.name
+                ? {
+                    ...rec,
+                    planName: updatedPlan.name,
+                    monthlyQuota: updatedPlan.monthlyTokenQuota,
+                    maxVisionDoubtsPerMonth:
+                      updatedPlan.maxVisionDoubtsPerMonth ?? rec.maxVisionDoubtsPerMonth,
+                  }
+                : rec
+            )
+          );
+        }
+
+        setSubscriptionPlanAuditLogs((auditPrev) => [
+          {
+            id: `planaudit-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+            planId: updatedPlan.id,
+            planName: updatedPlan.name,
+            action: 'Edited',
+            adminId,
+            adminName,
+            timestamp: nowStr,
+            summary:
+              options?.changeSummary ||
+              `Updated ${updatedPlan.name} (${updatedPlan.currency} ${updatedPlan.basePrice} / ${updatedPlan.billingFrequency} • ${updatedPlan.monthlyTokenQuota.toLocaleString()} tokens/mo • ${updatedPlan.aiModelTier}). ${
+                pricingOrEntitlementsChanged
+                  ? integrityMode === 'new-enrollments-only'
+                    ? `Version v${nextVersion}: new enrollments only (existing subscribers grandfathered).`
+                    : `Version v${nextVersion}: applies to current subscribers at next renewal cycle.`
+                  : 'Metadata updated.'
+              }`,
+            versionSnapshot: nextVersion,
+            integrityMode: pricingOrEntitlementsChanged ? integrityMode : undefined,
+          },
+          ...auditPrev,
+        ]);
+
+        return updatedPlan;
+      })
+    );
+
+    addNotification(
+      'Subscription Plan Updated',
+      `Changes synced to Subscription Catalog (${integrityMode === 'new-enrollments-only' ? 'Existing subscribers grandfathered' : 'Applies at next renewal'}).`,
+      'info',
+      'admin'
+    );
+  };
+
+  const discontinueSubscriptionPlan = (planId: string, reason?: string) => {
+    const nowStr = new Date().toLocaleString('en-IN', {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    });
+    const todayIso = new Date().toISOString().split('T')[0];
+    const adminId = currentUser?.id || 'user-adm-1';
+    const adminName = currentUser?.name || 'Admin';
+    let targetName = planId;
+
+    setSubscriptionPlans((prev) =>
+      prev.map((plan) => {
+        if (plan.id !== planId) return plan;
+        targetName = plan.name;
+        const discontinuedPlan: SubscriptionPlan = {
+          ...plan,
+          status: 'Discontinued',
+          discontinuedDate: nowStr,
+          endDate: plan.endDate || todayIso,
+          lastModifiedAt: nowStr,
+          lastModifiedByAdminId: adminId,
+        };
+        setSubscriptionPlanAuditLogs((auditPrev) => [
+          {
+            id: `planaudit-${Date.now()}`,
+            planId: plan.id,
+            planName: plan.name,
+            action: 'Discontinued',
+            adminId,
+            adminName,
+            timestamp: nowStr,
+            summary:
+              reason?.trim() ||
+              `Discontinued ${plan.name}. Hidden from new student enrollments; ${plan.activeSubscribersCount} existing subscribers remain unaffected until billing cycle expiry.`,
+            versionSnapshot: plan.version,
+          },
+          ...auditPrev,
+        ]);
+        return discontinuedPlan;
+      })
+    );
+
+    addNotification(
+      'Plan Discontinued (Soft-Archived)',
+      `${targetName} hidden from new student enrollments. Existing subscribers retain access until cycle expiry.`,
+      'warning',
+      'admin'
+    );
+  };
+
+  const reactivateSubscriptionPlan = (planId: string, reason?: string) => {
+    const nowStr = new Date().toLocaleString('en-IN', {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    });
+    const adminId = currentUser?.id || 'user-adm-1';
+    const adminName = currentUser?.name || 'Admin';
+    let targetName = planId;
+
+    setSubscriptionPlans((prev) =>
+      prev.map((plan) => {
+        if (plan.id !== planId) return plan;
+        targetName = plan.name;
+        const reactivated: SubscriptionPlan = {
+          ...plan,
+          status: 'Active',
+          discontinuedDate: undefined,
+          endDate: undefined,
+          lastModifiedAt: nowStr,
+          lastModifiedByAdminId: adminId,
+        };
+        setSubscriptionPlanAuditLogs((auditPrev) => [
+          {
+            id: `planaudit-${Date.now()}`,
+            planId: plan.id,
+            planName: plan.name,
+            action: 'Reactivated',
+            adminId,
+            adminName,
+            timestamp: nowStr,
+            summary:
+              reason?.trim() ||
+              `Reactivated ${plan.name} and restored visibility in Student Pricing Catalog.`,
+            versionSnapshot: plan.version,
+          },
+          ...auditPrev,
+        ]);
+        return reactivated;
+      })
+    );
+
+    addNotification(
+      'Plan Reactivated',
+      `${targetName} is now active and visible in Student Checkout.`,
+      'success',
+      'admin'
+    );
+  };
+
+  // Subscription & 7-Day Free Trial State + Billing Ledger & Access Provisioning (Module 6)
   const [subscriptionState, setSubscriptionState] = useState<SubscriptionState>({
     tier: '7-Day Free Trial',
     trialStartDate: '2026-10-10',
     trialEndDate: '2026-10-17',
     trialDaysLeft: 5,
     isActive: true,
+    moduleAccessEnabled: true,
+    billingStatus: 'Trial',
+    expiresAt: '2026-10-17',
     paymentMethod: {
       type: 'UPI',
-      detail: 'alexr@okhdfcbank',
+      detail: 'Financial details not stored',
     },
     autoRenew: true,
   });
 
+  const [billingLedger, setBillingLedger] = useState<BillingTransaction[]>([
+    {
+      id: 'tx-1',
+      invoiceId: 'INV-PVQ-2026-8841',
+      studentId: 'user-stu-2',
+      studentName: 'Alex Rivera',
+      studentEmail: 'alex.r@educateai.org',
+      planId: 'quarterly',
+      planName: 'Quarterly Plan',
+      baseAmountINR: 600,
+      gstAmountINR: 108,
+      totalAmountINR: 708,
+      paymentMethod: 'UPI',
+      paymentStatus: 'Success',
+      recurringMonthly: true,
+      expiresAt: '2027-01-15',
+      createdAt: '2026-10-15 10:20 AM',
+      note: 'Quarterly renewal + GST (18%)',
+    },
+    {
+      id: 'tx-2',
+      invoiceId: 'INV-PVQ-2026-8842',
+      studentId: 'stu-3',
+      studentName: 'Liam Chen',
+      studentEmail: 'liam.c@educateai.org',
+      planId: 'annual',
+      planName: 'Annual Plan',
+      baseAmountINR: 1100,
+      gstAmountINR: 198,
+      totalAmountINR: 1298,
+      paymentMethod: 'Credit Card',
+      paymentStatus: 'Success',
+      recurringMonthly: false,
+      expiresAt: '2027-10-01',
+      createdAt: '2026-10-01 02:45 PM',
+      note: 'Annual license',
+    },
+    {
+      id: 'tx-3',
+      invoiceId: 'INV-PVQ-2026-8843',
+      studentId: 'stu-6',
+      studentName: 'Daniel Vance',
+      studentEmail: 'daniel.v@educateai.org',
+      planId: 'monthly',
+      planName: 'Monthly Plan',
+      baseAmountINR: 250,
+      gstAmountINR: 45,
+      totalAmountINR: 295,
+      paymentMethod: 'Net Banking',
+      paymentStatus: 'Failed',
+      recurringMonthly: true,
+      expiresAt: '2026-10-12',
+      createdAt: '2026-10-12 06:10 PM',
+      note: 'Payment lapsed — access auto-suspended',
+    },
+  ]);
+
+  const [subscribers, setSubscribers] = useState<SubscriberRecord[]>([
+    {
+      id: 'sub-1',
+      studentId: 'user-stu-2',
+      studentName: 'Alex Rivera',
+      studentEmail: 'alex.r@educateai.org',
+      phone: '+91 98765 11002',
+      grade: 'Grade 10',
+      educationBoard: 'CBSE',
+      city: 'Chandigarh',
+      state: 'Chandigarh',
+      planId: 'quarterly',
+      planName: 'Quarterly Plan',
+      subscribedDate: '2026-10-15',
+      expiresAt: '2027-01-15',
+      amountPaidINR: 708,
+      paymentMethod: 'UPI',
+      recurringMonthly: true,
+      status: 'Active',
+      invoiceId: 'INV-PVQ-2026-8841',
+      notes: 'Quarterly renewal + 18% GST',
+    },
+    {
+      id: 'sub-2',
+      studentId: 'user-stu-1',
+      studentName: 'Sarah Connor',
+      studentEmail: 'sarah.c@educateai.org',
+      phone: '+91 98110 22014',
+      grade: 'Grade 8',
+      educationBoard: 'CBSE',
+      city: 'New Delhi',
+      state: 'Delhi',
+      planId: 'trial',
+      planName: '7-Day Free Trial',
+      subscribedDate: '2026-11-15',
+      expiresAt: '2026-11-22',
+      amountPaidINR: 0,
+      paymentMethod: 'UPI',
+      recurringMonthly: false,
+      status: 'Trial',
+      notes: 'Active 7-day trial evaluation',
+    },
+    {
+      id: 'sub-3',
+      studentId: 'stu-3',
+      studentName: 'Liam Chen',
+      studentEmail: 'liam.c@educateai.org',
+      phone: '+91 99001 33410',
+      grade: 'Grade 8',
+      educationBoard: 'ICSE',
+      city: 'Bengaluru',
+      state: 'Karnataka',
+      planId: 'annual',
+      planName: 'Annual Plan',
+      subscribedDate: '2026-10-01',
+      expiresAt: '2027-10-01',
+      amountPaidINR: 1298,
+      paymentMethod: 'Credit Card',
+      recurringMonthly: false,
+      status: 'Active',
+      invoiceId: 'INV-PVQ-2026-8842',
+    },
+    {
+      id: 'sub-4',
+      studentId: 'stu-104',
+      studentName: 'Aarav Sharma',
+      studentEmail: 'aarav.sharma@student.in',
+      phone: '+91 98204 55102',
+      grade: 'Grade 12',
+      educationBoard: 'CBSE',
+      city: 'Mumbai',
+      state: 'Maharashtra',
+      planId: 'annual',
+      planName: 'Annual Plan',
+      subscribedDate: '2026-06-18',
+      expiresAt: '2027-06-18',
+      amountPaidINR: 1298,
+      paymentMethod: 'UPI',
+      recurringMonthly: false,
+      status: 'Active',
+      invoiceId: 'INV-PVQ-2026-8120',
+    },
+    {
+      id: 'sub-5',
+      studentId: 'stu-105',
+      studentName: 'Ananya Iyer',
+      studentEmail: 'ananya.iyer@student.in',
+      phone: '+91 98401 66712',
+      grade: 'Grade 11',
+      educationBoard: 'Tamil Nadu State Board',
+      city: 'Chennai',
+      state: 'Tamil Nadu',
+      planId: 'quarterly',
+      planName: 'Quarterly Plan',
+      subscribedDate: '2026-09-10',
+      expiresAt: '2026-12-10',
+      amountPaidINR: 708,
+      paymentMethod: 'Debit Card',
+      recurringMonthly: true,
+      status: 'Active',
+      invoiceId: 'INV-PVQ-2026-8455',
+    },
+    {
+      id: 'sub-6',
+      studentId: 'stu-106',
+      studentName: 'Rohan Patel',
+      studentEmail: 'rohan.patel@student.in',
+      phone: '+91 98250 77831',
+      grade: 'Grade 10',
+      educationBoard: 'GSEB',
+      city: 'Ahmedabad',
+      state: 'Gujarat',
+      planId: 'monthly',
+      planName: 'Monthly Plan',
+      subscribedDate: '2026-11-02',
+      expiresAt: '2026-12-02',
+      amountPaidINR: 295,
+      paymentMethod: 'UPI',
+      recurringMonthly: true,
+      status: 'Active',
+      invoiceId: 'INV-PVQ-2026-8901',
+    },
+    {
+      id: 'sub-7',
+      studentId: 'stu-107',
+      studentName: 'Kabir Verma',
+      studentEmail: 'kabir.verma@student.in',
+      phone: '+91 98290 44120',
+      grade: 'Grade 9',
+      educationBoard: 'CBSE',
+      city: 'Jaipur',
+      state: 'Rajasthan',
+      planId: 'quarterly',
+      planName: 'Quarterly Plan',
+      subscribedDate: '2025-11-20',
+      expiresAt: '2026-02-20',
+      amountPaidINR: 708,
+      paymentMethod: 'Net Banking',
+      recurringMonthly: false,
+      status: 'Active',
+      invoiceId: 'INV-PVQ-2025-7214',
+      notes: 'Renewed manually for winter sprint',
+    },
+    {
+      id: 'sub-8',
+      studentId: 'stu-108',
+      studentName: 'Ishaan Gupta',
+      studentEmail: 'ishaan.gupta@student.in',
+      phone: '+91 98230 11298',
+      grade: 'Grade 12',
+      educationBoard: 'MSBSHSE',
+      city: 'Pune',
+      state: 'Maharashtra',
+      planId: 'annual',
+      planName: 'Annual Plan',
+      subscribedDate: '2025-07-05',
+      expiresAt: '2026-07-05',
+      amountPaidINR: 1298,
+      paymentMethod: 'Credit Card',
+      recurringMonthly: false,
+      status: 'Active',
+      invoiceId: 'INV-PVQ-2025-6511',
+    },
+    {
+      id: 'sub-9',
+      studentId: 'stu-109',
+      studentName: 'Diya Reddy',
+      studentEmail: 'diya.reddy@student.in',
+      phone: '+91 98490 99310',
+      grade: 'Grade 11',
+      educationBoard: 'BSEAP/TOSS',
+      city: 'Hyderabad',
+      state: 'Telangana',
+      planId: 'quarterly',
+      planName: 'Quarterly Plan',
+      subscribedDate: '2026-10-25',
+      expiresAt: '2027-01-25',
+      amountPaidINR: 708,
+      paymentMethod: 'UPI',
+      recurringMonthly: true,
+      status: 'Active',
+      invoiceId: 'INV-PVQ-2026-8879',
+    },
+    {
+      id: 'sub-10',
+      studentId: 'stu-110',
+      studentName: 'Meera Nair',
+      studentEmail: 'meera.nair@student.in',
+      phone: '+91 98470 55421',
+      grade: 'Grade 10',
+      educationBoard: 'CBSE',
+      city: 'Kochi',
+      state: 'Kerala',
+      planId: 'monthly',
+      planName: 'Monthly Plan',
+      subscribedDate: '2024-12-10',
+      expiresAt: '2025-01-10',
+      amountPaidINR: 295,
+      paymentMethod: 'PayPal',
+      recurringMonthly: true,
+      status: 'Expired',
+      invoiceId: 'INV-PVQ-2024-4092',
+    },
+    {
+      id: 'sub-11',
+      studentId: 'stu-6',
+      studentName: 'Daniel Vance',
+      studentEmail: 'daniel.v@educateai.org',
+      phone: '+91 98180 61209',
+      grade: 'Grade 8',
+      educationBoard: 'CBSE',
+      city: 'Noida',
+      state: 'Uttar Pradesh',
+      planId: 'monthly',
+      planName: 'Monthly Plan',
+      subscribedDate: '2026-10-12',
+      expiresAt: '2026-11-12',
+      amountPaidINR: 295,
+      paymentMethod: 'Net Banking',
+      recurringMonthly: true,
+      status: 'Suspended',
+      invoiceId: 'INV-PVQ-2026-8843',
+      notes: 'Payment lapsed — access suspended',
+    },
+    {
+      id: 'sub-12',
+      studentId: 'stu-5',
+      studentName: 'Zoe Washington',
+      studentEmail: 'zoe.w@educateai.org',
+      phone: '+91 98104 71234',
+      grade: 'Grade 8',
+      educationBoard: 'IB',
+      city: 'Gurugram',
+      state: 'Haryana',
+      planId: 'annual',
+      planName: 'Annual Plan',
+      subscribedDate: '2025-09-02',
+      expiresAt: '2026-09-02',
+      amountPaidINR: 1298,
+      paymentMethod: 'Credit Card',
+      recurringMonthly: false,
+      status: 'Active',
+      invoiceId: 'INV-PVQ-2025-6988',
+    },
+  ]);
+
+  const [studentAiQuotas, setStudentAiQuotas] = useState<StudentAiQuotaRecord[]>([
+    {
+      studentId: 'user-stu-1',
+      studentName: 'Sarah Connor',
+      studentEmail: 'sarah.c@educateai.org',
+      planName: '7-Day Free Trial',
+      monthlyQuota: 25000,
+      monthlyTokensUsed: 8420,
+      addonCreditsRemaining: 0,
+      visionDoubtsUsed: 1,
+      maxVisionDoubtsPerMonth: 5,
+      estimatedMonthlyCogsINR: 0.65,
+      cycleResetDate: '2026-12-01',
+      lastActiveAt: 'Today, 07:10 AM',
+    },
+    {
+      studentId: 'user-stu-2',
+      studentName: 'Alex Rivera',
+      studentEmail: 'alex.r@educateai.org',
+      planName: 'Quarterly Plan',
+      monthlyQuota: 500000,
+      monthlyTokensUsed: 218500,
+      addonCreditsRemaining: 100000,
+      visionDoubtsUsed: 18,
+      maxVisionDoubtsPerMonth: 80,
+      estimatedMonthlyCogsINR: 16.91,
+      cycleResetDate: '2026-12-01',
+      lastActiveAt: 'Today, 06:50 AM',
+    },
+    {
+      studentId: 'stu-3',
+      studentName: 'Liam Chen',
+      studentEmail: 'liam.c@educateai.org',
+      planName: 'Annual Plan',
+      monthlyQuota: 250000,
+      monthlyTokensUsed: 142300,
+      addonCreditsRemaining: 0,
+      visionDoubtsUsed: 9,
+      maxVisionDoubtsPerMonth: 40,
+      estimatedMonthlyCogsINR: 11.01,
+      cycleResetDate: '2026-12-01',
+      lastActiveAt: 'Yesterday, 08:15 PM',
+    },
+    {
+      studentId: 'stu-6',
+      studentName: 'Daniel Vance',
+      studentEmail: 'daniel.v@educateai.org',
+      planName: 'Monthly Plan',
+      monthlyQuota: 350000,
+      monthlyTokensUsed: 332800,
+      addonCreditsRemaining: 0,
+      visionDoubtsUsed: 22,
+      maxVisionDoubtsPerMonth: 25,
+      estimatedMonthlyCogsINR: 25.76,
+      cycleResetDate: '2026-12-01',
+      lastActiveAt: 'Yesterday, 09:40 PM',
+    },
+  ]);
+
+  const [aiTokenUsageLogs, setAiTokenUsageLogs] = useState<AiTokenUsageLog[]>([
+    {
+      id: 'toklog-1',
+      studentId: 'user-stu-1',
+      studentName: 'Sarah Connor',
+      surface: 'Quick Doubts AI',
+      subject: 'Physics',
+      model: 'gemini-3.1-flash-lite',
+      modelTier: 'flash-lite-hybrid',
+      promptTokens: 680,
+      outputTokens: 390,
+      cachedTokens: 320,
+      totalTokens: 1070,
+      estimatedCostINR: 0.06,
+      paidFrom: 'monthly-quota',
+      timestamp: 'Today, 07:10 AM',
+      createdAtMs: Date.now() - 1000 * 60 * 14,
+    },
+    {
+      id: 'toklog-2',
+      studentId: 'user-stu-2',
+      studentName: 'Alex Rivera',
+      surface: 'Quick Doubts AI',
+      subject: 'Chemistry',
+      model: 'gemini-4-hydrogen',
+      modelTier: 'hydrogen-vision',
+      promptTokens: 1140,
+      outputTokens: 520,
+      cachedTokens: 400,
+      totalTokens: 1660,
+      estimatedCostINR: 0.14,
+      paidFrom: 'monthly-quota',
+      timestamp: 'Today, 06:50 AM',
+      createdAtMs: Date.now() - 1000 * 60 * 32,
+    },
+    {
+      id: 'toklog-3',
+      studentId: 'stu-3',
+      studentName: 'Liam Chen',
+      surface: 'Socratic AI Tutor',
+      subject: 'Mathematics',
+      model: 'gemini-3.1-flash-lite',
+      modelTier: 'hydrogen-standard',
+      promptTokens: 740,
+      outputTokens: 410,
+      cachedTokens: 280,
+      totalTokens: 1150,
+      estimatedCostINR: 0.08,
+      paidFrom: 'monthly-quota',
+      timestamp: 'Yesterday, 08:15 PM',
+      createdAtMs: Date.now() - 1000 * 60 * 60 * 12,
+    },
+    {
+      id: 'toklog-4',
+      studentId: 'stu-6',
+      studentName: 'Daniel Vance',
+      surface: 'Quick Doubts AI',
+      subject: 'Biology',
+      model: 'gemini-4-hydrogen',
+      modelTier: 'flash-lite-hybrid',
+      promptTokens: 980,
+      outputTokens: 460,
+      cachedTokens: 310,
+      totalTokens: 1440,
+      estimatedCostINR: 0.11,
+      paidFrom: 'monthly-quota',
+      timestamp: 'Yesterday, 09:40 PM',
+      createdAtMs: Date.now() - 1000 * 60 * 60 * 10,
+    },
+  ]);
+
+  const [aiQuotaExhaustedModalOpen, setAiQuotaExhaustedModalOpen] = useState(false);
+
+  const activeStudentId = currentUser?.role === 'student' ? currentUser.id : 'user-stu-1';
+  const currentStudentAiQuota: StudentAiQuotaRecord =
+    studentAiQuotas.find((q) => q.studentId === activeStudentId) ||
+    studentAiQuotas[0];
+
+  const getActivePlanModelTier = (): AiModelRoutingTier => {
+    const matchedPlan = subscriptionPlans.find(
+      (p) => p.id === subscriptionState.activePlanId || p.name === subscriptionState.tier
+    );
+    return matchedPlan?.aiModelTier || 'flash-lite-hybrid';
+  };
+
+  const hasRemainingAiQuota = (): boolean => {
+    const rec = currentStudentAiQuota;
+    if (!rec) return true;
+    const monthlyRemaining = Math.max(0, rec.monthlyQuota - rec.monthlyTokensUsed);
+    return monthlyRemaining + rec.addonCreditsRemaining > 0;
+  };
+
+  const recordAiTokenUsage = (params: {
+    surface: 'Quick Doubts AI' | 'Socratic AI Tutor';
+    subject: string;
+    model: string;
+    promptTokens: number;
+    outputTokens: number;
+    cachedTokens?: number;
+    isVision?: boolean;
+  }) => {
+    const totalTokens = Math.max(1, params.promptTokens + params.outputTokens);
+    const modelTier = getActivePlanModelTier();
+    const costINR = estimateTurnCostINR({
+      promptTokens: params.promptTokens,
+      outputTokens: params.outputTokens,
+      cachedTokens: params.cachedTokens || 0,
+      modelTier,
+    });
+    const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const stuId = activeStudentId;
+    const stuName =
+      currentUser?.role === 'student' ? currentUser.name : currentStudentAiQuota.studentName;
+
+    let paidFrom: 'monthly-quota' | 'addon-credits' | 'split' = 'monthly-quota';
+
+    setStudentAiQuotas((prev) =>
+      prev.map((rec) => {
+        if (rec.studentId !== stuId) return rec;
+        const monthlyRemaining = Math.max(0, rec.monthlyQuota - rec.monthlyTokensUsed);
+        let nextMonthlyUsed = rec.monthlyTokensUsed;
+        let nextAddon = rec.addonCreditsRemaining;
+
+        if (monthlyRemaining >= totalTokens) {
+          nextMonthlyUsed += totalTokens;
+          paidFrom = 'monthly-quota';
+        } else if (monthlyRemaining > 0) {
+          const overflow = totalTokens - monthlyRemaining;
+          nextMonthlyUsed = rec.monthlyQuota;
+          nextAddon = Math.max(0, rec.addonCreditsRemaining - overflow);
+          paidFrom = 'split';
+        } else {
+          nextAddon = Math.max(0, rec.addonCreditsRemaining - totalTokens);
+          paidFrom = 'addon-credits';
+        }
+
+        return {
+          ...rec,
+          monthlyTokensUsed: nextMonthlyUsed,
+          addonCreditsRemaining: nextAddon,
+          visionDoubtsUsed: params.isVision ? rec.visionDoubtsUsed + 1 : rec.visionDoubtsUsed,
+          estimatedMonthlyCogsINR: Number((rec.estimatedMonthlyCogsINR + costINR).toFixed(2)),
+          lastActiveAt: `Today, ${nowTime}`,
+        };
+      })
+    );
+
+    const newLog: AiTokenUsageLog = {
+      id: `toklog-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      studentId: stuId,
+      studentName: stuName,
+      surface: params.surface,
+      subject: params.subject,
+      model: params.model,
+      modelTier,
+      promptTokens: params.promptTokens,
+      outputTokens: params.outputTokens,
+      cachedTokens: params.cachedTokens || 0,
+      totalTokens,
+      estimatedCostINR: costINR,
+      paidFrom,
+      timestamp: `Today, ${nowTime}`,
+      createdAtMs: Date.now(),
+    };
+
+    setAiTokenUsageLogs((prev) => [newLog, ...prev.slice(0, 149)]);
+  };
+
+  const purchaseAddonTokenPack = (
+    packId: string,
+    paymentMethod: BillingTransaction['paymentMethod']
+  ): BillingTransaction | null => {
+    const pack = AI_ADDON_PACKS.find((p) => p.id === packId);
+    if (!pack) return null;
+    const gstAmount = Math.round(pack.priceINR * 0.18);
+    const totalAmount = pack.priceINR + gstAmount;
+    const stuId = activeStudentId;
+    const stuName = currentUser?.name || 'Sarah Connor';
+    const stuEmail = currentUser?.email || 'sarah.c@educateai.org';
+
+    setStudentAiQuotas((prev) =>
+      prev.map((rec) =>
+        rec.studentId === stuId
+          ? {
+              ...rec,
+              addonCreditsRemaining: rec.addonCreditsRemaining + pack.tokens,
+            }
+          : rec
+      )
+    );
+
+    const tx = recordBillingTransaction({
+      studentId: stuId,
+      studentName: stuName,
+      studentEmail: stuEmail,
+      planId: pack.id,
+      planName: `AI Credit Top-Up: ${pack.name}`,
+      baseAmountINR: pack.priceINR,
+      gstAmountINR: gstAmount,
+      totalAmountINR: totalAmount,
+      paymentMethod,
+      paymentStatus: 'Success',
+      recurringMonthly: false,
+      expiresAt: subscriptionState.expiresAt || '2026-12-31',
+      note: `+${pack.tokens.toLocaleString()} bonus AI tokens added to wallet`,
+    });
+
+    setAiQuotaExhaustedModalOpen(false);
+    addNotification(
+      'AI Credit Pack Added',
+      `+${pack.tokens.toLocaleString()} bonus AI tokens credited to ${stuName}'s wallet.`,
+      'success',
+      'student'
+    );
+    return tx;
+  };
+
+  const grantBonusTokensToStudent = (studentId: string, bonusTokens: number, note?: string) => {
+    if (bonusTokens <= 0) return;
+    setStudentAiQuotas((prev) =>
+      prev.map((rec) =>
+        rec.studentId === studentId
+          ? {
+              ...rec,
+              addonCreditsRemaining: rec.addonCreditsRemaining + bonusTokens,
+            }
+          : rec
+      )
+    );
+    addNotification(
+      'Admin Bonus Tokens Granted',
+      `Credited +${bonusTokens.toLocaleString()} tokens (${note || 'Admin Goodwill Grant'}).`,
+      'success',
+      'admin'
+    );
+  };
+
+  const updateStudentMonthlyQuotaOverride = (studentId: string, newMonthlyLimit: number) => {
+    if (newMonthlyLimit < 0) return;
+    setStudentAiQuotas((prev) =>
+      prev.map((rec) =>
+        rec.studentId === studentId
+          ? {
+              ...rec,
+              monthlyQuota: newMonthlyLimit,
+            }
+          : rec
+      )
+    );
+    addNotification(
+      'Student Monthly Token Cap Updated',
+      `Adjusted monthly AI token allowance to ${newMonthlyLimit.toLocaleString()} tokens.`,
+      'info',
+      'admin'
+    );
+  };
+
   const updateSubscription = (updates: Partial<SubscriptionState>) => {
     setSubscriptionState((prev) => ({ ...prev, ...updates }));
+    if (updates.activePlanId || updates.tier) {
+      const targetPlan = subscriptionPlans.find(
+        (p) => p.id === updates.activePlanId || p.name === updates.tier
+      );
+      if (targetPlan) {
+        setStudentAiQuotas((prev) =>
+          prev.map((rec) =>
+            rec.studentId === activeStudentId
+              ? {
+                  ...rec,
+                  planName: targetPlan.name,
+                  monthlyQuota: targetPlan.monthlyTokenQuota,
+                  maxVisionDoubtsPerMonth:
+                    targetPlan.maxVisionDoubtsPerMonth ?? rec.maxVisionDoubtsPerMonth,
+                }
+              : rec
+          )
+        );
+      }
+    }
     addNotification('Subscription Updated', 'Your subscription & billing preference has been updated.', 'success', 'system');
+  };
+
+  const recordBillingTransaction = (
+    tx: Omit<BillingTransaction, 'id' | 'invoiceId' | 'createdAt'>
+  ): BillingTransaction => {
+    const newTx: BillingTransaction = {
+      ...tx,
+      id: `tx-${Date.now()}`,
+      invoiceId: `INV-PVQ-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
+      createdAt: new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }),
+    };
+
+    setBillingLedger((prev) => [newTx, ...prev]);
+
+    if (newTx.paymentStatus === 'Success') {
+      setSubscriptionState((prev) => ({
+        ...prev,
+        isActive: true,
+        moduleAccessEnabled: true,
+        billingStatus: 'Active',
+        expiresAt: newTx.expiresAt,
+      }));
+      // Keep subscriber directory synchronized with successful student checkouts
+      const matchedSubUser = usersList.find(
+        (u) => u.id === newTx.studentId || u.email.toLowerCase() === newTx.studentEmail.toLowerCase()
+      );
+      const todayIso = new Date().toISOString().split('T')[0];
+      const safeMethod: SubscriberRecord['paymentMethod'] =
+        newTx.paymentMethod === 'Card' || newTx.paymentMethod === 'Apple Pay'
+          ? 'Credit Card'
+          : newTx.paymentMethod;
+      setSubscribers((prevSubs) => {
+        const idx = prevSubs.findIndex(
+          (s) =>
+            s.studentId === newTx.studentId ||
+            s.studentEmail.toLowerCase() === newTx.studentEmail.toLowerCase()
+        );
+        const updatedRecord: SubscriberRecord = {
+          id: idx >= 0 ? prevSubs[idx].id : `sub-${Date.now()}`,
+          studentId: newTx.studentId,
+          studentName: newTx.studentName,
+          studentEmail: newTx.studentEmail,
+          phone: (idx >= 0 ? prevSubs[idx].phone : undefined) || matchedSubUser?.mobile_number || '+91 98100 00000',
+          grade: (idx >= 0 ? prevSubs[idx].grade : undefined) || matchedSubUser?.grade || 'Grade 10',
+          educationBoard:
+            (idx >= 0 ? prevSubs[idx].educationBoard : undefined) ||
+            matchedSubUser?.education_board ||
+            'CBSE',
+          city: (idx >= 0 ? prevSubs[idx].city : undefined) || 'New Delhi',
+          state: (idx >= 0 ? prevSubs[idx].state : undefined) || 'Delhi',
+          planId: newTx.planId,
+          planName: newTx.planName,
+          subscribedDate: todayIso,
+          expiresAt: newTx.expiresAt,
+          amountPaidINR: newTx.totalAmountINR,
+          paymentMethod: safeMethod,
+          recurringMonthly: newTx.recurringMonthly,
+          status: 'Active',
+          invoiceId: newTx.invoiceId,
+          notes: newTx.note,
+        };
+        if (idx >= 0) {
+          const copy = [...prevSubs];
+          copy[idx] = updatedRecord;
+          return copy;
+        }
+        return [updatedRecord, ...prevSubs];
+      });
+    } else if (newTx.paymentStatus === 'Failed') {
+      setSubscriptionState((prev) => ({
+        ...prev,
+        isActive: false,
+        moduleAccessEnabled: false,
+        billingStatus: 'Suspended',
+      }));
+      addNotification(
+        'Subscription Payment Failed — Access Suspended',
+        `${newTx.studentName}'s payment of INR ${newTx.totalAmountINR} failed. Platform modules automatically suspended.`,
+        'alert',
+        'admin'
+      );
+    } else {
+      setSubscriptionState((prev) => ({
+        ...prev,
+        billingStatus: 'Past Due',
+      }));
+      addNotification(
+        'Subscription Payment Pending',
+        `Invoice ${newTx.invoiceId} for ${newTx.studentName} is awaiting confirmation.`,
+        'warning',
+        'admin'
+      );
+    }
+
+    return newTx;
+  };
+
+  const addSubscriber = (
+    input: Omit<SubscriberRecord, 'id' | 'studentId' | 'invoiceId'>
+  ): SubscriberRecord => {
+    const newStudentId = `stu-${Date.now().toString().slice(-5)}`;
+    const yearNum = input.subscribedDate ? input.subscribedDate.slice(0, 4) : String(new Date().getFullYear());
+    const invoiceId =
+      input.amountPaidINR > 0
+        ? `INV-PVQ-${yearNum}-${Math.floor(1000 + Math.random() * 9000)}`
+        : undefined;
+
+    const newRecord: SubscriberRecord = {
+      ...input,
+      id: `sub-${Date.now()}`,
+      studentId: newStudentId,
+      invoiceId,
+    };
+
+    setSubscribers((prev) => [newRecord, ...prev]);
+
+    // Update subscriber count on the selected subscription plan
+    if (input.status === 'Active') {
+      setSubscriptionPlans((prevPlans) =>
+        prevPlans.map((p) =>
+          p.id === input.planId || p.name === input.planName
+            ? { ...p, activeSubscribersCount: (p.activeSubscribersCount || 0) + 1 }
+            : p
+        )
+      );
+    }
+
+    // Record corresponding invoice in billingLedger if amount > 0
+    if (input.amountPaidINR > 0) {
+      const baseAmount = Math.round(input.amountPaidINR / 1.18);
+      const gstAmount = input.amountPaidINR - baseAmount;
+      const mappedPaymentMethod: BillingTransaction['paymentMethod'] =
+        input.paymentMethod === 'Offline / Invoice' ? 'Net Banking' : input.paymentMethod;
+      setBillingLedger((prev) => [
+        {
+          id: `tx-${Date.now()}`,
+          invoiceId: invoiceId || `INV-PVQ-${yearNum}-9001`,
+          studentId: newStudentId,
+          studentName: input.studentName,
+          studentEmail: input.studentEmail,
+          planId: input.planId,
+          planName: input.planName,
+          baseAmountINR: baseAmount,
+          gstAmountINR: gstAmount,
+          totalAmountINR: input.amountPaidINR,
+          paymentMethod: mappedPaymentMethod,
+          paymentStatus:
+            input.status === 'Active'
+              ? 'Success'
+              : input.status === 'Suspended'
+              ? 'Failed'
+              : 'Pending',
+          recurringMonthly: input.recurringMonthly,
+          expiresAt: input.expiresAt,
+          createdAt: input.subscribedDate,
+          note: input.notes || `Admin enrolled subscriber (${input.city}, ${input.state})`,
+        },
+        ...prev,
+      ]);
+    }
+
+    // Ensure AI quota profile exists for the newly enrolled subscriber
+    const matchedPlan = subscriptionPlans.find(
+      (p) => p.id === input.planId || p.name === input.planName
+    );
+    setStudentAiQuotas((prevQuotas) => [
+      {
+        studentId: newStudentId,
+        studentName: input.studentName,
+        studentEmail: input.studentEmail,
+        planName: input.planName,
+        monthlyQuota: matchedPlan?.monthlyTokenQuota ?? 350000,
+        monthlyTokensUsed: 0,
+        addonCreditsRemaining: 0,
+        visionDoubtsUsed: 0,
+        maxVisionDoubtsPerMonth: matchedPlan?.maxVisionDoubtsPerMonth ?? 25,
+        estimatedMonthlyCogsINR: 0,
+        cycleResetDate: '2026-12-01',
+        lastActiveAt: 'Just added',
+      },
+      ...prevQuotas,
+    ]);
+
+    addNotification(
+      'New Subscriber Added',
+      `${input.studentName} (${input.city}, ${input.state}) enrolled in ${input.planName}.`,
+      'success',
+      'admin'
+    );
+
+    return newRecord;
+  };
+
+  const updateSubscriberRecord = (
+    subscriberId: string,
+    updates: Partial<SubscriberRecord>
+  ) => {
+    setSubscribers((prev) =>
+      prev.map((sub) => {
+        if (sub.id !== subscriberId) return sub;
+        const updated = { ...sub, ...updates };
+        if (updates.planName && updates.planName !== sub.planName) {
+          const matchedPlan = subscriptionPlans.find(
+            (p) => p.id === updated.planId || p.name === updated.planName
+          );
+          if (matchedPlan) {
+            setStudentAiQuotas((qPrev) =>
+              qPrev.map((q) =>
+                q.studentId === sub.studentId ||
+                q.studentEmail.toLowerCase() === sub.studentEmail.toLowerCase()
+                  ? {
+                      ...q,
+                      planName: matchedPlan.name,
+                      monthlyQuota: matchedPlan.monthlyTokenQuota,
+                      maxVisionDoubtsPerMonth:
+                        matchedPlan.maxVisionDoubtsPerMonth ?? q.maxVisionDoubtsPerMonth,
+                    }
+                  : q
+              )
+            );
+          }
+        }
+        return updated;
+      })
+    );
+    addNotification(
+      'Subscriber Record Updated',
+      'Subscriber plan, location, or access status has been synced.',
+      'info',
+      'admin'
+    );
+  };
+
+  const toggleStudentModuleAccess = (enabled: boolean, reason?: string) => {
+    setSubscriptionState((prev) => ({
+      ...prev,
+      isActive: enabled,
+      moduleAccessEnabled: enabled,
+      billingStatus: enabled ? 'Active' : 'Suspended',
+    }));
+    addNotification(
+      enabled ? 'Platform Access Restored' : 'Platform Access Suspended',
+      reason ||
+        (enabled
+          ? 'Admin provisioned full learning module access for the student.'
+          : 'Admin suspended learning module access due to billing status.'),
+      enabled ? 'success' : 'warning',
+      'admin'
+    );
+  };
+
+  const simulatePaymentLapse = () => {
+    const studentName = currentUser?.name || 'Sarah Connor';
+    const studentEmail = currentUser?.email || 'sarah.c@educateai.org';
+    const studentId = currentUser?.id || 'user-stu-1';
+    recordBillingTransaction({
+      studentId,
+      studentName,
+      studentEmail,
+      planId: subscriptionState.activePlanId || 'monthly',
+      planName: subscriptionState.tier === '7-Day Free Trial' ? 'Monthly Plan' : subscriptionState.tier,
+      baseAmountINR: 250,
+      gstAmountINR: 45,
+      totalAmountINR: 295,
+      paymentMethod: subscriptionState.paymentMethod?.type || 'Credit Card',
+      paymentStatus: 'Failed',
+      recurringMonthly: Boolean(subscriptionState.recurringMonthly),
+      expiresAt: new Date().toISOString().split('T')[0],
+      note: 'Simulated payment lapse — module access revoked automatically',
+    });
   };
 
   // Global Student Roster with real-time multi-panel synchronization
@@ -1912,20 +3513,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Agile Study Planner State
   const [dailyTasks, setDailyTasks] = useState<DailyStudyTask[]>(() => {
     const baseTasks: DailyStudyTask[] = [
-      // October 2026 Tasks
-      { id: 'dt-oct-2', day: 2, date: '2026-10-02', subject: 'Algebra I', topic: 'Linear Equations & Variables', duration_hrs: 1.5, is_core: true, status: 'Completed', points: 25, color: '#4F46E5' },
-      { id: 'dt-oct-5', day: 5, date: '2026-10-05', subject: 'Physics', topic: 'Kinematics & Velocity Vectors', duration_hrs: 2, is_core: false, status: 'Completed', points: 30, color: '#0284C7' },
-      { id: 'dt-oct-7', day: 7, date: '2026-10-07', subject: 'English Literature', topic: 'Shakespearean Sonnets & Metaphor Analysis', duration_hrs: 1.5, is_core: false, status: 'Completed', points: 25, color: '#D97706' },
-      { id: 'dt-oct-8', day: 8, date: '2026-10-08', subject: 'Chemistry', topic: 'Atomic Structure & Bohr Model', duration_hrs: 1.5, is_core: false, status: 'Completed', points: 20, color: '#10B981' },
+      // October 2026 Tasks (Enriched with submission & deliverable tracking)
+      { id: 'dt-oct-2', day: 2, date: '2026-10-02', subject: 'Algebra I', topic: 'Linear Equations & Variables', duration_hrs: 1.5, is_core: true, status: 'Completed', points: 25, color: '#4F46E5', studentName: 'Sarah Connor', priority: 'Normal', submissionStatus: 'Graded', submissionType: 'Document', submissionTitle: 'Linear Systems Worksheet', submissionContent: 'Solved 15/15 step-by-step derivations.', submittedAt: 'Oct 2, 05:10 PM', score: 94, maxScore: 100, feedback: 'Clean algebraic isolation and clear graphs.', gradedBy: 'Dr. Priya Nair', gradedAt: 'Oct 3, 10:00 AM' },
+      { id: 'dt-oct-5', day: 5, date: '2026-10-05', subject: 'Physics', topic: 'Kinematics & Velocity Vectors', duration_hrs: 2, is_core: false, status: 'Completed', points: 30, color: '#0284C7', studentName: 'Sarah Connor', priority: 'High', submissionStatus: 'Submitted', submissionType: 'Code', submissionTitle: 'projectile_motion_sim.py', submissionContent: 'import math\ndef range_calc(v, theta): return (v**2 * math.sin(2*math.radians(theta))) / 9.81', submissionFileName: 'projectile_motion_sim.py', submittedAt: 'Oct 5, 06:40 PM' },
+      { id: 'dt-oct-7', day: 7, date: '2026-10-07', subject: 'English Literature', topic: 'Shakespearean Sonnets & Metaphor Analysis', duration_hrs: 1.5, is_core: false, status: 'Completed', points: 25, color: '#D97706', studentName: 'Sarah Connor', priority: 'Normal', submissionStatus: 'Under Review', submissionType: 'Document', submissionTitle: 'Sonnet 18 Annotated Essay', submissionFileName: 'sonnet_analysis.pdf', submittedAt: 'Oct 7, 04:25 PM' },
+      { id: 'dt-oct-8', day: 8, date: '2026-10-08', subject: 'Chemistry', topic: 'Atomic Structure & Bohr Model', duration_hrs: 1.5, is_core: false, status: 'Completed', points: 20, color: '#10B981', studentName: 'Sarah Connor', priority: 'Normal', submissionStatus: 'Graded', submissionType: 'Note', submissionTitle: 'Shell Configuration Lab', score: 88, maxScore: 100, feedback: 'Good valence shell diagrams.', gradedBy: 'Ms. Elena Rostova', gradedAt: 'Oct 9, 11:30 AM' },
       { id: 'dt-oct-11', day: 11, date: '2026-10-11', subject: 'Biology', topic: 'Plant Respiration & Calvin Cycle Dynamics', duration_hrs: 1.5, is_core: false, status: 'Completed', points: 25, color: '#059669' },
       { id: 'dt-oct-12', day: 12, date: '2026-10-12', subject: 'Algebra I', topic: 'Lesson 3 Review: Linear Inequalities', duration_hrs: 1.5, is_core: true, status: 'Completed', points: 25, color: '#4F46E5' },
-      { id: 'dt-oct-14', day: 14, date: '2026-10-14', subject: 'Physics', topic: 'Lab Prep: Vector Dynamics & Net Force', duration_hrs: 2, is_core: false, status: 'In Progress', points: 30, color: '#0284C7' },
+      { id: 'dt-oct-14', day: 14, date: '2026-10-14', subject: 'Physics', topic: 'Lab Prep: Vector Dynamics & Net Force', duration_hrs: 2, is_core: false, status: 'In Progress', points: 30, color: '#0284C7', studentName: 'Sarah Connor', priority: 'High', submissionStatus: 'Pending' },
       { id: 'dt-oct-15', day: 15, date: '2026-10-15', subject: 'History', topic: 'Reading: Global Dynasties (Ch 4)', duration_hrs: 1.5, is_core: false, status: 'In Progress', points: 20, color: '#0EA5E9' },
       { id: 'dt-oct-16', day: 16, date: '2026-10-16', subject: 'Biology', topic: 'Cell Division: Mitosis vs Meiosis', duration_hrs: 1.5, is_core: false, status: 'On Hold', points: 20, color: '#059669' },
       { id: 'dt-oct-18', day: 18, date: '2026-10-18', subject: 'English Literature', topic: 'Essay Drafting: Narrative Arc & Characterization', duration_hrs: 1.5, is_core: false, status: 'In Progress', points: 20, color: '#D97706' },
       { id: 'dt-oct-19', day: 19, date: '2026-10-19', subject: 'Algebra I', topic: 'Lesson 3 Review: Exponent Rules', duration_hrs: 1.5, is_core: true, status: 'To Do', points: 25, color: '#4F46E5' },
       { id: 'dt-oct-21a', day: 21, date: '2026-10-21', subject: 'Physics', topic: 'Lab Prep: Friction Coefficients', duration_hrs: 1.5, is_core: false, status: 'To Do', points: 25, color: '#0284C7' },
-      { id: 'dt-oct-21b', day: 21, date: '2026-10-21', subject: 'History', topic: 'Reading: Economic Networks', duration_hrs: 1, is_core: false, status: 'Revision', points: 15, color: '#F59E0B' },
+      { id: 'dt-oct-21b', day: 21, date: '2026-10-21', subject: 'History', topic: 'Reading: Economic Networks', duration_hrs: 1, is_core: false, status: 'Revision', points: 15, color: '#F59E0B', studentName: 'Sarah Connor', submissionStatus: 'Revision Required', submissionType: 'Document', submissionTitle: 'Trade Map Brief', score: 68, maxScore: 100, feedback: 'Please add Silk Road maritime port citations and resubmit.', gradedBy: 'Dr. Marcus Vance', gradedAt: 'Oct 22, 09:00 AM' },
       { id: 'dt-oct-22', day: 22, date: '2026-10-22', subject: 'Biology', topic: 'Genetics: Mendelian Inheritance & Punnett Squares', duration_hrs: 1.5, is_core: false, status: 'To Do', points: 25, color: '#059669' },
       { id: 'dt-oct-23', day: 23, date: '2026-10-23', subject: 'History', topic: 'Reading: Maritime Trade Maps', duration_hrs: 1.5, is_core: false, status: 'To Do', points: 20, color: '#0EA5E9' },
       { id: 'dt-oct-25', day: 25, date: '2026-10-25', subject: 'English Literature', topic: 'Poetry Explication & Rhyme Scheme Mastery', duration_hrs: 1.5, is_core: false, status: 'To Do', points: 20, color: '#D97706' },
@@ -1936,7 +3537,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       // November 2026 Tasks
       { id: 'dt-nov-2', day: 2, date: '2026-11-02', subject: 'Algebra I', topic: 'Quadratic Formula Intro & Roots', duration_hrs: 1.5, is_core: true, status: 'Completed', points: 25, color: '#4F46E5' },
       { id: 'dt-nov-3', day: 3, date: '2026-11-03', subject: 'Algebra I', topic: 'Parabola Symmetry & Vertex Form', duration_hrs: 1.5, is_core: true, status: 'In Progress', points: 25, color: '#4F46E5' },
-      { id: 'dt-nov-4', day: 4, date: '2026-11-04', subject: 'Physics', topic: 'Centripetal Force & Orbit Mechanics', duration_hrs: 2, is_core: false, status: 'In Progress', points: 30, color: '#0284C7' },
+      { id: 'dt-nov-4', day: 4, date: '2026-11-04', subject: 'Physics', topic: 'Centripetal Force & Orbit Mechanics', duration_hrs: 2, is_core: false, status: 'In Progress', points: 30, color: '#0284C7', studentName: 'Sarah Connor', priority: 'High', submissionStatus: 'Submitted', submissionType: 'Link', submissionTitle: 'Orbital Velocity Calculator Sheet', submissionContent: 'https://pivot-iq.edu/submissions/orbit-sim-88', submittedAt: 'Today, 10:15 AM' },
       { id: 'dt-nov-5', day: 5, date: '2026-11-05', subject: 'English Literature', topic: 'Comparative Literature: Prose & Allegory', duration_hrs: 1.5, is_core: false, status: 'Completed', points: 25, color: '#D97706' },
       { id: 'dt-nov-6', day: 6, date: '2026-11-06', subject: 'Chemistry', topic: 'Chemical Equilibrium & Le Chatelier', duration_hrs: 1.5, is_core: false, status: 'To Do', points: 25, color: '#10B981' },
       { id: 'dt-nov-8', day: 8, date: '2026-11-08', subject: 'Biology', topic: 'Cell Membrane Transport: Osmosis & Diffusion', duration_hrs: 1.5, is_core: false, status: 'Revision', points: 20, color: '#059669' },
@@ -1944,11 +3545,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       { id: 'dt-nov-10', day: 10, date: '2026-11-10', subject: 'History', topic: 'Reading: Cultural Diffusion & Trade routes', duration_hrs: 1.5, is_core: false, status: 'On Hold', points: 20, color: '#0EA5E9' },
       { id: 'dt-nov-12', day: 12, date: '2026-11-12', subject: 'Algebra I', topic: 'Complex Numbers & Imaginary Roots', duration_hrs: 1.5, is_core: true, status: 'To Do', points: 25, color: '#4F46E5' },
       { id: 'dt-nov-15', day: 15, date: '2026-11-15', subject: 'Biology', topic: 'Ecology: Trophic Levels & Energy Pyramids', duration_hrs: 1.5, is_core: false, status: 'To Do', points: 25, color: '#059669' },
-      { id: 'dt-nov-16', day: 16, date: '2026-11-16', subject: 'Physics', topic: 'Work, Energy & Power Review', duration_hrs: 2, is_core: false, status: 'Completed', points: 30, color: '#0284C7' },
+      { id: 'dt-nov-16', day: 16, date: '2026-11-16', subject: 'Physics', topic: 'Work, Energy & Power Review', duration_hrs: 2, is_core: false, status: 'Completed', points: 30, color: '#0284C7', priority: 'High' },
       { id: 'dt-nov-19', day: 19, date: '2026-11-19', subject: 'Chemistry', topic: 'Acid-Base Titration Curves & pH', duration_hrs: 1.5, is_core: false, status: 'Revision', points: 25, color: '#10B981' },
       { id: 'dt-nov-20', day: 20, date: '2026-11-20', subject: 'English Literature', topic: 'Final Paper Review: Persuasive Rhetoric', duration_hrs: 1.5, is_core: false, status: 'To Do', points: 20, color: '#D97706' },
       { id: 'dt-nov-24', day: 24, date: '2026-11-24', subject: 'Algebra I', topic: 'Polynomial Functions & Graph Analysis', duration_hrs: 1.5, is_core: true, status: 'To Do', points: 25, color: '#4F46E5' },
       { id: 'dt-nov-27', day: 27, date: '2026-11-27', subject: 'History', topic: 'Modern Economic Revolutions', duration_hrs: 1.5, is_core: false, status: 'To Do', points: 20, color: '#0EA5E9' },
+      // Student-Proposed Custom Project Modules & Self-Paced Milestones (Module 5)
+      { id: 'dt-custom-seed-1', day: 18, date: '2026-11-18', study_time: '17:00', subject: 'Computer Science', topic: 'Build Python Graph BFS/DFS Visualizer Mini-Project', duration_hrs: 2, is_core: false, status: 'In Progress', points: 40, color: '#7C3AED', studentName: 'Sarah Connor', isCustom: true, customCategory: 'Side Project', approvalStatus: 'Pending Approval', priority: 'High', submissionStatus: 'Pending' },
+      { id: 'dt-custom-seed-2', day: 22, date: '2026-11-22', study_time: '18:00', subject: 'Physics', topic: 'DIY Pendulum Harmonic Oscillator Experiment Log', duration_hrs: 1.5, is_core: false, status: 'To Do', points: 35, color: '#0284C7', studentName: 'Sarah Connor', isCustom: true, customCategory: 'Self-Paced Milestone', approvalStatus: 'Approved', adminReviewNote: 'Approved for extra credit STEM portfolio.' },
     ];
 
     const now = new Date();
@@ -2065,30 +3669,56 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const updateStudyTask = (taskId: string, updates: Partial<DailyStudyTask>) => {
     setDailyTasks((prev) => {
       let targetTask: DailyStudyTask | undefined;
+      let wasHighPriorityJustCompleted = false;
       const updated = prev.map((t) => {
         if (t.id === taskId) {
+          wasHighPriorityJustCompleted =
+            t.priority === 'High' && updates.status === 'Completed' && t.status !== 'Completed';
           targetTask = { ...t, ...updates };
           return targetTask;
         }
         return t;
       });
       syncStudentProgressAcrossPanels(updated, targetTask);
+      if (wasHighPriorityJustCompleted && targetTask) {
+        addNotification(
+          'High-Priority Task Completed',
+          `${targetTask.studentName || currentUser?.name || 'Student'} completed high-priority task "${targetTask.topic}" (${targetTask.subject}).`,
+          'success',
+          'admin'
+        );
+      }
       return updated;
     });
   };
 
   const addStudyTask = (newTask: DailyStudyTask) => {
+    const enrichedTask: DailyStudyTask = {
+      ...newTask,
+      studentName: newTask.studentName || currentUser?.name || 'Sarah Connor',
+      submissionStatus: newTask.submissionStatus || 'Pending',
+      ...(newTask.isCustom ? { approvalStatus: newTask.approvalStatus || 'Pending Approval' } : {}),
+    };
     setDailyTasks((prev) => {
-      const updated = [...prev, newTask];
-      syncStudentProgressAcrossPanels(updated, newTask);
+      const updated = [...prev, enrichedTask];
+      syncStudentProgressAcrossPanels(updated, enrichedTask);
       return updated;
     });
-    addNotification(
-      'Task Scheduled 📅',
-      `Scheduled ${newTask.subject}: "${newTask.topic}" on Day ${newTask.day} (${newTask.points ?? 25} pts). Live progress recalculated!`,
-      'success',
-      'student'
-    );
+    if (enrichedTask.isCustom) {
+      addNotification(
+        'Custom Project Submitted for Admin Approval',
+        `${enrichedTask.studentName} proposed ${enrichedTask.customCategory || 'Custom Task'}: "${enrichedTask.topic}". Added to Admin Approval Queue.`,
+        'info',
+        'student'
+      );
+    } else {
+      addNotification(
+        'Task Scheduled',
+        `Scheduled ${enrichedTask.subject}: "${enrichedTask.topic}" on Day ${enrichedTask.day} (${enrichedTask.points ?? 25} pts).`,
+        'success',
+        'student'
+      );
+    }
   };
 
   const deleteStudyTask = (taskId: string) => {
@@ -2098,6 +3728,117 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return updated;
     });
     addNotification('Task Removed', 'Study task has been removed from roadmap.', 'info', 'student');
+  };
+
+  const submitTaskDeliverable = (
+    taskId: string,
+    payload: {
+      submissionType: 'Code' | 'Document' | 'Link' | 'Note';
+      submissionTitle: string;
+      submissionContent: string;
+      submissionFileName?: string;
+    }
+  ) => {
+    const nowStr = new Date().toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' });
+    const studentName = currentUser?.name || 'Sarah Connor';
+    setDailyTasks((prev) => {
+      let target: DailyStudyTask | undefined;
+      const updated = prev.map((t) => {
+        if (t.id === taskId) {
+          target = {
+            ...t,
+            studentName,
+            submissionStatus: 'Submitted',
+            submissionType: payload.submissionType,
+            submissionTitle: payload.submissionTitle.trim(),
+            submissionContent: payload.submissionContent,
+            submissionFileName: payload.submissionFileName,
+            submittedAt: nowStr,
+          };
+          return target;
+        }
+        return t;
+      });
+      syncStudentProgressAcrossPanels(updated, target);
+      return updated;
+    });
+
+    addNotification(
+      'Deliverable Submitted to Admin Portal',
+      `${studentName} submitted ${payload.submissionType} "${payload.submissionTitle}" for grading & review.`,
+      'info',
+      'student'
+    );
+  };
+
+  const gradeTaskDeliverable = (
+    taskId: string,
+    payload: {
+      score: number;
+      maxScore: number;
+      feedback: string;
+      status: 'Graded' | 'Revision Required' | 'Under Review';
+    }
+  ) => {
+    const nowStr = new Date().toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' });
+    const adminName = currentUser?.role === 'admin' ? currentUser.name : 'Academic Admin';
+    let gradedTaskTopic = '';
+    setDailyTasks((prev) =>
+      prev.map((t) => {
+        if (t.id !== taskId) return t;
+        gradedTaskTopic = t.topic;
+        return {
+          ...t,
+          submissionStatus: payload.status,
+          score: payload.score,
+          maxScore: payload.maxScore,
+          feedback: payload.feedback.trim(),
+          gradedBy: adminName,
+          gradedAt: nowStr,
+          status:
+            payload.status === 'Graded'
+              ? 'Completed'
+              : payload.status === 'Revision Required'
+              ? 'Revision'
+              : t.status,
+        };
+      })
+    );
+
+    addNotification(
+      payload.status === 'Revision Required' ? 'Task Revision Requested' : 'Submission Graded',
+      `"${gradedTaskTopic}" marked ${payload.status} (${payload.score}/${payload.maxScore}) with instructor feedback.`,
+      payload.status === 'Revision Required' ? 'warning' : 'success',
+      'admin'
+    );
+  };
+
+  const reviewCustomTask = (
+    taskId: string,
+    decision: CustomTaskApprovalStatus,
+    reviewNote?: string,
+    updatedFields?: Partial<DailyStudyTask>
+  ) => {
+    let targetTopic = '';
+    setDailyTasks((prev) =>
+      prev.map((t) => {
+        if (t.id !== taskId) return t;
+        targetTopic = updatedFields?.topic || t.topic;
+        return {
+          ...t,
+          ...updatedFields,
+          approvalStatus: decision,
+          adminReviewNote: reviewNote?.trim() || t.adminReviewNote,
+        };
+      })
+    );
+
+    addNotification(
+      `Custom Milestone ${decision}`,
+      `Admin marked custom task "${targetTopic}" as ${decision}. Student roadmap updated in real time.`,
+      decision === 'Rejected' ? 'warning' : 'success',
+      'admin'
+    );
   };
 
   const completeCurriculumUnit = (subjectName: string, unitTitle: string) => {
@@ -2209,16 +3950,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       })
     );
 
-    // 4. Issue certificate if score >= 80
+    // 4. Issue certificate if auto-trigger criteria met
     let cert: DigitalCertificate | undefined;
-    if (score >= 80) {
-      cert = issueCertificate(studentName, quiz.title, score);
+    if (certAutoTriggerConfig.enabled && score >= certAutoTriggerConfig.minScore) {
+      cert = issueCertificate(studentName, quiz.title, score, 'Auto');
     }
 
-    // 5. Emit multi-panel notifications
+    // 5. Log quick-assessment attempt into Module 3 Live Activity Stream
+    const nowTimeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const attemptEntry: QuizAttemptLog = {
+      id: `qlog-${Date.now()}`,
+      studentId: currentUser?.id || 'user-stu-1',
+      studentName,
+      quizId: quiz.id,
+      quizTitle: quiz.title,
+      topic: quiz.topic,
+      score,
+      correctCount,
+      totalQuestions,
+      timestamp: nowTimeStr,
+      createdAtMs: Date.now(),
+    };
+    setQuizAttemptLogs((prev) => [attemptEntry, ...prev]);
+
+    // 6. Emit multi-panel notifications
     addNotification(
-      'Assessment Complete 🎯',
-      `${studentName} completed "${quiz.title}" scoring ${score}% (${correctCount}/${totalQuestions}). Updated in Teacher class roster and Admin analytics in real time!`,
+      'Assessment Complete',
+      `${studentName} completed "${quiz.title}" scoring ${score}% (${correctCount}/${totalQuestions}). Updated in Teacher class roster and Admin live stream!`,
       score >= 70 ? 'success' : 'info',
       'student'
     );
@@ -2432,6 +4190,50 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const updateCurrentUser = (updates: Partial<AppUser>) => {
     if (!currentUser) return;
+    const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const trackedFields: Array<keyof AppUser> = [
+      'name',
+      'email',
+      'status',
+      'grade',
+      'education_board',
+      'preferred_language',
+      'school_name',
+      'mobile_number',
+      'guardian_name',
+      'guardian_phone',
+      'guardian_email',
+      'avatar',
+      'passwordUpdatedAt',
+    ];
+
+    const newAuditEntries: ProfileAuditEntry[] = [];
+    trackedFields.forEach((field) => {
+      if (updates[field] !== undefined) {
+        const oldVal = String(currentUser[field] ?? '');
+        const newVal = String(updates[field] ?? '');
+        if (oldVal !== newVal) {
+          newAuditEntries.push({
+            id: `aud-${Date.now()}-${field}`,
+            userId: currentUser.id,
+            userName: updates.name || currentUser.name,
+            userEmail: updates.email || currentUser.email,
+            field: String(field),
+            oldValue: field === 'avatar' ? (oldVal ? '[Previous Avatar]' : 'None') : oldVal || '—',
+            newValue: field === 'avatar' ? '[Updated Avatar]' : newVal || '—',
+            actorRole: currentUser.role,
+            actorName: updates.name || currentUser.name,
+            timestamp: `Today, ${timestamp}`,
+            changeType: field === 'passwordUpdatedAt' ? 'security_reset' : 'profile_edit',
+          });
+        }
+      }
+    });
+
+    if (newAuditEntries.length > 0) {
+      setProfileAuditLogs((prev) => [...newAuditEntries, ...prev]);
+    }
+
     const updated = { ...currentUser, ...updates };
     setCurrentUser(updated);
     setUsersList((prev) => {
@@ -2444,12 +4246,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
       return next;
     });
+
+    if (updated.role === 'student') {
+      setStudentsList((prev) =>
+        prev.map((s) => {
+          const isMatch = s.id === updated.id || s.email.toLowerCase() === currentUser.email.toLowerCase();
+          if (!isMatch) return s;
+          return {
+            ...s,
+            name: updated.name,
+            email: updated.email,
+            grade: updated.grade || s.grade,
+            status: updated.status,
+            isFlagged: updated.isFlagged,
+            flagReason: updated.flagReason,
+          };
+        })
+      );
+    }
+
     try {
       localStorage.setItem('educate_ai_current_user', JSON.stringify(updated));
     } catch (e) {
       console.warn('Failed to save current user', e);
     }
-    addNotification('Profile Updated', 'Your profile settings have been updated.', 'success', currentUser.role);
+    addNotification('Profile Updated & Synced', 'Your profile edits have been logged and synced to the Admin directory.', 'success', currentUser.role);
   };
 
   const addUser = (newUser: Omit<AppUser, 'id' | 'createdAt'>) => {
@@ -2465,6 +4286,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const updateUser = (id: string, updates: Partial<AppUser>) => {
     const previousUser = usersList.find((u) => u.id === id);
+    const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    if (previousUser) {
+      const diffFields: Array<keyof AppUser> = ['name', 'email', 'status', 'grade', 'isFlagged', 'flagReason'];
+      const entries: ProfileAuditEntry[] = [];
+      diffFields.forEach((f) => {
+        if (updates[f] !== undefined && String(previousUser[f] ?? '') !== String(updates[f] ?? '')) {
+          entries.push({
+            id: `aud-${Date.now()}-${String(f)}`,
+            userId: previousUser.id,
+            userName: updates.name || previousUser.name,
+            userEmail: updates.email || previousUser.email,
+            field: String(f),
+            oldValue: String(previousUser[f] ?? '—'),
+            newValue: String(updates[f] ?? '—'),
+            actorRole: 'admin',
+            actorName: 'Administrator',
+            timestamp: `Today, ${timestamp}`,
+            changeType: f === 'status' ? 'status_control' : f === 'isFlagged' ? 'account_flag' : 'profile_edit',
+          });
+        }
+      });
+      if (entries.length > 0) {
+        setProfileAuditLogs((prev) => [...entries, ...prev]);
+      }
+    }
+
     setUsersList((prev) =>
       prev.map((u) => {
         if (u.id === id) {
@@ -2495,12 +4343,72 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             gpa: updates.gpa ?? s.gpa,
             attendance: updates.attendance ?? s.attendance,
             overallProgress: updates.overallProgress ?? s.overallProgress,
+            status: updates.status ?? s.status,
+            isFlagged: updates.isFlagged ?? s.isFlagged,
+            flagReason: updates.flagReason ?? s.flagReason,
           };
         })
       );
     }
 
     addNotification('User Updated', 'User details and permissions updated.', 'info', 'admin');
+  };
+
+  const flagUserAccount = (userId: string, flagged: boolean, reason?: string) => {
+    const target = usersList.find((u) => u.id === userId);
+    const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    updateUser(userId, {
+      isFlagged: flagged,
+      flagReason: flagged ? reason || 'Flagged by Admin for identity/activity review' : undefined,
+      flaggedAt: flagged ? `Today, ${nowStr}` : undefined,
+    });
+    if (target) {
+      addNotification(
+        flagged ? 'Account Flagged by Admin' : 'Account Flag Cleared',
+        flagged
+          ? `${target.name} flagged: ${reason || 'Security/Identity check required.'}`
+          : `Flag removed for ${target.name}.`,
+        flagged ? 'warning' : 'success',
+        'admin'
+      );
+    }
+  };
+
+  const triggerCredentialReset = (userId: string) => {
+    const target = usersList.find((u) => u.id === userId);
+    const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    updateUser(userId, { credentialResetRequestedAt: `Today, ${nowStr}` });
+    if (target) {
+      setProfileAuditLogs((prev) => [
+        {
+          id: `aud-rst-${Date.now()}`,
+          userId: target.id,
+          userName: target.name,
+          userEmail: target.email,
+          field: 'credential_reset',
+          oldValue: 'Active Credentials',
+          newValue: 'Reset Token Dispatched by Admin',
+          actorRole: 'admin',
+          actorName: 'Administrator',
+          timestamp: `Today, ${nowStr}`,
+          changeType: 'security_reset',
+        },
+        ...prev,
+      ]);
+      addNotification(
+        'Credential Reset Triggered',
+        `Admin triggered a mandatory password reset notice for ${target.name} (${target.email}).`,
+        'warning',
+        'admin'
+      );
+    }
+  };
+
+  const toggleUserActiveStatus = (userId: string) => {
+    const target = usersList.find((u) => u.id === userId);
+    if (!target) return;
+    const nextStatus = target.status === 'Active' ? 'Inactive' : 'Active';
+    updateUser(userId, { status: nextStatus });
   };
 
   const deleteUser = (id: string) => {
@@ -2534,7 +4442,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isAiTyping, setIsAiTyping] = useState(false);
   const [chapterProgress, setChapterProgress] = useState(75);
 
-  // Doubts (General Ecosystem)
+  // Doubts (General Ecosystem) + Module 3 Resolution Tracking
   const [doubts, setDoubts] = useState<StudentDoubt[]>([
     {
       id: 'dbt-1',
@@ -2544,6 +4452,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       createdAt: '10:12 AM',
       status: 'resolved',
       solution: 'Because they act on two different bodies! Force A on B does not cancel Force B on A.',
+      assignedTo: 'Dr. David Vance',
+      resolutionStatus: 'Resolved',
+      createdAtMs: Date.now() - 1000 * 60 * 95,
+      resolvedAtMs: Date.now() - 1000 * 60 * 88,
+      responseTimeLabel: '7 mins',
     },
     {
       id: 'dbt-2',
@@ -2552,6 +4465,48 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       question: 'What is the exact role of NADP+ in the light-dependent stage?',
       createdAt: 'Yesterday',
       status: 'pending',
+      resolutionStatus: 'Open',
+      createdAtMs: Date.now() - 1000 * 60 * 140,
+    },
+    {
+      id: 'dbt-3',
+      studentName: 'Alex Rivera',
+      subject: 'Mathematics',
+      question: 'How do I complete the square when the coefficient of x² is not 1?',
+      createdAt: '25 mins ago',
+      status: 'pending',
+      assignedTo: 'Dr. Priya Nair',
+      resolutionStatus: 'Assigned',
+      createdAtMs: Date.now() - 1000 * 60 * 25,
+    },
+  ]);
+
+  const [quizAttemptLogs, setQuizAttemptLogs] = useState<QuizAttemptLog[]>([
+    {
+      id: 'qlog-seed-1',
+      studentId: 'user-stu-1',
+      studentName: 'Sarah Connor',
+      quizId: 'quiz-2',
+      quizTitle: "Newton's Three Laws of Motion - Mastery Check",
+      topic: "Physics · Newton's Laws of Motion",
+      score: 90,
+      correctCount: 9,
+      totalQuestions: 10,
+      timestamp: '09:40 AM',
+      createdAtMs: Date.now() - 1000 * 60 * 48,
+    },
+    {
+      id: 'qlog-seed-2',
+      studentId: 'user-stu-2',
+      studentName: 'Alex Rivera',
+      quizId: 'quiz-3',
+      quizTitle: 'Algebra, Linear & Quadratic Equations Mastery',
+      topic: 'Mathematics · Algebra & Quadratics',
+      score: 68,
+      correctCount: 7,
+      totalQuestions: 10,
+      timestamp: '09:55 AM',
+      createdAtMs: Date.now() - 1000 * 60 * 32,
     },
   ]);
 
@@ -2898,6 +4853,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }));
   }, [usersList]);
 
+  // Module 4: Certificates Auto-Trigger Criteria, Credential Vault & Download Logs
+  const [certAutoTriggerConfig, setCertAutoTriggerConfig] = useState<CertAutoTriggerConfig>({
+    enabled: true,
+    minScore: 80,
+    requireAdminApproval: false,
+  });
+
+  const [certificateDownloadLogs, setCertificateDownloadLogs] = useState<CertificateDownloadLog[]>([
+    {
+      id: 'cdl-1',
+      certificateId: 'cert-1',
+      certificateNumber: 'PIVOTIQ-2026-98124',
+      studentName: 'Sarah Connor',
+      downloadedAt: 'October 9, 2026 · 04:12 PM',
+      format: 'Verified Certificate Voucher',
+    },
+  ]);
+
   // Digital Certificates
   const [certificates, setCertificates] = useState<DigitalCertificate[]>([
     {
@@ -2911,11 +4884,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       verificationHash: '0x9e8a71b4c321d0a5e8211b43aa992f1406e123bc',
       status: 'Verified',
       skillsAcquired: [
-        'Newton\'s Three Laws Analysis',
+        "Newton's Three Laws Analysis",
         'Kinematic Vector Problem Solving',
         'Frictional Force & Momentum Conservation',
       ],
       score: 95,
+      triggerSource: 'Auto',
+      downloadCount: 1,
     },
     {
       id: 'cert-2',
@@ -2933,6 +4908,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         'Anaerobic Fermentation Pathways',
       ],
       score: 92,
+      triggerSource: 'Manual',
+      downloadCount: 0,
     },
   ]);
 
@@ -2976,6 +4953,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const sendTutorMessage = async (text: string) => {
     if (!text.trim()) return;
 
+    if (!hasRemainingAiQuota()) {
+      setAiQuotaExhaustedModalOpen(true);
+      addNotification(
+        'AI Token Quota Exhausted',
+        'Please upgrade your subscription plan or purchase an AI Credit Add-On Pack to continue.',
+        'warning',
+        'student'
+      );
+      return;
+    }
+
     const userMsg: ChatMessage = {
       id: `msg-${Date.now()}`,
       sender: 'student',
@@ -3013,6 +5001,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
       setChatMessages((prev) => [...prev, aiMsg]);
+
+      if (data.usage) {
+        recordAiTokenUsage({
+          surface: 'Socratic AI Tutor',
+          subject: 'Physics',
+          model: data.usage.model || 'gemini-4-hydrogen',
+          promptTokens: Number(data.usage.promptTokens) || 240,
+          outputTokens: Number(data.usage.outputTokens) || 160,
+          cachedTokens: Number(data.usage.cachedTokens) || 0,
+        });
+      }
 
       // If student asked about doubt, trigger subtle sync to teacher activity
       if (text.toLowerCase().includes('stuck') || text.toLowerCase().includes('doubt') || text.toLowerCase().includes('confused')) {
@@ -3307,6 +5306,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           try {
             const payload = JSON.parse(payloadStr);
             if (payload.isWellnessNotice) isWellness = true;
+            if (payload.usage) {
+              recordAiTokenUsage({
+                surface: 'Quick Doubts AI',
+                subject,
+                model: payload.usage.model || 'gemini-4-hydrogen',
+                promptTokens: Number(payload.usage.promptTokens) || 350,
+                outputTokens: Number(payload.usage.outputTokens) || 220,
+                cachedTokens: Number(payload.usage.cachedTokens) || 0,
+                isVision: Boolean(imageBase64),
+              });
+            }
             if (payload.error) {
               streamError = payload.error;
               break;
@@ -3403,6 +5413,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const trimmedQuestion = question.trim();
     if (!trimmedQuestion) return undefined;
 
+    if (!hasRemainingAiQuota()) {
+      setAiQuotaExhaustedModalOpen(true);
+      addNotification(
+        'AI Token Quota Exhausted',
+        'Please upgrade your subscription plan or buy an AI Credit Pack to continue asking doubts.',
+        'warning',
+        'student'
+      );
+      return undefined;
+    }
+
     const itemId = `qd-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
     const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const resolvedGrade = options?.gradeLevel ?? currentUser?.grade_level ?? 8;
@@ -3477,6 +5498,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       answer: '',
       status: 'streaming',
       createdAt: nowTime,
+      createdAtMs: Date.now(),
+      studentName: currentUser?.name || 'Sarah Connor',
+      resolutionStatus: 'Open',
       gradeLevel: resolvedGrade,
       board: resolvedBoard,
       language: resolvedMedium,
@@ -3517,6 +5541,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   ) => {
     const trimmed = followUpText.trim();
     if (!trimmed) return;
+
+    if (!hasRemainingAiQuota()) {
+      setAiQuotaExhaustedModalOpen(true);
+      return;
+    }
 
     const target = quickDoubts.find((q) => q.id === doubtId);
     if (!target) return;
@@ -3652,7 +5681,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       subject: topic ? `${subject} (${topic})` : subject,
       question,
       createdAt: 'Just now',
+      createdAtMs: Date.now(),
       status: 'pending',
+      resolutionStatus: 'Open',
     };
     setDoubts((prev) => [newDoubt, ...prev]);
 
@@ -3673,7 +5704,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const data = await res.json();
       if (data.solution) {
         setDoubts((prev) =>
-          prev.map((d) => (d.id === newDoubt.id ? { ...d, solution: data.solution, status: 'resolved' } : d))
+          prev.map((d) =>
+            d.id === newDoubt.id
+              ? {
+                  ...d,
+                  solution: data.solution,
+                  status: 'resolved',
+                  resolutionStatus: 'Resolved',
+                  resolvedAtMs: Date.now(),
+                  responseTimeLabel: '< 1 min',
+                }
+              : d
+          )
         );
       }
     } catch (e) {
@@ -3682,7 +5724,105 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const resolveDoubt = (id: string) => {
-    setDoubts((prev) => prev.map((d) => (d.id === id ? { ...d, status: 'resolved' } : d)));
+    setDoubts((prev) =>
+      prev.map((d) =>
+        d.id === id
+          ? {
+              ...d,
+              status: 'resolved',
+              resolutionStatus: 'Resolved',
+              resolvedAtMs: Date.now(),
+            }
+          : d
+      )
+    );
+  };
+
+  // Module 3: Admin Doubt Resolution Workflow Actions
+  const formatResponseDuration = (createdAtMs?: number): string => {
+    if (!createdAtMs) return '4 mins';
+    const diffMins = Math.max(1, Math.round((Date.now() - createdAtMs) / 60000));
+    if (diffMins < 60) return `${diffMins} min${diffMins === 1 ? '' : 's'}`;
+    const hrs = Math.round(diffMins / 60);
+    return `${hrs} hr${hrs === 1 ? '' : 's'}`;
+  };
+
+  const assignDoubtToMentor = (source: 'doubt' | 'quickDoubt', id: string, mentorName: string) => {
+    if (source === 'doubt') {
+      setDoubts((prev) =>
+        prev.map((d) =>
+          d.id === id
+            ? { ...d, assignedTo: mentorName, resolutionStatus: 'Assigned' }
+            : d
+        )
+      );
+    } else {
+      setQuickDoubts((prev) =>
+        prev.map((q) =>
+          q.id === id
+            ? { ...q, assignedTo: mentorName, resolutionStatus: 'Assigned' }
+            : q
+        )
+      );
+    }
+    addNotification('Doubt Assigned', `Assigned query to ${mentorName} for resolution.`, 'info', 'admin');
+  };
+
+  const resolveDoubtWithFeedback = (
+    source: 'doubt' | 'quickDoubt',
+    id: string,
+    reply: string,
+    resolutionStatus: 'Resolved' | 'Closed' = 'Resolved'
+  ) => {
+    const nowMs = Date.now();
+    if (source === 'doubt') {
+      setDoubts((prev) =>
+        prev.map((d) => {
+          if (d.id !== id) return d;
+          return {
+            ...d,
+            status: 'resolved',
+            resolutionStatus,
+            solution: reply.trim() || d.solution,
+            adminNote: reply.trim(),
+            resolvedAtMs: nowMs,
+            responseTimeLabel: formatResponseDuration(d.createdAtMs),
+          };
+        })
+      );
+    } else {
+      setQuickDoubts((prev) =>
+        prev.map((q) => {
+          if (q.id !== id) return q;
+          return {
+            ...q,
+            status: 'resolved',
+            resolutionStatus,
+            adminResolutionNote: reply.trim(),
+            resolvedAtMs: nowMs,
+            responseTimeLabel: formatResponseDuration(q.createdAtMs),
+          };
+        })
+      );
+    }
+    addNotification(
+      `Doubt ${resolutionStatus}`,
+      `Mentor resolution posted and response-time metrics updated.`,
+      'success',
+      'admin'
+    );
+  };
+
+  const closeDoubtItem = (source: 'doubt' | 'quickDoubt', id: string) => {
+    if (source === 'doubt') {
+      setDoubts((prev) =>
+        prev.map((d) => (d.id === id ? { ...d, status: 'resolved', resolutionStatus: 'Closed' } : d))
+      );
+    } else {
+      setQuickDoubts((prev) =>
+        prev.map((q) => (q.id === id ? { ...q, resolutionStatus: 'Closed' } : q))
+      );
+    }
   };
 
   // Teacher drafts lesson plan
@@ -3838,36 +5978,82 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
   };
 
-  // Issue digital verified certificate
-  const issueCertificate = (studentName: string, courseTitle: string, score: number): DigitalCertificate => {
+  // Issue digital verified certificate (Manual or Auto-triggered)
+  const issueCertificate = (
+    studentName: string,
+    courseTitle: string,
+    score: number,
+    triggerSource: 'Auto' | 'Manual' = 'Manual'
+  ): DigitalCertificate => {
     const certNum = `EDU-AI-${new Date().getFullYear()}-${Math.floor(10000 + Math.random() * 90000)}`;
     const hash = '0x' + Array.from({ length: 40 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+    const initialStatus: DigitalCertificate['status'] =
+      triggerSource === 'Auto' && certAutoTriggerConfig.requireAdminApproval
+        ? 'Pending Approval'
+        : 'Verified';
+
     const newCert: DigitalCertificate = {
       id: `cert-${Date.now()}`,
       certificateNumber: certNum,
       studentName,
       courseTitle,
-      gradeLevel: 'Grade 8 Mastery',
+      gradeLevel: currentUser?.grade || 'Grade 8 Mastery',
       issueDate: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
       instructorName: 'PivotIQ Academic Board',
       verificationHash: hash,
-      status: 'Verified',
+      status: initialStatus,
       skillsAcquired: [
         `${courseTitle} Core Mastery`,
         'Demonstrated Autonomous AI Assessment Readiness',
         'Applied Conceptual Synthesis',
       ],
       score,
+      triggerSource,
+      downloadCount: 0,
     };
 
     setCertificates((prev) => [newCert, ...prev]);
     addNotification(
-      'Verified AI Certificate Issued!',
-      `Digital certificate ${certNum} generated and cryptographically verified for ${studentName}.`,
-      'success',
+      initialStatus === 'Pending Approval' ? 'Certificate Queued for Admin Approval' : 'Verified Certificate Issued!',
+      `Credential ${certNum} (${triggerSource}) generated for ${studentName}.`,
+      initialStatus === 'Pending Approval' ? 'info' : 'success',
       'admin'
     );
     return newCert;
+  };
+
+  const approveCertificate = (certId: string) => {
+    setCertificates((prev) =>
+      prev.map((c) => (c.id === certId ? { ...c, status: 'Verified' } : c))
+    );
+    addNotification('Certificate Approved', 'Credential status set to Verified and unlocked for student download.', 'success', 'admin');
+  };
+
+  const revokeCertificate = (certId: string) => {
+    setCertificates((prev) =>
+      prev.map((c) => (c.id === certId ? { ...c, status: 'Revoked' } : c))
+    );
+    addNotification('Certificate Revoked', 'Credential marked Revoked across Student & Admin portals.', 'warning', 'admin');
+  };
+
+  const logCertificateDownload = (certId: string, format = 'Certificate HTML/Print') => {
+    const cert = certificates.find((c) => c.id === certId);
+    if (!cert) return;
+    const nowStr = new Date().toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
+    const logEntry: CertificateDownloadLog = {
+      id: `cdl-${Date.now()}`,
+      certificateId: cert.id,
+      certificateNumber: cert.certificateNumber,
+      studentName: cert.studentName,
+      downloadedAt: nowStr,
+      format,
+    };
+    setCertificateDownloadLogs((prev) => [logEntry, ...prev]);
+    setCertificates((prev) =>
+      prev.map((c) =>
+        c.id === certId ? { ...c, downloadCount: (c.downloadCount || 0) + 1 } : c
+      )
+    );
   };
 
   return (
@@ -3890,10 +6076,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setIsCurriculumModalOpen,
         ecosystemOverviewMode,
         setEcosystemOverviewMode,
+        boardsConfig,
+        boardSubjectMappings,
         subjectsDB,
         topicsDB,
         isCurriculumSyncing,
+        isBoardSubjectsLoading,
+        selectedBoardSubjectIds,
+        setSelectedBoardSubjectIds,
         fetchCurriculum,
+        fetchSubjectsForBoard,
+        addBoardSubjectMapping,
         createSubject,
         updateSubject,
         deleteSubject,
@@ -3911,6 +6104,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         addUser,
         updateUser,
         deleteUser,
+        profileAuditLogs,
+        flagUserAccount,
+        triggerCredentialReset,
+        toggleUserActiveStatus,
         currentRole,
         setCurrentRole,
         sidebarCollapsed,
@@ -3935,6 +6132,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         continueQuickDoubtChat,
         deleteQuickDoubt,
         clearQuickDoubts,
+        quizAttemptLogs,
+        assignDoubtToMentor,
+        resolveDoubtWithFeedback,
+        closeDoubtItem,
         lessonPlans,
         quizzes,
         setQuizzes,
@@ -3961,6 +6162,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         teachersList,
         certificates,
         issueCertificate,
+        certAutoTriggerConfig,
+        setCertAutoTriggerConfig,
+        approveCertificate,
+        revokeCertificate,
+        logCertificateDownload,
+        certificateDownloadLogs,
         sensitivity,
         setSensitivity,
         notifications,
@@ -3996,15 +6203,41 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         addStudyGroupMessage,
         addForumResource,
         upvoteForumResource,
-        // Subscription
+        // Subscription Catalog, Billing Ledger & Lifecycle
+        subscriptionPlans,
+        subscriptionPlanAuditLogs,
+        createSubscriptionPlan,
+        updateSubscriptionPlan,
+        discontinueSubscriptionPlan,
+        reactivateSubscriptionPlan,
         subscriptionState,
         updateSubscription,
-        // Agile Study Planner
+        billingLedger,
+        recordBillingTransaction,
+        subscribers,
+        addSubscriber,
+        updateSubscriberRecord,
+        toggleStudentModuleAccess,
+        simulatePaymentLapse,
+        // AI Token Metering & FinOps
+        aiTokenUsageLogs,
+        studentAiQuotas,
+        currentStudentAiQuota,
+        aiQuotaExhaustedModalOpen,
+        setAiQuotaExhaustedModalOpen,
+        recordAiTokenUsage,
+        purchaseAddonTokenPack,
+        grantBonusTokensToStudent,
+        updateStudentMonthlyQuotaOverride,
+        // Agile Study Planner & Submissions
         dailyTasks,
         setDailyTasks,
         updateStudyTask,
         addStudyTask,
         deleteStudyTask,
+        submitTaskDeliverable,
+        gradeTaskDeliverable,
+        reviewCustomTask,
         weeklySprints,
         masterChapters,
         generateStudyPlan,

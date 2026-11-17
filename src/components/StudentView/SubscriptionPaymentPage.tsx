@@ -4,6 +4,8 @@ import {
   Building2,
   Check,
   CheckCircle2,
+  Coins,
+  Cpu,
   CreditCard,
   FileText,
   Info,
@@ -15,73 +17,12 @@ import {
   Wallet,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { AI_ADDON_PACKS, AI_MODEL_TIER_SPECS, formatCompactTokens } from '../../utils/tokenPricing';
 
-export type PlanId = 'monthly' | 'quarterly' | 'annual';
+export type PlanId = string;
 export type PaymentOptionId = 'Credit Card' | 'Debit Card' | 'PayPal' | 'UPI' | 'Net Banking';
 
-interface SubscriptionPlanOption {
-  id: PlanId;
-  name: string;
-  tierLabel: 'Monthly Plan' | 'Quarterly Plan' | 'Annual Plan';
-  billingCycle: string;
-  priceINR: number;
-  effectiveMonthlyINR: number;
-  badge?: string;
-  savingsNote: string;
-  features: string[];
-}
-
 const GST_RATE = 0.18;
-
-const SUBSCRIPTION_PLANS: SubscriptionPlanOption[] = [
-  {
-    id: 'monthly',
-    name: 'Monthly Plan',
-    tierLabel: 'Monthly Plan',
-    billingCycle: 'per month',
-    priceINR: 250,
-    effectiveMonthlyINR: 250,
-    savingsNote: 'Flexible month-to-month access',
-    features: [
-      'Full Agile Study Roadmap & Daily Planner',
-      'Unlimited Socratic 24/7 AI Tutor Sessions',
-      'Interactive Practice Quizzes & Mock Tests',
-      'Pomodoro Study Timer & Progress Analytics',
-    ],
-  },
-  {
-    id: 'quarterly',
-    name: 'Quarterly Plan',
-    tierLabel: 'Quarterly Plan',
-    billingCycle: 'per 3 months',
-    priceINR: 600,
-    effectiveMonthlyINR: 200,
-    badge: 'Popular Choice',
-    savingsNote: 'Save INR 150 vs. 3 monthly cycles (INR 200/mo)',
-    features: [
-      'Everything in Monthly Plan included',
-      'Full Master Formulas & Board Diagrams Library',
-      'Parental Weekly Digest PDF Summaries',
-      'Offline Study Pack & Priority Doubt Q&A',
-    ],
-  },
-  {
-    id: 'annual',
-    name: 'Annual Plan',
-    tierLabel: 'Annual Plan',
-    billingCycle: 'per year',
-    priceINR: 1100,
-    effectiveMonthlyINR: 92,
-    badge: 'Best Value',
-    savingsNote: 'Save INR 1,900/year vs. monthly (~INR 92/mo)',
-    features: [
-      'Everything in Quarterly Plan for 12 months',
-      'Verified Digital Skill & Mastery Certificates',
-      'Full-Year Exam Sprint & Revision Roadmaps',
-      'Lowest effective monthly rate all year',
-    ],
-  },
-];
 
 const NET_BANKING_BANKS = [
   'State Bank of India (SBI)',
@@ -101,10 +42,39 @@ interface SubscriptionPaymentPageProps {
 export const SubscriptionPaymentPage: React.FC<SubscriptionPaymentPageProps> = ({
   onBackToDashboard,
 }) => {
-  const { subscriptionState, updateSubscription, currentUser, addNotification } = useApp();
+  const {
+    subscriptionPlans,
+    subscriptionState,
+    updateSubscription,
+    billingLedger,
+    recordBillingTransaction,
+    currentStudentAiQuota,
+    purchaseAddonTokenPack,
+    currentUser,
+    addNotification,
+  } = useApp();
+
+  const todayIso = new Date().toISOString().split('T')[0];
+
+  const availablePlans = subscriptionPlans.filter((plan) => {
+    if (plan.status !== 'Active') return false;
+    if (plan.effectiveStartDate && plan.effectiveStartDate > todayIso) return false;
+    if (plan.endDate && plan.endDate < todayIso) return false;
+    return true;
+  });
+
+  const currentGrandfatheredPlan = subscriptionPlans.find(
+    (p) =>
+      (p.id === subscriptionState.activePlanId || p.name === subscriptionState.tier) &&
+      p.status === 'Discontinued'
+  );
 
   const [step, setStep] = useState<'plans' | 'payment' | 'success'>('plans');
-  const [selectedPlanId, setSelectedPlanId] = useState<PlanId>('quarterly');
+  const [checkoutType, setCheckoutType] = useState<'plan' | 'addon'>('plan');
+  const [selectedAddonPackId, setSelectedAddonPackId] = useState<string>(AI_ADDON_PACKS[0].id);
+  const [selectedPlanId, setSelectedPlanId] = useState<string>(
+    availablePlans.find((p) => p.id === 'quarterly')?.id || availablePlans[0]?.id || ''
+  );
   const [paymentOption, setPaymentOption] = useState<PaymentOptionId>('Credit Card');
   const [recurringMonthly, setRecurringMonthly] = useState<boolean>(true);
   const [termsAccepted, setTermsAccepted] = useState<boolean>(false);
@@ -132,11 +102,20 @@ export const SubscriptionPaymentPage: React.FC<SubscriptionPaymentPageProps> = (
   const [selectedUpiApp, setSelectedUpiApp] = useState('Google Pay');
   const [selectedBank, setSelectedBank] = useState(NET_BANKING_BANKS[0]);
 
-  const selectedPlan =
-    SUBSCRIPTION_PLANS.find((p) => p.id === selectedPlanId) || SUBSCRIPTION_PLANS[0];
+  const selectedAddonPack =
+    AI_ADDON_PACKS.find((p) => p.id === selectedAddonPackId) || AI_ADDON_PACKS[0];
 
-  const gstAmount = Math.round(selectedPlan.priceINR * GST_RATE);
-  const totalPayable = selectedPlan.priceINR + gstAmount;
+  const selectedPlan =
+    availablePlans.find((p) => p.id === selectedPlanId) || availablePlans[0];
+
+  const selectedCurrency = checkoutType === 'addon' ? 'INR' : selectedPlan?.currency || 'INR';
+  const selectedBasePrice =
+    checkoutType === 'addon' ? selectedAddonPack.priceINR : selectedPlan?.basePrice ?? 0;
+  const gstAmount =
+    checkoutType === 'addon' || selectedPlan?.gstApplicable
+      ? Math.round(selectedBasePrice * GST_RATE)
+      : 0;
+  const totalPayable = selectedBasePrice + gstAmount;
 
   const clearTransientFinancialFields = () => {
     setCardHolder('');
@@ -147,9 +126,18 @@ export const SubscriptionPaymentPage: React.FC<SubscriptionPaymentPageProps> = (
     setUpiId('');
   };
 
-  const handleChoosePlan = (planId: PlanId) => {
+  const handleChoosePlan = (planId: string) => {
+    setCheckoutType('plan');
     setSelectedPlanId(planId);
     setRecurringMonthly(planId === 'monthly' ? true : recurringMonthly);
+    setValidationError('');
+    setStep('payment');
+  };
+
+  const handleChooseAddonPack = (packId: string) => {
+    setCheckoutType('addon');
+    setSelectedAddonPackId(packId);
+    setRecurringMonthly(false);
     setValidationError('');
     setStep('payment');
   };
@@ -211,11 +199,51 @@ export const SubscriptionPaymentPage: React.FC<SubscriptionPaymentPageProps> = (
         timeStyle: 'short',
       });
 
+      if (checkoutType === 'addon') {
+        const recordedTx = purchaseAddonTokenPack(selectedAddonPack.id, paymentOption);
+        setReceiptMeta({
+          referenceId: recordedTx?.invoiceId || refId,
+          planName: `AI Credit Top-Up: ${selectedAddonPack.name}`,
+          baseAmount: selectedBasePrice,
+          gstAmount,
+          totalAmount: totalPayable,
+          method: paymentOption,
+          recurringMonthly: false,
+          paidAt: paidAtStr,
+        });
+        clearTransientFinancialFields();
+        setIsProcessing(false);
+        setStep('success');
+        return;
+      }
+
+      if (!selectedPlan) {
+        setIsProcessing(false);
+        return;
+      }
+
+      const cycleDays =
+        selectedPlan.billingFrequency === 'Annually'
+          ? 365
+          : selectedPlan.billingFrequency === 'Quarterly'
+          ? 90
+          : selectedPlan.billingFrequency === 'One-Time'
+          ? 365
+          : 30;
+      const expiryDate = new Date(Date.now() + cycleDays * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .split('T')[0];
+
       // Only store non-sensitive plan status; zero financial credentials saved
       updateSubscription({
-        tier: selectedPlan.tierLabel,
+        tier: selectedPlan.name,
         activePlanId: selectedPlan.id,
+        grandfatheredPlanVersion: selectedPlan.version,
+        lockedCyclePrice: totalPayable,
         isActive: true,
+        moduleAccessEnabled: true,
+        billingStatus: 'Active',
+        expiresAt: expiryDate,
         autoRenew: recurringMonthly,
         recurringMonthly,
         lastBilledAmountINR: totalPayable,
@@ -225,10 +253,26 @@ export const SubscriptionPaymentPage: React.FC<SubscriptionPaymentPageProps> = (
         },
       });
 
-      setReceiptMeta({
-        referenceId: refId,
+      const recordedTx = recordBillingTransaction({
+        studentId: currentUser?.id || 'user-stu-1',
+        studentName: currentUser?.name || 'Sarah Connor',
+        studentEmail: currentUser?.email || 'sarah.c@educateai.org',
+        planId: selectedPlan.id,
         planName: selectedPlan.name,
-        baseAmount: selectedPlan.priceINR,
+        baseAmountINR: selectedBasePrice,
+        gstAmountINR: gstAmount,
+        totalAmountINR: totalPayable,
+        paymentMethod: paymentOption,
+        paymentStatus: 'Success',
+        recurringMonthly,
+        expiresAt: expiryDate,
+        note: `${selectedPlan.name} (v${selectedPlan.version}) activated${selectedPlan.gstApplicable ? ' + 18% GST' : ''}`,
+      });
+
+      setReceiptMeta({
+        referenceId: recordedTx.invoiceId || refId,
+        planName: selectedPlan.name,
+        baseAmount: selectedBasePrice,
         gstAmount,
         totalAmount: totalPayable,
         method: paymentOption,
@@ -242,12 +286,20 @@ export const SubscriptionPaymentPage: React.FC<SubscriptionPaymentPageProps> = (
 
       addNotification(
         'Subscription Activated',
-        `${selectedPlan.name} (INR ${totalPayable} incl. GST) activated via ${paymentOption}.`,
+        `${selectedPlan.name} (${selectedCurrency} ${totalPayable}${selectedPlan.gstApplicable ? ' incl. GST' : ''}) activated via ${paymentOption}.`,
         'success',
         'student'
       );
     }, 650);
   };
+
+  const studentTransactions = billingLedger.filter(
+    (tx) =>
+      !currentUser ||
+      tx.studentId === currentUser.id ||
+      tx.studentEmail.toLowerCase() === currentUser.email.toLowerCase() ||
+      tx.studentName === currentUser.name
+  );
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
@@ -317,86 +369,212 @@ export const SubscriptionPaymentPage: React.FC<SubscriptionPaymentPageProps> = (
         </div>
       </div>
 
-      {/* STEP 1: 3 SUBSCRIPTION PLANS */}
+      {/* GRANDFATHERED PLAN NOTICE WHEN EXISTING PLAN IS DISCONTINUED BY ADMIN */}
+      {currentGrandfatheredPlan && (
+        <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/35 border border-amber-200 dark:border-amber-800/70 text-xs text-amber-900 dark:text-amber-200 flex items-start gap-2.5">
+          <Info className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+          <div>
+            Your current tier (<strong>{currentGrandfatheredPlan.name}</strong>) has been discontinued for new enrollments, but your active entitlement remains grandfathered and unaffected through <strong>{subscriptionState.expiresAt || subscriptionState.trialEndDate}</strong>.
+          </div>
+        </div>
+      )}
+
+      {/* STEP 1: DYNAMIC ACTIVE SUBSCRIPTION PLANS */}
       {step === 'plans' && (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {SUBSCRIPTION_PLANS.map((plan) => {
-              const planGst = Math.round(plan.priceINR * GST_RATE);
-              const planTotal = plan.priceINR + planGst;
-              const isCurrentActive = subscriptionState.tier === plan.tierLabel;
-              const isHighlighted = plan.id === 'quarterly';
+          {availablePlans.length === 0 ? (
+            <div className="bg-white dark:bg-[#0E1A2D] rounded-2xl p-8 border border-slate-200 dark:border-slate-800 text-center text-xs text-slate-500 dark:text-slate-300">
+              No active subscription plans are currently open for new enrollment. Existing active subscribers retain uninterrupted access.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
+              {availablePlans.map((plan) => {
+                const planGst = plan.gstApplicable ? Math.round(plan.basePrice * GST_RATE) : 0;
+                const planTotal = plan.basePrice + planGst;
+                const isCurrentActive =
+                  subscriptionState.activePlanId === plan.id || subscriptionState.tier === plan.name;
+                const isHighlighted =
+                  plan.id === 'quarterly' ||
+                  plan.badge === 'Recommended' ||
+                  plan.badge === 'Popular Choice';
 
-              return (
-                <div
-                  key={plan.id}
-                  className={`rounded-2xl p-6 border flex flex-col justify-between transition-all bg-white dark:bg-[#0E1A2D] ${
-                    isHighlighted
-                      ? 'border-[#00A896]/70 ring-1 ring-[#00A896]/25 shadow-sm'
-                      : 'border-slate-200/90 dark:border-slate-800/80 shadow-xs hover:border-slate-300 dark:hover:border-slate-700'
-                  }`}
-                >
-                  <div className="space-y-4">
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <h3 className="text-lg font-normal text-slate-900 dark:text-white">
+                return (
+                  <div
+                    key={plan.id}
+                    className={`rounded-2xl p-6 border flex flex-col transition-all bg-white dark:bg-[#0E1A2D] ${
+                      isHighlighted
+                        ? 'border-[#00A896] ring-1 ring-[#00A896]/25 shadow-sm'
+                        : 'border-slate-200/90 dark:border-slate-800/80 shadow-xs hover:border-slate-300 dark:hover:border-slate-700'
+                    }`}
+                  >
+                    {/* 1. Header Band (Uniform Height for Exact Price Box Alignment) */}
+                    <div className="min-h-[72px] flex items-start justify-between gap-2.5">
+                      <div className="min-w-0">
+                        <h3 className="text-lg font-medium text-slate-900 dark:text-white leading-snug">
                           {plan.name}
                         </h3>
-                        <p className="text-xs text-slate-500 dark:text-slate-300 mt-0.5">
-                          {plan.savingsNote}
+                        <p className="text-xs text-slate-500 dark:text-slate-300 mt-1 leading-relaxed line-clamp-2">
+                          {plan.subtitle}
                         </p>
                       </div>
                       {plan.badge && (
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] bg-teal-50 dark:bg-teal-950/60 text-[#00A896] dark:text-teal-300 border border-teal-200/70 dark:border-teal-800/70 shrink-0">
+                        <span
+                          className={`px-2.5 py-1 rounded-full text-[11px] font-medium border shrink-0 whitespace-nowrap ${
+                            isHighlighted
+                              ? 'bg-[#00A896]/10 text-[#00A896] border-[#00A896]/40'
+                              : 'bg-teal-50 dark:bg-teal-950/60 text-[#00A896] dark:text-teal-300 border-teal-200/70 dark:border-teal-800/70'
+                          }`}
+                        >
                           {plan.badge}
                         </span>
                       )}
                     </div>
 
-                    {/* Price Display */}
-                    <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/55 border border-slate-200/80 dark:border-slate-700/70 space-y-1">
-                      <div className="flex items-baseline gap-1.5">
-                        <span className="text-2xl sm:text-3xl font-normal text-slate-900 dark:text-white tabular-nums">
-                          INR {plan.priceINR.toLocaleString('en-IN')}
+                    {/* 2. Price Box Band (Uniform Height & Crisp 2-Line Structure) */}
+                    <div className="mt-4 px-4 py-4 min-h-[108px] rounded-xl bg-slate-50 dark:bg-slate-800/55 border border-slate-200/80 dark:border-slate-700/70 flex flex-col justify-center gap-1.5">
+                      <div className="flex flex-wrap items-baseline gap-2">
+                        {typeof plan.strikethroughPrice === 'number' &&
+                          plan.strikethroughPrice > plan.basePrice && (
+                            <span className="text-xs text-slate-400 line-through tabular-nums">
+                              {plan.currency} {plan.strikethroughPrice.toLocaleString('en-IN')}
+                            </span>
+                          )}
+                        <span className="text-[28px] leading-none font-medium text-slate-900 dark:text-white tabular-nums tracking-tight">
+                          {plan.currency} {plan.basePrice.toLocaleString('en-IN')}
                         </span>
                         <span className="text-xs text-slate-500 dark:text-slate-300">
-                          {plan.billingCycle}
+                          {plan.billingCycleLabel}
                         </span>
                       </div>
-                      <div className="text-xs text-[#00A896] dark:text-teal-300">
-                        + GST as applicable (18% GST: INR {planGst} &bull; Total: INR {planTotal.toLocaleString('en-IN')})
+                      <div className="text-[11px] leading-snug text-[#00A896] dark:text-teal-300 tabular-nums">
+                        {plan.gstApplicable
+                          ? `+ 18% GST (${plan.currency} ${planGst}) • Total: ${plan.currency} ${planTotal.toLocaleString('en-IN')}`
+                          : `Tax inclusive • Total: ${plan.currency} ${planTotal.toLocaleString('en-IN')}`}
                       </div>
                     </div>
 
-                    {/* Features */}
-                    <ul className="space-y-2.5 text-xs text-slate-600 dark:text-slate-200">
+                    {/* 3. Subtle Single-Line AI Allowance Bar */}
+                    <div className="mt-3 px-3.5 py-2 rounded-xl bg-slate-50/90 dark:bg-slate-800/40 border border-slate-200/70 dark:border-slate-700/60 flex items-center justify-between gap-2 text-[11px]">
+                      <span className="text-slate-700 dark:text-slate-200 flex items-center gap-1.5 font-medium">
+                        <Cpu className="w-3.5 h-3.5 text-[#00A896] shrink-0" />
+                        <span>{formatCompactTokens(plan.monthlyTokenQuota ?? 350000)} AI tokens/mo</span>
+                      </span>
+                      <span className="text-slate-500 dark:text-slate-400 truncate">
+                        {AI_MODEL_TIER_SPECS[plan.aiModelTier || 'flash-lite-hybrid']?.shortLabel}
+                      </span>
+                    </div>
+
+                    {/* 4. Clean Features List */}
+                    <ul className="mt-5 flex-1 space-y-3 text-[13px] text-slate-600 dark:text-slate-200">
                       {plan.features.map((feat, idx) => (
-                        <li key={idx} className="flex items-start gap-2">
+                        <li key={idx} className="flex items-start gap-2.5 leading-snug">
                           <Check className="w-4 h-4 text-[#00A896] shrink-0 mt-0.5" />
                           <span>{feat}</span>
                         </li>
                       ))}
                     </ul>
-                  </div>
 
-                  <div className="pt-6 mt-6 border-t border-slate-100 dark:border-slate-800">
+                    {/* 5. Aligned Footer CTA */}
+                    <div className="pt-5 mt-6 border-t border-slate-100 dark:border-slate-800">
+                      <button
+                        type="button"
+                        onClick={() => handleChoosePlan(plan.id)}
+                        className={`w-full h-10 px-4 rounded-xl text-xs font-medium transition-all cursor-pointer flex items-center justify-center gap-1.5 border ${
+                          isHighlighted
+                            ? 'bg-[#00A896] hover:bg-[#009282] text-white border-[#00A896]'
+                            : 'bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-900 dark:text-white border-slate-300 dark:border-slate-600'
+                        }`}
+                      >
+                        <span>
+                          {isCurrentActive ? `Selected (${plan.name})` : `Choose ${plan.name}`}
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* AI TOKEN CREDIT ADD-ON PACKS */}
+          <div className="bg-white dark:bg-[#0E1A2D] rounded-2xl p-6 border border-slate-200/90 dark:border-slate-800/80 shadow-xs space-y-5">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div>
+                <h2 className="text-base font-medium text-slate-900 dark:text-white flex items-center gap-2">
+                  <Coins className="w-4 h-4 text-[#00A896]" />
+                  <span>AI Token Credit Add-On Packs (Top-Up Wallet)</span>
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-300 mt-1">
+                  Add-on tokens activate automatically when your monthly plan quota reaches 100% and roll over while active.
+                </p>
+              </div>
+              <div className="inline-flex items-center gap-3 px-4 py-2 rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 text-xs text-slate-700 dark:text-slate-200 tabular-nums shrink-0">
+                <span>
+                  Monthly Left:{' '}
+                  <strong className="text-[#00A896]">
+                    {formatCompactTokens(
+                      Math.max(
+                        0,
+                        currentStudentAiQuota.monthlyQuota - currentStudentAiQuota.monthlyTokensUsed
+                      )
+                    )}
+                  </strong>
+                </span>
+                <span className="text-slate-300 dark:text-slate-600">|</span>
+                <span>
+                  Add-On Wallet:{' '}
+                  <strong className="text-cyan-600 dark:text-cyan-400">
+                    +{formatCompactTokens(currentStudentAiQuota.addonCreditsRemaining)}
+                  </strong>
+                </span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 items-stretch">
+              {AI_ADDON_PACKS.map((pack) => {
+                const packGst = Math.round(pack.priceINR * GST_RATE);
+                return (
+                  <div
+                    key={pack.id}
+                    className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/45 border border-slate-200/80 dark:border-slate-700 flex flex-col justify-between gap-4"
+                  >
+                    <div className="space-y-2.5">
+                      <div className="min-h-[26px] flex items-center justify-between gap-2">
+                        <span className="text-sm font-medium text-slate-900 dark:text-white">
+                          {pack.name}
+                        </span>
+                        {pack.badge && (
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-teal-50 dark:bg-teal-950/60 text-[#00A896] border border-teal-200/70 dark:border-teal-800 shrink-0">
+                            {pack.badge}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap items-baseline gap-2">
+                        <span className="text-2xl font-medium text-slate-900 dark:text-white tabular-nums">
+                          INR {pack.priceINR}
+                        </span>
+                        <span className="text-[11px] text-[#00A896] tabular-nums">
+                          + 18% GST (Total: INR {pack.priceINR + packGst})
+                        </span>
+                      </div>
+                      <div className="text-xs font-medium text-cyan-700 dark:text-cyan-300">
+                        +{formatCompactTokens(pack.tokens)} AI tokens &bull; {pack.approxDoubts}
+                      </div>
+                      <p className="text-xs text-slate-500 dark:text-slate-300 leading-relaxed min-h-[36px]">
+                        {pack.description}
+                      </p>
+                    </div>
                     <button
                       type="button"
-                      onClick={() => handleChoosePlan(plan.id)}
-                      className={`w-full py-2.5 px-4 rounded-xl text-xs font-normal transition-all cursor-pointer flex items-center justify-center gap-1.5 border ${
-                        isHighlighted
-                          ? 'bg-[#00A896] hover:bg-[#009282] text-white border-[#00A896]'
-                          : 'bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-900 dark:text-white border-slate-300 dark:border-slate-600'
-                      }`}
+                      onClick={() => handleChooseAddonPack(pack.id)}
+                      className="w-full h-9 px-3 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-600 text-xs font-medium text-slate-900 dark:text-white cursor-pointer transition-colors"
                     >
-                      <span>
-                        {isCurrentActive ? `Selected (${plan.name})` : `Choose ${plan.name}`}
-                      </span>
+                      Buy {pack.name}
                     </button>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
 
           {/* Pricing & Privacy Note */}
@@ -415,35 +593,59 @@ export const SubscriptionPaymentPage: React.FC<SubscriptionPaymentPageProps> = (
       )}
 
       {/* STEP 2: PAYMENT PAGE */}
-      {step === 'payment' && (
+      {step === 'payment' && (checkoutType === 'addon' || selectedPlan) && (
         <form onSubmit={handleCompletePayment} className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           {/* Left 7 Cols: Payment Options, Recurring Billing, Terms & Disclaimer */}
           <div className="lg:col-span-7 space-y-5">
-            {/* Switch Plan Mini Selector */}
+            {/* Switch Plan or Credit Pack Mini Selector */}
             <div className="bg-white dark:bg-[#0E1A2D] rounded-2xl p-4 border border-slate-200/90 dark:border-slate-800/80 shadow-xs space-y-2.5">
               <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-300">
-                <span>Selected Subscription Plan</span>
-                <span>All plans + GST as applicable</span>
+                <span>
+                  {checkoutType === 'addon' ? 'Selected AI Credit Add-On Pack' : 'Selected Subscription Plan'}
+                </span>
+                <span>All prices + GST as applicable</span>
               </div>
-              <div className="grid grid-cols-3 gap-2">
-                {SUBSCRIPTION_PLANS.map((plan) => (
-                  <button
-                    key={plan.id}
-                    type="button"
-                    onClick={() => setSelectedPlanId(plan.id)}
-                    className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
-                      selectedPlanId === plan.id
-                        ? 'bg-slate-200/90 dark:bg-slate-700 text-slate-900 dark:text-white border-slate-400 dark:border-slate-500'
-                        : 'bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800'
-                    }`}
-                  >
-                    <div className="text-xs font-normal">{plan.name}</div>
-                    <div className="text-[11px] text-slate-500 dark:text-slate-300 mt-0.5">
-                      INR {plan.priceINR.toLocaleString('en-IN')} + GST
-                    </div>
-                  </button>
-                ))}
-              </div>
+              {checkoutType === 'addon' ? (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  {AI_ADDON_PACKS.map((pack) => (
+                    <button
+                      key={pack.id}
+                      type="button"
+                      onClick={() => setSelectedAddonPackId(pack.id)}
+                      className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                        selectedAddonPack.id === pack.id
+                          ? 'bg-slate-200/90 dark:bg-slate-700 text-slate-900 dark:text-white border-slate-400 dark:border-slate-500'
+                          : 'bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800'
+                      }`}
+                    >
+                      <div className="text-xs font-normal">{pack.name}</div>
+                      <div className="text-[11px] text-slate-500 dark:text-slate-300 mt-0.5">
+                        INR {pack.priceINR} + GST &bull; +{formatCompactTokens(pack.tokens)}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {availablePlans.map((plan) => (
+                    <button
+                      key={plan.id}
+                      type="button"
+                      onClick={() => setSelectedPlanId(plan.id)}
+                      className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                        selectedPlan.id === plan.id
+                          ? 'bg-slate-200/90 dark:bg-slate-700 text-slate-900 dark:text-white border-slate-400 dark:border-slate-500'
+                          : 'bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800'
+                      }`}
+                    >
+                      <div className="text-xs font-normal">{plan.name}</div>
+                      <div className="text-[11px] text-slate-500 dark:text-slate-300 mt-0.5">
+                        {plan.currency} {plan.basePrice.toLocaleString('en-IN')} {plan.gstApplicable ? '+ GST' : ''}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Payment Options */}
@@ -642,37 +844,39 @@ export const SubscriptionPaymentPage: React.FC<SubscriptionPaymentPageProps> = (
                 )}
               </div>
 
-              {/* Recurring Payment Monthly Option */}
-              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/45 border border-slate-200/80 dark:border-slate-700/70 flex items-start justify-between gap-4">
-                <div className="flex items-start gap-2.5">
-                  <RefreshCw className="w-4 h-4 text-[#00A896] mt-0.5 shrink-0" />
-                  <div className="space-y-0.5">
-                    <div className="text-xs font-medium text-slate-900 dark:text-white">
-                      Enable Monthly Recurring Payment (Auto-Renew Monthly)
+              {/* Recurring Payment Monthly Option (Plans Only) */}
+              {checkoutType === 'plan' && selectedPlan && (
+                <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/45 border border-slate-200/80 dark:border-slate-700/70 flex items-start justify-between gap-4">
+                  <div className="flex items-start gap-2.5">
+                    <RefreshCw className="w-4 h-4 text-[#00A896] mt-0.5 shrink-0" />
+                    <div className="space-y-0.5">
+                      <div className="text-xs font-medium text-slate-900 dark:text-white">
+                        Enable Monthly Recurring Payment (Auto-Renew Monthly)
+                      </div>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-300 leading-relaxed">
+                        {selectedPlan.id === 'monthly'
+                          ? 'Automatically bills INR 250 + GST every month so your study access continues uninterrupted. Cancel anytime.'
+                          : `After your ${selectedPlan.name.toLowerCase()} period ends, automatically continue with monthly recurring billing (INR 250/month + GST). Cancel anytime.`}
+                      </p>
                     </div>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-300 leading-relaxed">
-                      {selectedPlan.id === 'monthly'
-                        ? 'Automatically bills INR 250 + GST every month so your study access continues uninterrupted. Cancel anytime.'
-                        : `After your ${selectedPlan.name.toLowerCase()} period ends, automatically continue with monthly recurring billing (INR 250/month + GST). Cancel anytime.`}
-                    </p>
                   </div>
-                </div>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={recurringMonthly}
-                  onClick={() => setRecurringMonthly((prev) => !prev)}
-                  className={`w-11 h-6 rounded-full transition-colors cursor-pointer relative shrink-0 ${
-                    recurringMonthly ? 'bg-[#00A896]' : 'bg-slate-300 dark:bg-slate-600'
-                  }`}
-                >
-                  <span
-                    className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${
-                      recurringMonthly ? 'translate-x-5' : 'translate-x-0'
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={recurringMonthly}
+                    onClick={() => setRecurringMonthly((prev) => !prev)}
+                    className={`w-11 h-6 rounded-full transition-colors cursor-pointer relative shrink-0 ${
+                      recurringMonthly ? 'bg-[#00A896]' : 'bg-slate-300 dark:bg-slate-600'
                     }`}
-                  />
-                </button>
-              </div>
+                  >
+                    <span
+                      className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${
+                        recurringMonthly ? 'translate-x-5' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Financial Data Non-Storage Disclaimer */}
@@ -756,16 +960,22 @@ export const SubscriptionPaymentPage: React.FC<SubscriptionPaymentPageProps> = (
 
             <div className="space-y-3 text-xs">
               <div className="flex items-center justify-between text-slate-700 dark:text-slate-200">
-                <span>Selected Plan</span>
-                <span className="font-medium text-slate-900 dark:text-white">{selectedPlan.name}</span>
+                <span>{checkoutType === 'addon' ? 'Selected Credit Pack' : 'Selected Plan'}</span>
+                <span className="font-medium text-slate-900 dark:text-white">
+                  {checkoutType === 'addon' ? selectedAddonPack.name : selectedPlan.name}
+                </span>
               </div>
               <div className="flex items-center justify-between text-slate-700 dark:text-slate-200">
-                <span>Plan Base Price ({selectedPlan.billingCycle})</span>
-                <span className="tabular-nums">INR {selectedPlan.priceINR.toLocaleString('en-IN')}.00</span>
+                <span>
+                  {checkoutType === 'addon'
+                    ? `Pack Price (+${selectedAddonPack.tokens.toLocaleString()} tokens)`
+                    : `Plan Base Price (${selectedPlan.billingCycleLabel})`}
+                </span>
+                <span className="tabular-nums">{selectedCurrency} {selectedBasePrice.toLocaleString('en-IN')}.00</span>
               </div>
               <div className="flex items-center justify-between text-slate-700 dark:text-slate-200">
                 <span>GST (18% as applicable)</span>
-                <span className="tabular-nums">INR {gstAmount.toLocaleString('en-IN')}.00</span>
+                <span className="tabular-nums">{selectedCurrency} {gstAmount.toLocaleString('en-IN')}.00</span>
               </div>
               <div className="flex items-center justify-between text-slate-700 dark:text-slate-200">
                 <span>Payment Method</span>
@@ -781,7 +991,7 @@ export const SubscriptionPaymentPage: React.FC<SubscriptionPaymentPageProps> = (
               <div className="pt-3 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between text-sm text-slate-900 dark:text-white">
                 <span>Total Payable</span>
                 <span className="text-lg tabular-nums font-medium">
-                  INR {totalPayable.toLocaleString('en-IN')}.00
+                  {selectedCurrency} {totalPayable.toLocaleString('en-IN')}.00
                 </span>
               </div>
             </div>
@@ -799,7 +1009,7 @@ export const SubscriptionPaymentPage: React.FC<SubscriptionPaymentPageProps> = (
               <span>
                 {isProcessing
                   ? 'Processing Payment...'
-                  : `Pay INR ${totalPayable.toLocaleString('en-IN')} via ${paymentOption}`}
+                  : `Pay ${selectedCurrency} ${totalPayable.toLocaleString('en-IN')} via ${paymentOption}`}
               </span>
             </button>
 
@@ -886,6 +1096,80 @@ export const SubscriptionPaymentPage: React.FC<SubscriptionPaymentPageProps> = (
           </div>
         </div>
       )}
+      {/* BILLING HISTORY & INVOICE LOGS (Zero Financial Credentials Stored) */}
+      <div className="bg-white dark:bg-[#0E1A2D] rounded-2xl p-5 sm:p-6 border border-slate-200/90 dark:border-slate-800/80 shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <h3 className="text-base font-light text-slate-900 dark:text-white">
+              Billing History &amp; Access Status
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-300">
+              Synced with Admin Financial Ledger. Only invoice metadata is stored; card/UPI credentials are never saved.
+            </p>
+          </div>
+          <span
+            className={`px-3 py-1 rounded-full text-xs border self-start sm:self-auto ${
+              subscriptionState.moduleAccessEnabled === false
+                ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800'
+                : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
+            }`}
+          >
+            Module Access: {subscriptionState.moduleAccessEnabled === false ? 'Suspended' : 'Provisioned'}
+          </span>
+        </div>
+
+        {studentTransactions.length === 0 ? (
+          <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-700 text-xs text-slate-500 dark:text-slate-300">
+            No paid invoices yet. You are currently on {subscriptionState.tier}.
+          </div>
+        ) : (
+          <div className="overflow-x-auto rounded-xl border border-slate-200/80 dark:border-slate-800">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-300 text-[11px]">
+                  <th className="py-2.5 px-3 font-normal">Invoice ID</th>
+                  <th className="py-2.5 px-3 font-normal">Plan</th>
+                  <th className="py-2.5 px-3 font-normal">Total (incl. GST)</th>
+                  <th className="py-2.5 px-3 font-normal">Method</th>
+                  <th className="py-2.5 px-3 font-normal">Expires</th>
+                  <th className="py-2.5 px-3 font-normal">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {studentTransactions.map((tx) => (
+                  <tr key={tx.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/30">
+                    <td className="py-2.5 px-3 tabular-nums text-slate-900 dark:text-white">{tx.invoiceId}</td>
+                    <td className="py-2.5 px-3 text-slate-700 dark:text-slate-200">
+                      {tx.planName}
+                      {tx.recurringMonthly && (
+                        <span className="ml-1.5 text-[10px] text-[#00A896]">(Monthly Recurring)</span>
+                      )}
+                    </td>
+                    <td className="py-2.5 px-3 tabular-nums text-slate-900 dark:text-white">
+                      INR {tx.totalAmountINR.toLocaleString('en-IN')}
+                    </td>
+                    <td className="py-2.5 px-3 text-slate-600 dark:text-slate-300">{tx.paymentMethod}</td>
+                    <td className="py-2.5 px-3 text-slate-600 dark:text-slate-300">{tx.expiresAt}</td>
+                    <td className="py-2.5 px-3">
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[10px] border ${
+                          tx.paymentStatus === 'Success'
+                            ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
+                            : tx.paymentStatus === 'Failed'
+                            ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800'
+                            : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'
+                        }`}
+                      >
+                        {tx.paymentStatus}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { DailyStudyTask, StudyTaskStatus } from '../../types';
-import { getLocalizedSubjectName, isSubjectEnrolled } from '../../data/curriculumData';
+import { getLocalizedSubjectName, isSubjectEnrolled, resolveSubjectsForBoard } from '../../data/curriculumData';
 import {
   ChevronLeft,
   ChevronRight,
@@ -30,6 +30,10 @@ import {
   Mail,
   WifiOff,
   Flag,
+  Upload,
+  FileText,
+  Code2,
+  Link2,
 } from 'lucide-react';
 import { OfflineStudyPackModal } from './OfflineStudyPackModal';
 import { ParentWeeklyDigestModal } from './ParentWeeklyDigestModal';
@@ -42,6 +46,7 @@ export const AgileStudyRoadmap: React.FC = () => {
     updateStudyTask,
     addStudyTask,
     deleteStudyTask,
+    submitTaskDeliverable,
     weeklySprints,
     masterChapters,
     generateStudyPlan,
@@ -49,6 +54,7 @@ export const AgileStudyRoadmap: React.FC = () => {
     setStudentNav,
     sendTutorMessage,
     addNotification,
+    boardSubjectMappings,
     subjectsDB,
     topicsDB,
     currentBoard,
@@ -94,19 +100,18 @@ export const AgileStudyRoadmap: React.FC = () => {
       : parseInt(String(currentUser?.grade || '10').replace(/\D/g, '')) || 10;
 
   const gradeBoardSubjects = useMemo(() => {
-    const filtered = subjectsDB.filter((s) => {
-      if (s.status !== 'ACTIVE') return false;
+    const resolved = resolveSubjectsForBoard(currentBoard, subjectsDB, boardSubjectMappings).filter(
+      (s) => s.status === 'ACTIVE'
+    );
+    const filtered = resolved.filter((s) => {
       if (s.grade_level !== studentGradeLevel) return false;
-      if (s.board && s.board !== 'ALL' && s.board !== currentBoard) return false;
       if (activeCategories.length > 0 && s.category && !activeCategories.includes(s.category)) {
         return false;
       }
       return true;
     });
-    return filtered.length > 0
-      ? filtered
-      : subjectsDB.filter((s) => s.status === 'ACTIVE' && (!s.board || s.board === 'ALL' || s.board === currentBoard));
-  }, [subjectsDB, studentGradeLevel, currentBoard, activeCategories]);
+    return filtered.length > 0 ? filtered : resolved;
+  }, [subjectsDB, boardSubjectMappings, studentGradeLevel, currentBoard, activeCategories]);
 
   const { enrolledSubjectNames, otherSubjectNames, allDropdownSubjectNames } = useMemo(() => {
     const enrolled: string[] = [];
@@ -182,6 +187,18 @@ export const AgileStudyRoadmap: React.FC = () => {
   const [newTaskStatus, setNewTaskStatus] = useState<StudyTaskStatus>('To Do');
   const [newTaskPoints, setNewTaskPoints] = useState(25);
   const [newTaskIsCore, setNewTaskIsCore] = useState(false);
+  const [newTaskPriority, setNewTaskPriority] = useState<'Normal' | 'High'>('Normal');
+  const [newTaskIsCustom, setNewTaskIsCustom] = useState(false);
+  const [newTaskCustomCategory, setNewTaskCustomCategory] = useState<
+    'Custom Task' | 'Side Project' | 'Self-Paced Milestone'
+  >('Custom Task');
+
+  // Deliverable submission form states for Selected Task modal (Module 2)
+  const [subType, setSubType] = useState<'Code' | 'Document' | 'Link' | 'Note'>('Code');
+  const [subTitle, setSubTitle] = useState('');
+  const [subContent, setSubContent] = useState('');
+  const [subFileName, setSubFileName] = useState('');
+  const [subSuccessMsg, setSubSuccessMsg] = useState('');
 
   // Keep newTaskSubject valid when grade/board/selected subjects change
   useEffect(() => {
@@ -532,6 +549,11 @@ export const AgileStudyRoadmap: React.FC = () => {
     );
     setEditTime(task.study_time || '16:30');
     setEditNotes(task.notes ?? '');
+    setSubType(task.submissionType || 'Code');
+    setSubTitle(task.submissionTitle || '');
+    setSubContent(task.submissionContent || '');
+    setSubFileName(task.submissionFileName || '');
+    setSubSuccessMsg('');
   };
 
   // Save task edits
@@ -650,6 +672,15 @@ export const AgileStudyRoadmap: React.FC = () => {
       color,
       created_at: nowIso,
       status_updated_at: nowIso,
+      priority: newTaskPriority,
+      isCustom: newTaskIsCustom,
+      ...(newTaskIsCustom
+        ? {
+            customCategory: newTaskCustomCategory,
+            approvalStatus: 'Pending Approval' as const,
+          }
+        : {}),
+      submissionStatus: 'Pending',
     };
 
     if (addStudyTask) {
@@ -1036,16 +1067,16 @@ export const AgileStudyRoadmap: React.FC = () => {
             onClick={() => setActiveStatusFilter('ALL')}
             className={`px-3 py-1.5 rounded-xl text-xs font-normal transition-all cursor-pointer flex items-center gap-1.5 ${
               activeStatusFilter === 'ALL'
-                ? 'bg-slate-900/50 text-slate-900 dark:bg-white/50 dark:text-slate-900 shadow-xs ring-2 ring-slate-900/10 dark:ring-white/10'
-                : 'bg-slate-100/50 dark:bg-slate-800/50 text-slate-600/80 dark:text-white/80 hover:bg-slate-200/50 dark:hover:bg-slate-700/50'
+                ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-xs ring-2 ring-slate-900/20 dark:ring-white/20'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-white hover:bg-slate-200 dark:hover:bg-slate-700'
             }`}
           >
             <span>All Tasks</span>
             <span
               className={`px-1.5 py-0.2 rounded-full text-[10px] font-normal ${
                 activeStatusFilter === 'ALL'
-                  ? 'bg-white/25 dark:bg-slate-900/15 text-slate-900'
-                  : 'bg-slate-200/50 dark:bg-slate-700/50 text-slate-700/80 dark:text-white/80'
+                  ? 'bg-white/25 dark:bg-slate-900/15 text-white dark:text-slate-900'
+                  : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white'
               }`}
             >
               {totalTasks}
@@ -1058,17 +1089,23 @@ export const AgileStudyRoadmap: React.FC = () => {
             onClick={() => setActiveStatusFilter(activeStatusFilter === 'To Do' ? 'ALL' : 'To Do')}
             className={`px-3 py-1.5 rounded-xl text-xs font-normal transition-all cursor-pointer flex items-center gap-1.5 ${
               activeStatusFilter === 'To Do'
-                ? 'bg-slate-800/50 text-slate-900 dark:bg-slate-200/50 dark:text-slate-900 shadow-xs ring-2 ring-slate-400/25'
-                : 'bg-slate-100/50 dark:bg-slate-800/40 text-slate-600/80 dark:text-white/80 hover:bg-slate-200/50 dark:hover:bg-slate-700/50'
+                ? 'bg-slate-800 text-white dark:bg-slate-200 dark:text-slate-900 shadow-xs ring-2 ring-slate-400/40'
+                : 'bg-slate-100 dark:bg-slate-800/90 text-slate-700 dark:text-white hover:bg-slate-200 dark:hover:bg-slate-700'
             }`}
           >
-            <Clock className="w-3.5 h-3.5 text-slate-400/50 dark:text-white/50" />
+            <Clock
+              className={`w-3.5 h-3.5 ${
+                activeStatusFilter === 'To Do'
+                  ? 'text-slate-200 dark:text-slate-700'
+                  : 'text-slate-500 dark:text-slate-300'
+              }`}
+            />
             <span>To Do</span>
             <span
               className={`px-1.5 py-0.2 rounded-full text-[10px] font-normal ${
                 activeStatusFilter === 'To Do'
-                  ? 'bg-white/25 dark:bg-slate-900/15 text-slate-900'
-                  : 'bg-slate-200/50 dark:bg-slate-700/50 text-slate-700/80 dark:text-white/80'
+                  ? 'bg-white/25 dark:bg-slate-900/15 text-white dark:text-slate-900'
+                  : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white'
               }`}
             >
               {todoCount}
@@ -1081,17 +1118,21 @@ export const AgileStudyRoadmap: React.FC = () => {
             onClick={() => setActiveStatusFilter(activeStatusFilter === 'In Progress' ? 'ALL' : 'In Progress')}
             className={`px-3 py-1.5 rounded-xl text-xs font-normal transition-all cursor-pointer flex items-center gap-1.5 ${
               activeStatusFilter === 'In Progress'
-                ? 'bg-blue-600/50 text-slate-900 dark:text-white shadow-xs ring-2 ring-blue-500/25'
-                : 'bg-blue-50/35 dark:bg-blue-950/20 text-blue-700/70 dark:text-blue-300/70 hover:bg-blue-100/50 dark:hover:bg-blue-900/25'
+                ? 'bg-blue-600 text-white shadow-xs ring-2 ring-blue-500/35'
+                : 'bg-blue-50/85 dark:bg-blue-950/70 text-blue-700 dark:text-blue-200 hover:bg-blue-100 dark:hover:bg-blue-900/75'
             }`}
           >
-            <span className="w-2 h-2 rounded-full bg-blue-400/50 animate-pulse" />
+            <span
+              className={`w-2 h-2 rounded-full animate-pulse ${
+                activeStatusFilter === 'In Progress' ? 'bg-white' : 'bg-blue-500'
+              }`}
+            />
             <span>In Progress</span>
             <span
               className={`px-1.5 py-0.2 rounded-full text-[10px] font-normal ${
                 activeStatusFilter === 'In Progress'
-                  ? 'bg-white/25 text-slate-900 dark:text-white'
-                  : 'bg-blue-100/50 dark:bg-blue-900/30 text-blue-700/75 dark:text-blue-300/75'
+                  ? 'bg-white/25 text-white'
+                  : 'bg-blue-100 dark:bg-blue-900/80 text-blue-700 dark:text-blue-200'
               }`}
             >
               {inProgressCount}
@@ -1104,17 +1145,21 @@ export const AgileStudyRoadmap: React.FC = () => {
             onClick={() => setActiveStatusFilter(activeStatusFilter === 'On Hold' ? 'ALL' : 'On Hold')}
             className={`px-3 py-1.5 rounded-xl text-xs font-normal transition-all cursor-pointer flex items-center gap-1.5 ${
               activeStatusFilter === 'On Hold'
-                ? 'bg-amber-600/50 text-slate-900 dark:text-white shadow-xs ring-2 ring-amber-500/25'
-                : 'bg-amber-50/35 dark:bg-amber-950/20 text-amber-700/70 dark:text-amber-300/70 hover:bg-amber-100/50 dark:hover:bg-amber-900/25'
+                ? 'bg-amber-600 text-white shadow-xs ring-2 ring-amber-500/35'
+                : 'bg-amber-50/85 dark:bg-amber-950/70 text-amber-700 dark:text-amber-200 hover:bg-amber-100 dark:hover:bg-amber-900/75'
             }`}
           >
-            <Pause className="w-3 h-3 text-amber-500/50" />
+            <Pause
+              className={`w-3 h-3 ${
+                activeStatusFilter === 'On Hold' ? 'text-white' : 'text-amber-600 dark:text-amber-300'
+              }`}
+            />
             <span>On Hold</span>
             <span
               className={`px-1.5 py-0.2 rounded-full text-[10px] font-normal ${
                 activeStatusFilter === 'On Hold'
-                  ? 'bg-white/25 text-slate-900 dark:text-white'
-                  : 'bg-amber-100/50 dark:bg-amber-900/30 text-amber-700/75 dark:text-amber-300/75'
+                  ? 'bg-white/25 text-white'
+                  : 'bg-amber-100 dark:bg-amber-900/80 text-amber-700 dark:text-amber-200'
               }`}
             >
               {onHoldCount}
@@ -1127,17 +1172,21 @@ export const AgileStudyRoadmap: React.FC = () => {
             onClick={() => setActiveStatusFilter(activeStatusFilter === 'Revision' ? 'ALL' : 'Revision')}
             className={`px-3 py-1.5 rounded-xl text-xs font-normal transition-all cursor-pointer flex items-center gap-1.5 ${
               activeStatusFilter === 'Revision'
-                ? 'bg-purple-600/50 text-slate-900 dark:text-white shadow-xs ring-2 ring-purple-500/25'
-                : 'bg-purple-50/35 dark:bg-purple-950/20 text-purple-700/70 dark:text-purple-300/70 hover:bg-purple-100/50 dark:hover:bg-purple-900/25'
+                ? 'bg-purple-600 text-white shadow-xs ring-2 ring-purple-500/35'
+                : 'bg-purple-50/85 dark:bg-purple-950/70 text-purple-700 dark:text-purple-200 hover:bg-purple-100 dark:hover:bg-purple-900/75'
             }`}
           >
-            <RotateCcw className="w-3 h-3 text-purple-500/50" />
+            <RotateCcw
+              className={`w-3 h-3 ${
+                activeStatusFilter === 'Revision' ? 'text-white' : 'text-purple-600 dark:text-purple-300'
+              }`}
+            />
             <span>Revision</span>
             <span
               className={`px-1.5 py-0.2 rounded-full text-[10px] font-normal ${
                 activeStatusFilter === 'Revision'
-                  ? 'bg-white/25 text-slate-900 dark:text-white'
-                  : 'bg-purple-100/50 dark:bg-purple-900/30 text-purple-700/75 dark:text-purple-300/75'
+                  ? 'bg-white/25 text-white'
+                  : 'bg-purple-100 dark:bg-purple-900/80 text-purple-700 dark:text-purple-200'
               }`}
             >
               {revisionCount}
@@ -1150,17 +1199,21 @@ export const AgileStudyRoadmap: React.FC = () => {
             onClick={() => setActiveStatusFilter(activeStatusFilter === 'Completed' ? 'ALL' : 'Completed')}
             className={`px-3 py-1.5 rounded-xl text-xs font-normal transition-all cursor-pointer flex items-center gap-1.5 ${
               activeStatusFilter === 'Completed'
-                ? 'bg-emerald-600/50 text-slate-900 dark:text-white shadow-xs ring-2 ring-emerald-500/25'
-                : 'bg-emerald-50/35 dark:bg-emerald-950/20 text-emerald-700/70 dark:text-emerald-300/70 hover:bg-emerald-100/50 dark:hover:bg-emerald-900/25'
+                ? 'bg-emerald-600 text-white shadow-xs ring-2 ring-emerald-500/35'
+                : 'bg-emerald-50/85 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-200 hover:bg-emerald-100 dark:hover:bg-emerald-900/75'
             }`}
           >
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500/50" />
+            <CheckCircle2
+              className={`w-3.5 h-3.5 ${
+                activeStatusFilter === 'Completed' ? 'text-white' : 'text-emerald-600 dark:text-emerald-300'
+              }`}
+            />
             <span>Done</span>
             <span
               className={`px-1.5 py-0.2 rounded-full text-[10px] font-normal ${
                 activeStatusFilter === 'Completed'
-                  ? 'bg-white/25 text-slate-900 dark:text-white'
-                  : 'bg-emerald-100/50 dark:bg-emerald-900/30 text-emerald-700/75 dark:text-emerald-300/75'
+                  ? 'bg-white/25 text-white'
+                  : 'bg-emerald-100 dark:bg-emerald-900/80 text-emerald-700 dark:text-emerald-200'
               }`}
             >
               {completedCount}
@@ -1175,7 +1228,7 @@ export const AgileStudyRoadmap: React.FC = () => {
                 setActiveStatusFilter('ALL');
                 setActiveSubjectFilter('ALL');
               }}
-              className="text-xs font-normal text-slate-400 hover:text-slate-700 dark:hover:text-white px-2 py-1 rounded-lg hover:bg-slate-100/50 dark:hover:bg-slate-800/50 flex items-center gap-1 transition-colors cursor-pointer"
+              className="text-xs font-normal text-slate-500 hover:text-slate-700 dark:hover:text-white px-2 py-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-1 transition-colors cursor-pointer"
               title="Show all tasks"
             >
               <X className="w-3 h-3" />
@@ -2302,6 +2355,151 @@ export const AgileStudyRoadmap: React.FC = () => {
                 />
               </div>
 
+              {/* Module 2 & 5: Deliverable Submission, Grades/Feedback & Custom Approval Status */}
+              <div className="bg-slate-50 dark:bg-slate-800/60 rounded-2xl p-4 border border-slate-200 dark:border-slate-700 space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 text-xs font-normal text-slate-900 dark:text-white">
+                    <Upload className="w-3.5 h-3.5 text-[#00A896]" />
+                    <span>Deliverable Submission &amp; Feedback</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    {selectedTask.isCustom && (
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[10px] border ${
+                          selectedTask.approvalStatus === 'Approved' || selectedTask.approvalStatus === 'Modified'
+                            ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
+                            : selectedTask.approvalStatus === 'Rejected'
+                            ? 'bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800'
+                            : 'bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'
+                        }`}
+                      >
+                        {selectedTask.customCategory || 'Custom'}: {selectedTask.approvalStatus || 'Pending Approval'}
+                      </span>
+                    )}
+                    <span className="px-2 py-0.5 rounded-full text-[10px] bg-slate-200/80 dark:bg-slate-700 text-slate-700 dark:text-slate-200">
+                      {selectedTask.submissionStatus || 'Pending'}
+                    </span>
+                  </div>
+                </div>
+
+                {selectedTask.adminReviewNote && (
+                  <div className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-[11px] text-slate-700 dark:text-slate-200">
+                    Admin Review Note: {selectedTask.adminReviewNote}
+                  </div>
+                )}
+
+                {selectedTask.score !== undefined && (
+                  <div className="p-3 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-xs space-y-1">
+                    <div className="flex items-center justify-between text-emerald-800 dark:text-emerald-300">
+                      <span>Instructor Grade ({selectedTask.gradedBy || 'Academic Admin'})</span>
+                      <span className="tabular-nums">
+                        {selectedTask.score} / {selectedTask.maxScore || 100}
+                      </span>
+                    </div>
+                    {selectedTask.feedback && (
+                      <p className="text-[11px] text-slate-700 dark:text-slate-200">{selectedTask.feedback}</p>
+                    )}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-4 gap-1.5">
+                  {(
+                    [
+                      { id: 'Code', icon: <Code2 className="w-3 h-3" /> },
+                      { id: 'Document', icon: <FileText className="w-3 h-3" /> },
+                      { id: 'Link', icon: <Link2 className="w-3 h-3" /> },
+                      { id: 'Note', icon: <Edit3 className="w-3 h-3" /> },
+                    ] as const
+                  ).map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setSubType(item.id)}
+                      className={`py-1.5 px-2 rounded-lg text-[10px] border flex items-center justify-center gap-1 cursor-pointer ${
+                        subType === item.id
+                          ? 'bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white border-slate-400 dark:border-slate-500'
+                          : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                      }`}
+                    >
+                      {item.icon}
+                      <span>{item.id}</span>
+                    </button>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <input
+                    type="text"
+                    value={subTitle}
+                    onChange={(e) => setSubTitle(e.target.value)}
+                    placeholder="Deliverable title (e.g. lab_solution.py)"
+                    className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs text-slate-900 dark:text-white"
+                  />
+                  <label className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs text-slate-700 dark:text-slate-200 flex items-center justify-between cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800">
+                    <span className="truncate">{subFileName || 'Attach file (optional)'}</span>
+                    <Upload className="w-3.5 h-3.5 text-[#00A896] shrink-0" />
+                    <input
+                      type="file"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setSubFileName(file.name);
+                          if (!subTitle) setSubTitle(file.name);
+                        }
+                      }}
+                    />
+                  </label>
+                </div>
+
+                <textarea
+                  rows={2}
+                  value={subContent}
+                  onChange={(e) => setSubContent(e.target.value)}
+                  placeholder="Paste code snippet, Google Doc/GitHub URL, or assignment summary..."
+                  className="w-full px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs text-slate-900 dark:text-white"
+                />
+
+                <div className="flex items-center justify-between gap-2">
+                  {subSuccessMsg ? (
+                    <span className="text-[11px] text-emerald-600 dark:text-emerald-400">{subSuccessMsg}</span>
+                  ) : (
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                      Syncs immediately to Admin Submission Tracking Grid
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const title = subTitle.trim() || `${selectedTask.subject} Deliverable`;
+                      submitTaskDeliverable(selectedTask.id, {
+                        submissionType: subType,
+                        submissionTitle: title,
+                        submissionContent: subContent.trim() || 'Submitted via Student Roadmap',
+                        submissionFileName: subFileName || undefined,
+                      });
+                      setSelectedTask((prev) =>
+                        prev
+                          ? {
+                              ...prev,
+                              submissionStatus: 'Submitted',
+                              submissionType: subType,
+                              submissionTitle: title,
+                              submissionContent: subContent.trim() || 'Submitted via Student Roadmap',
+                              submissionFileName: subFileName || undefined,
+                              submittedAt: 'Just now',
+                            }
+                          : prev
+                      );
+                      setSubSuccessMsg('Deliverable submitted to Admin!');
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-[#00A896] hover:bg-[#009282] text-white text-[11px] cursor-pointer transition-colors"
+                  >
+                    Submit Deliverable
+                  </button>
+                </div>
+              </div>
+
               {/* AI Doubts Direct Shortcut */}
               <div className="bg-indigo-50/50 dark:bg-indigo-950/20 rounded-xl p-3 border border-indigo-200/50 dark:border-indigo-900/50 flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -2700,17 +2898,58 @@ export const AgileStudyRoadmap: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="newCoreCheckbox"
-                  checked={newTaskIsCore}
-                  onChange={(e) => setNewTaskIsCore(e.target.checked)}
-                  className="rounded text-indigo-600/50 focus:ring-indigo-500/50"
-                />
-                <label htmlFor="newCoreCheckbox" className="text-xs font-normal text-slate-700 dark:text-white cursor-pointer">
-                  Mark as Core Daily Practice (Guaranteed Daily Sprint block)
-                </label>
+              <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700 space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <label className="flex items-center gap-2 text-xs font-normal text-slate-700 dark:text-white cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={newTaskIsCustom}
+                      onChange={(e) => setNewTaskIsCustom(e.target.checked)}
+                      className="rounded text-[#00A896] focus:ring-[#00A896]"
+                    />
+                    <span>Propose as Custom Task / Side Project (Routes to Admin Approval Queue)</span>
+                  </label>
+                  <select
+                    value={newTaskPriority}
+                    onChange={(e) => setNewTaskPriority(e.target.value as 'Normal' | 'High')}
+                    className="px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-[11px] text-slate-800 dark:text-white cursor-pointer"
+                  >
+                    <option value="Normal">Priority: Normal</option>
+                    <option value="High">Priority: High</option>
+                  </select>
+                </div>
+
+                {newTaskIsCustom && (
+                  <div className="grid grid-cols-3 gap-2">
+                    {(['Custom Task', 'Side Project', 'Self-Paced Milestone'] as const).map((cat) => (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => setNewTaskCustomCategory(cat)}
+                        className={`py-1.5 px-2 rounded-lg text-[11px] border cursor-pointer transition-colors ${
+                          newTaskCustomCategory === cat
+                            ? 'bg-[#00A896] text-white border-[#00A896]'
+                            : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                        }`}
+                      >
+                        {cat}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="newCoreCheckbox"
+                    checked={newTaskIsCore}
+                    onChange={(e) => setNewTaskIsCore(e.target.checked)}
+                    className="rounded text-indigo-600/50 focus:ring-indigo-500/50"
+                  />
+                  <label htmlFor="newCoreCheckbox" className="text-xs font-normal text-slate-700 dark:text-white cursor-pointer">
+                    Mark as Core Daily Practice (Guaranteed Daily Sprint block)
+                  </label>
+                </div>
               </div>
 
               <div className="flex items-center justify-end gap-2 pt-2">

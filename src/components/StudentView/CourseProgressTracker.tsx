@@ -12,7 +12,7 @@ import {
 } from 'recharts';
 import { useApp } from '../../context/AppContext';
 import { useTheme } from '../../context/ThemeContext';
-import { getLocalizedSubjectName, formatEnrolledCourseEntry } from '../../data/curriculumData';
+import { getLocalizedSubjectName, formatEnrolledCourseEntry, resolveSubjectsForBoard } from '../../data/curriculumData';
 import { SubjectIcon } from '../common/SubjectIcon';
 import { LottieIcon } from '../common/LottieIcon';
 import {
@@ -94,6 +94,7 @@ export const CourseProgressTracker: React.FC = () => {
     dailyTasks,
     setStudentNav,
     sendTutorMessage,
+    boardSubjectMappings,
     subjectsDB,
     currentBoard,
     activeCategories,
@@ -110,11 +111,10 @@ export const CourseProgressTracker: React.FC = () => {
 
   // Dynamically compute completion percentages directly from dailyTasks in Agile Study Roadmap
   const coursesData: CourseProgressItem[] = useMemo(() => {
-    const liveFallbackCourses = subjectsDB
+    const liveFallbackCourses = resolveSubjectsForBoard(currentBoard, subjectsDB, boardSubjectMappings)
       .filter((s) => {
         if (s.status !== 'ACTIVE') return false;
         if (s.grade_level !== studentGradeLevel) return false;
-        if (s.board && s.board !== 'ALL' && s.board !== currentBoard) return false;
         if (activeCategories.length > 0 && s.category && !activeCategories.includes(s.category)) {
           return false;
         }

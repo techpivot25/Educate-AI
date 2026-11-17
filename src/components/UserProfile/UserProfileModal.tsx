@@ -7,6 +7,7 @@ import {
   getLocalizedSubjectName,
   formatEnrolledCourseEntry,
   isSubjectEnrolled,
+  resolveSubjectsForBoard,
 } from '../../data/curriculumData';
 import { SchoolAutocomplete } from '../common/SchoolAutocomplete';
 import { SchoolLocationMap } from '../common/SchoolLocationMap';
@@ -34,6 +35,7 @@ import {
   Phone,
   Users,
   Image as ImageIcon,
+  AlertTriangle,
 } from 'lucide-react';
 
 const SUPPORTED_BOARDS: { value: EducationBoard; label: string }[] = [
@@ -115,6 +117,8 @@ export const UserProfileModal: React.FC = () => {
     lessonPlans,
     setGlobalLanguage,
     setCurrentBoard,
+    boardsConfig,
+    boardSubjectMappings,
     subjectsDB,
     topicsDB,
     activeGrades,
@@ -182,6 +186,7 @@ export const UserProfileModal: React.FC = () => {
     currentUser?.enrolledCourses || []
   );
   const [subjectCategoryFilter, setSubjectCategoryFilter] = useState<string>('ALL');
+  const [boardSwitchWarning, setBoardSwitchWarning] = useState<string | null>(null);
 
   // Sync state whenever modal opens or currentUser updates
   useEffect(() => {
@@ -221,16 +226,43 @@ export const UserProfileModal: React.FC = () => {
     }
   }, [currentUser, isProfileOpen, currentBoard, globalLanguage]);
 
-  // Live Admin-managed curriculum subjects filtered for student's selected grade & board
+  // Live Admin-managed relational curriculum subjects filtered for student's selected grade & board
   const availableGradeBoardSubjects = useMemo(() => {
-    return subjectsDB.filter((s) => {
+    return resolveSubjectsForBoard(educationBoard, subjectsDB, boardSubjectMappings).filter((s) => {
       if (s.status !== 'ACTIVE') return false;
       if (s.grade_level !== gradeLevel) return false;
-      if (s.board && s.board !== 'ALL' && s.board !== educationBoard) return false;
       if (activeCategories.length > 0 && s.category && !activeCategories.includes(s.category)) return false;
       return true;
     });
-  }, [subjectsDB, gradeLevel, educationBoard, activeCategories]);
+  }, [subjectsDB, boardSubjectMappings, gradeLevel, educationBoard, activeCategories]);
+
+  const handleEducationBoardChange = (nextBoard: EducationBoard) => {
+    setEducationBoard(nextBoard);
+    const nextBoardSubjects = resolveSubjectsForBoard(
+      nextBoard,
+      subjectsDB,
+      boardSubjectMappings
+    ).filter((s) => s.status === 'ACTIVE');
+
+    if (selectedCourses.length > 0) {
+      const removedCourses: string[] = [];
+      const compatibleCourses = selectedCourses.filter((entry) => {
+        const matchesAny = nextBoardSubjects.some((subj) =>
+          isSubjectEnrolled(subj, [entry], nextBoard)
+        );
+        if (!matchesAny) removedCourses.push(entry);
+        return matchesAny;
+      });
+      if (removedCourses.length > 0) {
+        setSelectedCourses(compatibleCourses);
+        setBoardSwitchWarning(
+          `Cleared ${removedCourses.join(', ')} because it is not mapped under ${BOARD_LABELS[nextBoard] || nextBoard}.`
+        );
+        return;
+      }
+    }
+    setBoardSwitchWarning(null);
+  };
 
   const displayedProfileSubjects = useMemo(() => {
     if (subjectCategoryFilter === 'ALL') return availableGradeBoardSubjects;
@@ -323,6 +355,11 @@ export const UserProfileModal: React.FC = () => {
   const handlePasswordReset = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPassword || newPassword !== confirmPassword) return;
+    const nowTime = new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+    updateCurrentUser({
+      passwordUpdatedAt: nowTime,
+      credentialResetRequestedAt: undefined,
+    });
     setPasswordSuccess(true);
     setCurrentPassword('');
     setNewPassword('');
@@ -396,10 +433,25 @@ export const UserProfileModal: React.FC = () => {
 
         {/* Modal Body */}
         <div className="p-6 space-y-6 max-h-[75vh] overflow-y-auto">
+          {(currentUser.isFlagged || currentUser.credentialResetRequestedAt) && (
+            <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200 text-xs font-normal space-y-1">
+              {currentUser.isFlagged && (
+                <div>
+                  Account Flagged by Administrator: {currentUser.flagReason || 'Verification review active.'}
+                </div>
+              )}
+              {currentUser.credentialResetRequestedAt && (
+                <div>
+                  Security Notice: Admin triggered a credential reset ({currentUser.credentialResetRequestedAt}). Please update your password below.
+                </div>
+              )}
+            </div>
+          )}
+
           {saveSuccess && (
             <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-xs font-normal flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>Profile details saved successfully!</span>
+              <span>Profile details saved and synced to Admin directory!</span>
             </div>
           )}
 
@@ -680,12 +732,12 @@ export const UserProfileModal: React.FC = () => {
                     </label>
                     <select
                       value={educationBoard}
-                      onChange={(e) => setEducationBoard(e.target.value as EducationBoard)}
+                      onChange={(e) => handleEducationBoardChange(e.target.value as EducationBoard)}
                       className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-[#1C3A66] bg-white dark:bg-[#132A4C]/60 text-xs font-normal text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#00A896] cursor-pointer"
                     >
-                      {SUPPORTED_BOARDS.map((b) => (
-                        <option key={b.value} value={b.value}>
-                          {b.label}
+                      {boardsConfig.map((b) => (
+                        <option key={b.board_id} value={b.board_id}>
+                          {b.name}
                         </option>
                       ))}
                     </select>
@@ -761,6 +813,22 @@ export const UserProfileModal: React.FC = () => {
                       </button>
                     ))}
                   </div>
+
+                  {boardSwitchWarning && (
+                    <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-amber-50 dark:bg-amber-950/50 border border-amber-300 dark:border-amber-800 text-[11px] text-amber-800 dark:text-amber-200">
+                      <span className="flex items-center gap-1.5">
+                        <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                        <span>{boardSwitchWarning}</span>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setBoardSwitchWarning(null)}
+                        className="text-amber-700 dark:text-amber-300 hover:underline text-[10px] cursor-pointer shrink-0"
+                      >
+                        Dismiss
+                      </button>
+                    </div>
+                  )}
 
                   {/* Subject Selection Checklist Grid */}
                   {displayedProfileSubjects.length === 0 ? (

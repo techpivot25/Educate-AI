@@ -1,32 +1,105 @@
-import { CurriculumItem, DBSubject, DBTopic, EducationBoard, StudentGradeGrowth } from '../types';
+import {
+  BoardConfig,
+  BoardSubjectMapping,
+  CurriculumItem,
+  DBSubject,
+  DBTopic,
+  EducationBoard,
+  StudentGradeGrowth,
+  SubjectType,
+} from '../types';
 
-export const ALL_EDUCATION_BOARDS: EducationBoard[] = [
-  'CBSE',
-  'ICSE',
-  'IB',
-  'IGCSE',
-  'PSEB',
-  'GSEB',
-  'MSBSHSE',
-  'KSEEB',
-  'BSEAP/TOSS',
-  'WBBSE',
-  'Tamil Nadu State Board',
+export const DEFAULT_BOARDS_CONFIG: BoardConfig[] = [
+  {
+    board_id: 'CBSE',
+    name: 'CBSE (National NCERT)',
+    shortLabel: 'CBSE',
+    boardCategory: 'NATIONAL',
+    supportsOptionalRegionalLanguages: true,
+  },
+  {
+    board_id: 'ICSE',
+    name: 'ICSE / CISCE',
+    shortLabel: 'ICSE',
+    boardCategory: 'NATIONAL',
+    supportsOptionalRegionalLanguages: true,
+  },
+  {
+    board_id: 'IB',
+    name: 'IB (MYP & DP)',
+    shortLabel: 'IB',
+    boardCategory: 'INTERNATIONAL',
+    supportsOptionalRegionalLanguages: false,
+  },
+  {
+    board_id: 'IGCSE',
+    name: 'Cambridge IGCSE / A-Level',
+    shortLabel: 'IGCSE',
+    boardCategory: 'INTERNATIONAL',
+    supportsOptionalRegionalLanguages: false,
+  },
+  {
+    board_id: 'PSEB',
+    name: 'PSEB (Punjab)',
+    shortLabel: 'PSEB',
+    boardCategory: 'STATE',
+    supportsOptionalRegionalLanguages: true,
+  },
+  {
+    board_id: 'GSEB',
+    name: 'GSEB (Gujarat)',
+    shortLabel: 'GSEB',
+    boardCategory: 'STATE',
+    supportsOptionalRegionalLanguages: true,
+  },
+  {
+    board_id: 'MSBSHSE',
+    name: 'MSBSHSE (Maharashtra)',
+    shortLabel: 'MSBSHSE',
+    boardCategory: 'STATE',
+    supportsOptionalRegionalLanguages: true,
+  },
+  {
+    board_id: 'KSEEB',
+    name: 'KSEEB (Karnataka)',
+    shortLabel: 'KSEEB',
+    boardCategory: 'STATE',
+    supportsOptionalRegionalLanguages: true,
+  },
+  {
+    board_id: 'BSEAP/TOSS',
+    name: 'BSEAP / TOSS (AP & Telangana)',
+    shortLabel: 'BSEAP / TOSS',
+    boardCategory: 'STATE',
+    supportsOptionalRegionalLanguages: true,
+  },
+  {
+    board_id: 'WBBSE',
+    name: 'WBBSE (West Bengal)',
+    shortLabel: 'WBBSE',
+    boardCategory: 'STATE',
+    supportsOptionalRegionalLanguages: true,
+  },
+  {
+    board_id: 'Tamil Nadu State Board',
+    name: 'Tamil Nadu State Board (TNSCERT)',
+    shortLabel: 'TN State Board',
+    boardCategory: 'STATE',
+    supportsOptionalRegionalLanguages: true,
+  },
 ];
 
-export const BOARD_LABELS: Record<EducationBoard, string> = {
-  CBSE: 'CBSE (National NCERT)',
-  ICSE: 'ICSE / CISCE',
-  IB: 'IB (MYP & DP)',
-  IGCSE: 'Cambridge IGCSE / A-Level',
-  PSEB: 'PSEB (Punjab)',
-  GSEB: 'GSEB (Gujarat)',
-  MSBSHSE: 'MSBSHSE (Maharashtra)',
-  KSEEB: 'KSEEB (Karnataka)',
-  'BSEAP/TOSS': 'BSEAP / TOSS (AP & Telangana)',
-  WBBSE: 'WBBSE (West Bengal)',
-  'Tamil Nadu State Board': 'Tamil Nadu State Board (TNSCERT)',
-};
+export const ALL_EDUCATION_BOARDS: EducationBoard[] = DEFAULT_BOARDS_CONFIG.map(
+  (b) => b.board_id as EducationBoard
+);
+
+export const BOARD_LABELS: Record<EducationBoard, string> = DEFAULT_BOARDS_CONFIG.reduce(
+  (acc, item) => {
+    acc[item.board_id as EducationBoard] = item.name;
+    return acc;
+  },
+  {} as Record<EducationBoard, string>
+);
 
 export const SUPPORTED_LANGUAGES = [
   { value: 'en', label: 'English', native: 'English' },
@@ -112,6 +185,7 @@ interface SubjectTemplate {
   name: string;
   codePrefix: string;
   category: 'STEM' | 'Language Arts' | 'Humanities' | 'Arts & Electives';
+  subject_type?: SubjectType;
   minGrade?: number;
   maxGrade?: number;
   board?: EducationBoard | 'ALL'; // 'ALL' = shared across all 11 boards (single canonical entry per grade)
@@ -216,12 +290,13 @@ const CORE_SUBJECT_TEMPLATES: SubjectTemplate[] = [
           ],
   },
 
-  // 3. SANSKRIT, REGIONAL & FOREIGN LANGUAGES
+  // 3. SANSKRIT, STATE REGIONAL LANGUAGES (RELATIONAL board_id -> subject_id) & FOREIGN LANGUAGES
   {
     key: 'sanskrit',
     name: 'Sanskrit',
     codePrefix: 'SKT',
     category: 'Language Arts',
+    subject_type: 'ELECTIVE',
     board: 'ALL',
     descriptionByStage: (g) => `Grade ${g} Sanskrit Vyakaran (Shabdarupa, Dhaturupa, Sandhi), Subhashitani & classical prose.`,
     topicsByStage: (g) =>
@@ -236,16 +311,94 @@ const CORE_SUBJECT_TEMPLATES: SubjectTemplate[] = [
           ],
   },
   {
-    key: 'regional-lang',
-    name: 'Regional Language',
-    codePrefix: 'REG',
+    key: 'lang-punjabi',
+    name: 'Punjabi',
+    codePrefix: 'PUN',
     category: 'Language Arts',
-    board: 'ALL',
-    descriptionByStage: (g) =>
-      `Grade ${g} State & Heritage Regional Language track (Punjabi, Gujarati, Marathi, Kannada, Telugu, Bengali, Tamil).`,
+    subject_type: 'REGIONAL_LANGUAGE',
+    board: 'PSEB',
+    descriptionByStage: (g) => `Grade ${g} PSEB Punjabi (Gurmukhi Script, Vyakaran, Kavita, Kahani & Sahitya).`,
     topicsByStage: () => [
-      { title: 'Regional Grammar, Orthography & Idioms', description: 'Script mastery, syntax, proverbs & structured writing' },
-      { title: 'Regional Sahitya, Poetry & Essay Composition', description: 'Heritage prose/poetry appreciation & functional letters' },
+      { title: 'Gurmukhi Vyakaran, Muhavare & Lekh Rachna', description: 'Punjabi grammar, idioms, formal letters & essays' },
+      { title: 'Punjabi Kavita, Kahani & Heritage Prose', description: 'Classical & modern Punjabi literary interpretation' },
+    ],
+  },
+  {
+    key: 'lang-marathi',
+    name: 'Marathi',
+    codePrefix: 'MAR',
+    category: 'Language Arts',
+    subject_type: 'REGIONAL_LANGUAGE',
+    board: 'MSBSHSE',
+    descriptionByStage: (g) => `Grade ${g} Maharashtra State Board Marathi (Balbharati, Vyakaran, Vakprachar & Nibandh).`,
+    topicsByStage: () => [
+      { title: 'Marathi Vyakaran, Samas & Vakprachar', description: 'Grammar mechanics, figures of speech & idioms' },
+      { title: 'Balbharati Gadya, Kavita & Patra Lekhan', description: 'Prose comprehension, poetry & formal correspondence' },
+    ],
+  },
+  {
+    key: 'lang-gujarati',
+    name: 'Gujarati',
+    codePrefix: 'GUJ',
+    category: 'Language Arts',
+    subject_type: 'REGIONAL_LANGUAGE',
+    board: 'GSEB',
+    descriptionByStage: (g) => `Grade ${g} GSEB Gujarati (Bhasha-Sahitya, Vyakaran, Rudhiprayog & Nibandh Lekhan).`,
+    topicsByStage: () => [
+      { title: 'Gujarati Vyakaran, Chhand & Alankar', description: 'Orthography, meter, rhetoric & sentence synthesis' },
+      { title: 'Gujarati Gadya-Padya & Sankshepikaran', description: 'Literary appreciation, précis & essay writing' },
+    ],
+  },
+  {
+    key: 'lang-kannada',
+    name: 'Kannada',
+    codePrefix: 'KAN',
+    category: 'Language Arts',
+    subject_type: 'REGIONAL_LANGUAGE',
+    board: 'KSEEB',
+    descriptionByStage: (g) => `Grade ${g} KSEEB Karnataka Kannada (Siri Kannada, Vyakarana, Gadya & Padya).`,
+    topicsByStage: () => [
+      { title: 'Kannada Vyakarana, Sandhi & Samasa', description: 'Script grammar, declensions & compound forms' },
+      { title: 'Kannada Sahitya, Vachanas & Prathana', description: 'Classical vachanas, modern prose & letter writing' },
+    ],
+  },
+  {
+    key: 'lang-telugu',
+    name: 'Telugu',
+    codePrefix: 'TEL',
+    category: 'Language Arts',
+    subject_type: 'REGIONAL_LANGUAGE',
+    board: 'BSEAP/TOSS',
+    descriptionByStage: (g) => `Grade ${g} AP & Telangana Telugu (Vyakaranam, Padya Ratnalu & Vyasarupana).`,
+    topicsByStage: () => [
+      { title: 'Telugu Vyakaranam, Chandassu & Alankaram', description: 'Sandhi, samasa, poetic meter & figures of speech' },
+      { title: 'Telugu Gadya-Padya & Lekha Rachana', description: 'Sataka padyalu, prose analysis & structured essays' },
+    ],
+  },
+  {
+    key: 'lang-bengali',
+    name: 'Bengali',
+    codePrefix: 'BEN',
+    category: 'Language Arts',
+    subject_type: 'REGIONAL_LANGUAGE',
+    board: 'WBBSE',
+    descriptionByStage: (g) => `Grade ${g} WBBSE West Bengal Bengali (Sahitya Chayan, Bangla Byakaran & Rachana).`,
+    topicsByStage: () => [
+      { title: 'Bangla Byakaran, Karok & Samas', description: 'Bengali grammar, sandhi, voice & idiom usage' },
+      { title: 'Bangla Sahitya, Kabita & Probondho', description: 'Tagore & modern Bengali prose, poetry & essays' },
+    ],
+  },
+  {
+    key: 'lang-tamil',
+    name: 'Tamil',
+    codePrefix: 'TAM',
+    category: 'Language Arts',
+    subject_type: 'REGIONAL_LANGUAGE',
+    board: 'Tamil Nadu State Board',
+    descriptionByStage: (g) => `Grade ${g} Tamil Nadu State Board Tamil (Ilakkiyam, Ilakkanam, Thirukkural & Katturai).`,
+    topicsByStage: () => [
+      { title: 'Tamil Ilakkanam, Punarchi & Yaappu', description: 'Classical grammar rules, word joining & prosody' },
+      { title: 'Sangam Ilakkiyam, Thirukkural & Katturai', description: 'Thirukkural ethics, modern prose & formal essays' },
     ],
   },
   {
@@ -253,6 +406,7 @@ const CORE_SUBJECT_TEMPLATES: SubjectTemplate[] = [
     name: 'Foreign Language',
     codePrefix: 'FRL',
     category: 'Language Arts',
+    subject_type: 'ELECTIVE',
     board: 'ALL',
     descriptionByStage: (g) => `Grade ${g} modern foreign language acquisition (French / German / Spanish / Mandarin).`,
     topicsByStage: (g) =>
@@ -766,20 +920,24 @@ function generateDefaultCurriculumDB(): {
   subjects: DBSubject[];
   topics: DBTopic[];
   curriculumItems: CurriculumItem[];
+  boardSubjectMappings: BoardSubjectMapping[];
 } {
   const subjects: DBSubject[] = [];
   const topics: DBTopic[] = [];
   const curriculumItems: CurriculumItem[] = [];
+  const boardSubjectMappings: BoardSubjectMapping[] = [];
   const grades = [6, 7, 8, 9, 10, 11, 12];
 
-  // Store 1 canonical record per (Grade, SubjectTemplate) with board='ALL' for universal subjects,
-  // or explicit board ('IB', 'IGCSE') for board-exclusive subjects -> Zero repeated subjects!
+  // Store 1 canonical record per (Grade, SubjectTemplate) + relational board_id -> subject_id mapping rows
   for (const grade of grades) {
     for (const tpl of CORE_SUBJECT_TEMPLATES) {
       if (tpl.minGrade && grade < tpl.minGrade) continue;
       if (tpl.maxGrade && grade > tpl.maxGrade) continue;
 
       const board: EducationBoard | 'ALL' = tpl.board || 'ALL';
+      const subjectType: SubjectType =
+        tpl.subject_type ||
+        (tpl.category === 'Arts & Electives' ? 'ELECTIVE' : 'CORE');
       const subjectId = `subj-g${grade}-${tpl.key}`;
       const courseCode = `${tpl.codePrefix}-${grade}01`;
       const description = tpl.descriptionByStage(grade);
@@ -789,10 +947,20 @@ function generateDefaultCurriculumDB(): {
         name: tpl.name,
         grade_level: grade,
         board,
+        subject_type: subjectType,
         category: tpl.category,
         code: courseCode,
         description,
         status: 'ACTIVE',
+        created_at: '2026-01-10',
+      });
+
+      boardSubjectMappings.push({
+        id: `map-${board === 'ALL' ? 'all' : board.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${subjectId}`,
+        board_id: board,
+        subject_id: subjectId,
+        subject_type: subjectType,
+        is_required: subjectType === 'CORE' || subjectType === 'REGIONAL_LANGUAGE',
         created_at: '2026-01-10',
       });
 
@@ -816,6 +984,7 @@ function generateDefaultCurriculumDB(): {
         grade,
         gradeLabel: `Grade ${grade}`,
         board,
+        subject_type: subjectType,
         category: tpl.category,
         subjectName: tpl.name,
         code: courseCode,
@@ -825,7 +994,7 @@ function generateDefaultCurriculumDB(): {
     }
   }
 
-  return { subjects, topics, curriculumItems };
+  return { subjects, topics, curriculumItems, boardSubjectMappings };
 }
 
 const DEFAULT_DB = generateDefaultCurriculumDB();
@@ -833,6 +1002,59 @@ const DEFAULT_DB = generateDefaultCurriculumDB();
 export const DEFAULT_SUBJECTS_DB: DBSubject[] = DEFAULT_DB.subjects;
 export const DEFAULT_TOPICS_DB: DBTopic[] = DEFAULT_DB.topics;
 export const COMPREHENSIVE_CURRICULUM_6_12: CurriculumItem[] = DEFAULT_DB.curriculumItems;
+export const DEFAULT_BOARD_SUBJECT_MAPPINGS: BoardSubjectMapping[] = DEFAULT_DB.boardSubjectMappings;
+
+/**
+ * Pure relational board_id -> subject_id resolver (no hardcoded board-to-language if/else rules).
+ * When boardId === 'ALL', returns all subjects annotated with their relational subject_type.
+ * When a specific boardId is given, returns subjects mapped to board_id === 'ALL' OR board_id === boardId.
+ */
+export function resolveSubjectsForBoard(
+  boardId: EducationBoard | 'ALL' | string,
+  subjects: DBSubject[],
+  mappings: BoardSubjectMapping[]
+): (DBSubject & { resolvedSubjectType: SubjectType })[] {
+  const mappingBySubject = new Map<string, BoardSubjectMapping[]>();
+  for (const m of mappings) {
+    const arr = mappingBySubject.get(m.subject_id) || [];
+    arr.push(m);
+    mappingBySubject.set(m.subject_id, arr);
+  }
+
+  const results: (DBSubject & { resolvedSubjectType: SubjectType })[] = [];
+
+  for (const subj of subjects) {
+    const subjMappings = mappingBySubject.get(subj.id) || [];
+
+    if (boardId === 'ALL') {
+      const primaryType: SubjectType =
+        subjMappings[0]?.subject_type || subj.subject_type || 'CORE';
+      results.push({ ...subj, resolvedSubjectType: primaryType });
+      continue;
+    }
+
+    const exactMapping = subjMappings.find((m) => m.board_id === boardId);
+    const universalMapping = subjMappings.find((m) => m.board_id === 'ALL');
+    const matchedMapping = exactMapping || universalMapping;
+
+    if (matchedMapping) {
+      results.push({ ...subj, resolvedSubjectType: matchedMapping.subject_type });
+    } else if (subjMappings.length === 0 && (!subj.board || subj.board === 'ALL' || subj.board === boardId)) {
+      results.push({ ...subj, resolvedSubjectType: subj.subject_type || 'CORE' });
+    }
+  }
+
+  // Sort REGIONAL_LANGUAGE subjects right alongside core subjects for clear visibility
+  const typeOrder: Record<SubjectType, number> = {
+    CORE: 0,
+    REGIONAL_LANGUAGE: 1,
+    ELECTIVE: 2,
+  };
+  return results.sort((a, b) => {
+    if (a.grade_level !== b.grade_level) return a.grade_level - b.grade_level;
+    return typeOrder[a.resolvedSubjectType] - typeOrder[b.resolvedSubjectType];
+  });
+}
 
 // Student Alex R. Grades 6-12 Academic Growth Progress Record
 export const SAMPLE_STUDENT_ACADEMIC_GROWTH: StudentGradeGrowth[] = [

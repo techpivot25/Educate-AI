@@ -81,6 +81,28 @@ export interface AppUser {
   // Admin Profile Additions
   permissionLevel?: 'Super Admin' | 'Proctor Manager' | 'Content Admin';
   activityLogs?: { id: string; timestamp: string; action: string }[];
+
+  // Security, Flagging & Credential Sync Controls
+  isFlagged?: boolean;
+  flagReason?: string;
+  flaggedAt?: string;
+  credentialResetRequestedAt?: string;
+  passwordUpdatedAt?: string;
+  moduleAccessSuspended?: boolean;
+}
+
+export interface ProfileAuditEntry {
+  id: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  field: string;
+  oldValue: string;
+  newValue: string;
+  actorRole: UserRole | 'system';
+  actorName: string;
+  timestamp: string;
+  changeType: 'profile_edit' | 'status_control' | 'security_reset' | 'account_flag';
 }
 
 export interface ChatMessage {
@@ -101,6 +123,12 @@ export interface StudentDoubt {
   createdAt: string;
   status: 'pending' | 'resolved';
   solution?: string;
+  assignedTo?: string;
+  resolutionStatus?: 'Open' | 'Assigned' | 'Resolved' | 'Closed';
+  createdAtMs?: number;
+  resolvedAtMs?: number;
+  responseTimeLabel?: string;
+  adminNote?: string;
 }
 
 export interface GuardianEscalationReceipt {
@@ -145,6 +173,27 @@ export interface QuickDoubtItem {
   isWellnessNotice?: boolean;
   guardianReport?: GuardianEscalationReceipt;
   messages?: QuickDoubtChatTurn[];
+  studentName?: string;
+  assignedTo?: string;
+  resolutionStatus?: 'Open' | 'Assigned' | 'Resolved' | 'Closed';
+  adminResolutionNote?: string;
+  createdAtMs?: number;
+  resolvedAtMs?: number;
+  responseTimeLabel?: string;
+}
+
+export interface QuizAttemptLog {
+  id: string;
+  studentId: string;
+  studentName: string;
+  quizId: string;
+  quizTitle: string;
+  topic: string;
+  score: number;
+  correctCount: number;
+  totalQuestions: number;
+  timestamp: string;
+  createdAtMs: number;
 }
 
 export interface LessonPlanActivity {
@@ -240,6 +289,11 @@ export interface StudentProfile {
   englishProgress?: number;
   riskScore: 'Low' | 'Medium' | 'High';
   activeProctorStatus: AnomalyType;
+  status?: 'Active' | 'Inactive';
+  isFlagged?: boolean;
+  flagReason?: string;
+  subscriptionTier?: string;
+  accessSuspended?: boolean;
 }
 
 export interface TeacherProfile {
@@ -263,6 +317,21 @@ export interface AiSuggestion {
   timestamp: string;
 }
 
+export interface CertificateDownloadLog {
+  id: string;
+  certificateId: string;
+  certificateNumber: string;
+  studentName: string;
+  downloadedAt: string;
+  format: string;
+}
+
+export interface CertAutoTriggerConfig {
+  enabled: boolean;
+  minScore: number;
+  requireAdminApproval: boolean;
+}
+
 export interface DigitalCertificate {
   id: string;
   certificateNumber: string;
@@ -272,9 +341,12 @@ export interface DigitalCertificate {
   issueDate: string;
   instructorName: string;
   verificationHash: string;
-  status: 'Verified' | 'Revoked';
+  status: 'Verified' | 'Revoked' | 'Pending Approval';
   skillsAcquired: string[];
   score: number;
+  triggerSource?: 'Auto' | 'Manual';
+  downloadCount?: number;
+  downloadLogs?: CertificateDownloadLog[];
 }
 
 export interface CrossPanelNotification {
@@ -286,11 +358,31 @@ export interface CrossPanelNotification {
   type: 'info' | 'warning' | 'success' | 'alert';
 }
 
+export type SubjectType = 'CORE' | 'REGIONAL_LANGUAGE' | 'ELECTIVE';
+
+export interface BoardConfig {
+  board_id: EducationBoard | string;
+  name: string;
+  shortLabel: string;
+  boardCategory: 'NATIONAL' | 'STATE' | 'INTERNATIONAL';
+  supportsOptionalRegionalLanguages?: boolean;
+}
+
+export interface BoardSubjectMapping {
+  id: string;
+  board_id: EducationBoard | 'ALL' | string;
+  subject_id: string;
+  subject_type: SubjectType;
+  is_required: boolean;
+  created_at: string;
+}
+
 export interface DBSubject {
   id: string;
   name: string;
   grade_level: number; // 6 to 12
   board?: EducationBoard | 'ALL';
+  subject_type?: SubjectType;
   category?: 'STEM' | 'Language Arts' | 'Humanities' | 'Arts & Electives';
   code?: string;
   description?: string;
@@ -312,6 +404,7 @@ export interface CurriculumItem {
   grade: number; // 6 to 12
   gradeLabel: string;
   board?: EducationBoard | 'ALL';
+  subject_type?: SubjectType;
   category: 'STEM' | 'Language Arts' | 'Humanities' | 'Arts & Electives';
   subjectName: string;
   code: string;
@@ -334,6 +427,21 @@ export type StudentNavTab =
   | 'progress'
   | 'certificates'
   | 'subscription';
+
+export type AdminNavTab =
+  | 'dashboard'
+  | 'users'
+  | 'curriculum'
+  | 'teachers'
+  | 'students'
+  | 'tasks-sync'
+  | 'interactions'
+  | 'billing'
+  | 'subscription-plans'
+  | 'ai-cost-monitor'
+  | 'config'
+  | 'certificates'
+  | 'analytics';
 
 export interface MeetingInvite {
   id: string;
@@ -450,6 +558,19 @@ export interface ForumResourceItem {
 
 export type StudyTaskStatus = 'To Do' | 'In Progress' | 'On Hold' | 'Completed' | 'Revision';
 
+export type TaskSubmissionStatus =
+  | 'Pending'
+  | 'Submitted'
+  | 'Under Review'
+  | 'Graded'
+  | 'Revision Required';
+
+export type CustomTaskApprovalStatus =
+  | 'Pending Approval'
+  | 'Approved'
+  | 'Modified'
+  | 'Rejected';
+
 export interface DailyStudyTask {
   id: string;
   day: number;
@@ -465,6 +586,25 @@ export interface DailyStudyTask {
   color: string;
   created_at?: string;
   status_updated_at?: string;
+  // Task & Assignment Management (Module 2)
+  studentName?: string;
+  priority?: 'Normal' | 'High';
+  submissionStatus?: TaskSubmissionStatus;
+  submissionType?: 'Code' | 'Document' | 'Link' | 'Note';
+  submissionTitle?: string;
+  submissionContent?: string;
+  submissionFileName?: string;
+  submittedAt?: string;
+  score?: number;
+  maxScore?: number;
+  feedback?: string;
+  gradedBy?: string;
+  gradedAt?: string;
+  // Custom Tasks & Project Modules Approval (Module 5)
+  isCustom?: boolean;
+  customCategory?: 'Custom Task' | 'Side Project' | 'Self-Paced Milestone';
+  approvalStatus?: CustomTaskApprovalStatus;
+  adminReviewNote?: string;
 }
 
 export interface WeeklySprintAllocation {
@@ -485,18 +625,166 @@ export interface MasterChapterItem {
   status: 'Scheduled' | 'In Progress' | 'Completed';
 }
 
+export type SubscriptionPlanStatus = 'Active' | 'Discontinued';
+export type BillingCadence = 'Monthly' | 'Quarterly' | 'Annually' | 'One-Time';
+export type PlanCurrency = 'INR' | 'USD';
+
+export type AiModelRoutingTier =
+  | 'flash-lite'
+  | 'flash-lite-hybrid'
+  | 'hydrogen-standard'
+  | 'hydrogen-vision'
+  | 'pro-reasoning';
+
+export type AiOveragePolicy =
+  | 'prompt-upgrade-or-addon'
+  | 'auto-downgrade-lite'
+  | 'hard-cap-pause';
+
+export interface SubscriptionPlan {
+  id: string;
+  name: string;
+  subtitle: string;
+  badge?: string;
+  currency: PlanCurrency;
+  basePrice: number;
+  strikethroughPrice?: number;
+  billingFrequency: BillingCadence;
+  billingCycleLabel: string;
+  gstApplicable: boolean;
+  courseAccessLevel: string;
+  usageQuotas: string;
+  // AI Agent Token Quota & Cost Economics
+  monthlyTokenQuota: number;
+  aiModelTier: AiModelRoutingTier;
+  overagePolicy: AiOveragePolicy;
+  maxVisionDoubtsPerMonth?: number;
+  contextCachingEnabled?: boolean;
+  features: string[];
+  status: SubscriptionPlanStatus;
+  version: number;
+  activeSubscribersCount: number;
+  createdAt: string;
+  effectiveStartDate: string;
+  endDate?: string;
+  discontinuedDate?: string;
+  lastModifiedAt: string;
+  lastModifiedByAdminId: string;
+  grandfatherExistingSubscribers?: boolean;
+}
+
+export interface AiAddonPack {
+  id: string;
+  name: string;
+  tokens: number;
+  priceINR: number;
+  badge?: string;
+  approxDoubts: string;
+  description: string;
+}
+
+export interface AiTokenUsageLog {
+  id: string;
+  studentId: string;
+  studentName: string;
+  surface: 'Quick Doubts AI' | 'Socratic AI Tutor';
+  subject: string;
+  model: string;
+  modelTier: AiModelRoutingTier;
+  promptTokens: number;
+  outputTokens: number;
+  cachedTokens: number;
+  totalTokens: number;
+  estimatedCostINR: number;
+  paidFrom: 'monthly-quota' | 'addon-credits' | 'split';
+  timestamp: string;
+  createdAtMs: number;
+}
+
+export interface StudentAiQuotaRecord {
+  studentId: string;
+  studentName: string;
+  studentEmail: string;
+  planName: string;
+  monthlyQuota: number;
+  monthlyTokensUsed: number;
+  addonCreditsRemaining: number;
+  visionDoubtsUsed: number;
+  maxVisionDoubtsPerMonth: number;
+  estimatedMonthlyCogsINR: number;
+  cycleResetDate: string;
+  lastActiveAt: string;
+}
+
+export interface SubscriptionPlanAuditEntry {
+  id: string;
+  planId: string;
+  planName: string;
+  action: 'Created' | 'Edited' | 'Discontinued' | 'Reactivated';
+  adminId: string;
+  adminName: string;
+  timestamp: string;
+  summary: string;
+  versionSnapshot?: number;
+  integrityMode?: 'new-enrollments-only' | 'next-renewal-cycle';
+}
+
+export interface BillingTransaction {
+  id: string;
+  invoiceId: string;
+  studentId: string;
+  studentName: string;
+  studentEmail: string;
+  planId: string;
+  planName: string;
+  baseAmountINR: number;
+  gstAmountINR: number;
+  totalAmountINR: number;
+  paymentMethod: 'Credit Card' | 'Debit Card' | 'PayPal' | 'UPI' | 'Net Banking' | 'Card' | 'Apple Pay';
+  paymentStatus: 'Success' | 'Failed' | 'Pending';
+  recurringMonthly: boolean;
+  expiresAt: string;
+  createdAt: string;
+  note?: string;
+}
+
+export interface SubscriberRecord {
+  id: string;
+  studentId: string;
+  studentName: string;
+  studentEmail: string;
+  phone?: string;
+  grade?: string;
+  educationBoard?: string;
+  city: string;
+  state: string;
+  planId: string;
+  planName: string;
+  subscribedDate: string; // YYYY-MM-DD
+  expiresAt: string; // YYYY-MM-DD
+  amountPaidINR: number;
+  paymentMethod:
+    | 'Credit Card'
+    | 'Debit Card'
+    | 'PayPal'
+    | 'UPI'
+    | 'Net Banking'
+    | 'Offline / Invoice';
+  recurringMonthly: boolean;
+  status: 'Active' | 'Trial' | 'Past Due' | 'Suspended' | 'Expired';
+  invoiceId?: string;
+  notes?: string;
+}
+
 export interface SubscriptionState {
-  tier:
-    | '7-Day Free Trial'
-    | 'Monthly Plan'
-    | 'Quarterly Plan'
-    | 'Annual Plan'
-    | 'Student Pro'
-    | 'Annual Mastery';
+  tier: string;
   trialStartDate: string;
   trialEndDate: string;
   trialDaysLeft: number;
   isActive: boolean;
+  moduleAccessEnabled?: boolean;
+  billingStatus?: 'Active' | 'Past Due' | 'Suspended' | 'Trial';
+  expiresAt?: string;
   paymentMethod?: {
     type: 'Credit Card' | 'Debit Card' | 'PayPal' | 'UPI' | 'Net Banking' | 'Card' | 'Apple Pay';
     detail: string;
@@ -504,7 +792,9 @@ export interface SubscriptionState {
   autoRenew: boolean;
   recurringMonthly?: boolean;
   lastBilledAmountINR?: number;
-  activePlanId?: 'monthly' | 'quarterly' | 'annual';
+  activePlanId?: string;
+  grandfatheredPlanVersion?: number;
+  lockedCyclePrice?: number;
 }
 
 export interface StudentGradeGrowth {

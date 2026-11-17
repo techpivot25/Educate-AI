@@ -6,6 +6,7 @@ import {
   getLocalizedSubjectName,
   formatEnrolledCourseEntry,
   isSubjectEnrolled,
+  resolveSubjectsForBoard,
 } from '../../data/curriculumData';
 import { FormulasAndGraphsTab } from './FormulasAndGraphsTab';
 import { AgileStudyRoadmap } from './AgileStudyRoadmap';
@@ -90,9 +91,13 @@ import {
   HeartHandshake,
   Phone,
   CornerDownRight,
+  Cpu,
+  Coins,
+  AlertTriangle,
 } from 'lucide-react';
 import { EducationBoard, LanguageMedium, StudentNavTab, Quiz, DigitalCertificate, QuickDoubtItem, QuickDoubtChatTurn, GuardianEscalationReceipt } from '../../types';
 import { parseQuickDoubtResponse } from '../../utils/safetyGuard';
+import { AI_ADDON_PACKS, formatCompactTokens } from '../../utils/tokenPricing';
 
 const SUPPORTED_BOARDS: { value: EducationBoard; label: string }[] = [
   { value: 'CBSE', label: 'CBSE (National NCERT)' },
@@ -136,12 +141,14 @@ export const StudentView: React.FC = () => {
     clearQuickDoubts,
     quizzes,
     certificates,
+    logCertificateDownload,
     currentUser,
     updateCurrentUser,
     setCurrentRole,
     logout,
     setIsProfileOpen,
     setIsCurriculumModalOpen,
+    boardSubjectMappings,
     subjectsDB,
     topicsDB,
     activeGrades,
@@ -164,7 +171,75 @@ export const StudentView: React.FC = () => {
     recordQuizSubmission,
     completeCurriculumUnit,
     addNotification,
+    currentStudentAiQuota,
+    aiQuotaExhaustedModalOpen,
+    setAiQuotaExhaustedModalOpen,
   } = useApp();
+
+  const [copiedCertHashId, setCopiedCertHashId] = useState<string | null>(null);
+
+  const monthlyRemainingTokens = Math.max(
+    0,
+    currentStudentAiQuota.monthlyQuota - currentStudentAiQuota.monthlyTokensUsed
+  );
+  const totalAvailableTokens = monthlyRemainingTokens + currentStudentAiQuota.addonCreditsRemaining;
+  const quotaUsagePercent = Math.min(
+    100,
+    Math.round(
+      (currentStudentAiQuota.monthlyTokensUsed / Math.max(1, currentStudentAiQuota.monthlyQuota)) * 100
+    )
+  );
+  const isLowAiQuota = quotaUsagePercent >= 80 && totalAvailableTokens > 0;
+  const isExhaustedAiQuota = totalAvailableTokens <= 0;
+
+  const isModuleSuspended = subscriptionState.moduleAccessEnabled === false;
+  const isGatedStudentTab =
+    isModuleSuspended &&
+    (studentNav === 'pomodoro' ||
+      studentNav === 'formulas-graphs' ||
+      studentNav === 'my-courses' ||
+      studentNav === 'practice' ||
+      studentNav === 'ai-tutor' ||
+      studentNav === 'certificates');
+
+  const handleDownloadCertificate = (cert: DigitalCertificate) => {
+    if (cert.status !== 'Verified') return;
+    logCertificateDownload(cert.id, 'HTML Certificate Voucher');
+    const htmlContent = `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>${cert.certificateNumber} - Verified Certificate</title></head>
+<body style="font-family:system-ui,-apple-system,sans-serif;padding:48px;background:#f8fafc;color:#0f172a;">
+  <div style="max-width:720px;margin:0 auto;background:#ffffff;border:2px solid #00A896;border-radius:20px;padding:40px;">
+    <p style="font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:#00A896;margin:0;">PivotIQ Verified Credential</p>
+    <h1 style="margin:12px 0 8px;font-size:28px;">${cert.courseTitle}</h1>
+    <p style="color:#475569;margin:0 0 24px;">Awarded to <strong>${cert.studentName}</strong> (${cert.gradeLevel})</p>
+    <div style="background:#f1f5f9;border-radius:12px;padding:16px;font-size:13px;line-height:1.7;">
+      <div><strong>Certificate ID:</strong> ${cert.certificateNumber}</div>
+      <div><strong>Score Achieved:</strong> ${cert.score}%</div>
+      <div><strong>Issued By:</strong> ${cert.instructorName} on ${cert.issueDate}</div>
+      <div><strong>Verification Hash:</strong> <code>${cert.verificationHash}</code></div>
+      <div><strong>Skills Acquired:</strong> ${cert.skillsAcquired.join(', ')}</div>
+    </div>
+  </div>
+</body>
+</html>`;
+    const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${cert.certificateNumber}-${cert.studentName.replace(/\s+/g, '_')}.html`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleCopyCertHash = (cert: DigitalCertificate) => {
+    const verifyUrl = `${window.location.origin}/verify/${cert.certificateNumber}?hash=${encodeURIComponent(cert.verificationHash)}`;
+    navigator.clipboard?.writeText(verifyUrl).catch(() => {});
+    setCopiedCertHashId(cert.id);
+    setTimeout(() => setCopiedCertHashId((prev) => (prev === cert.id ? null : prev)), 2000);
+  };
 
   // Mobile sidebar state
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -245,23 +320,22 @@ export const StudentView: React.FC = () => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages, isAiTyping]);
 
-  // Dynamic Grade, Board & Category-Filtered Subjects from Live Admin Curriculum
+  // Dynamic Grade, Board & Category-Filtered Subjects from Live Relational Curriculum
   const filteredSubjects = useMemo(() => {
-    return subjectsDB.filter((s) => {
+    return resolveSubjectsForBoard(currentBoard, subjectsDB, boardSubjectMappings).filter((s) => {
       if (s.status !== 'ACTIVE') return false;
       if (s.grade_level !== activeGradeFilter) return false;
-      if (s.board && s.board !== 'ALL' && s.board !== currentBoard) return false;
       if (activeCategories.length > 0 && s.category && !activeCategories.includes(s.category)) return false;
       return true;
     });
-  }, [subjectsDB, activeGradeFilter, currentBoard, activeCategories]);
+  }, [subjectsDB, boardSubjectMappings, activeGradeFilter, currentBoard, activeCategories]);
 
   const displaySubjects = useMemo(() => {
     if (filteredSubjects.length > 0) return filteredSubjects;
-    return subjectsDB.filter(
-      (s) => s.status === 'ACTIVE' && (!s.board || s.board === 'ALL' || s.board === currentBoard)
+    return resolveSubjectsForBoard(currentBoard, subjectsDB, boardSubjectMappings).filter(
+      (s) => s.status === 'ACTIVE'
     );
-  }, [filteredSubjects, subjectsDB, currentBoard]);
+  }, [filteredSubjects, subjectsDB, boardSubjectMappings, currentBoard]);
 
   const gradeOptions = useMemo(() => {
     const set = new Set<number>(activeGrades.length > 0 ? activeGrades : [6, 7, 8, 9, 10, 11, 12]);
@@ -1264,6 +1338,99 @@ export const StudentView: React.FC = () => {
             3. MAIN CONTAINER FOR CONDITIONAL STUDENT TABS
             ========================================================================= */}
         <main className="p-4 sm:p-6 lg:p-8 pb-32 sm:pb-36 max-w-[1680px] mx-auto w-full flex-1 space-y-6">
+          {/* ADMIN STATUS / FLAG / SECURITY / SUBSCRIPTION SYNC BANNERS */}
+          {(currentUser?.isFlagged ||
+            currentUser?.status === 'Inactive' ||
+            currentUser?.credentialResetRequestedAt ||
+            isModuleSuspended) && (
+            <div className="space-y-2.5">
+              {(currentUser?.isFlagged || currentUser?.status === 'Inactive' || currentUser?.credentialResetRequestedAt) && (
+                <div className="rounded-2xl p-4 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                  <div className="flex items-start gap-2.5">
+                    <ShieldAlert className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                    <div className="space-y-0.5">
+                      <div className="font-normal text-amber-900 dark:text-amber-200">
+                        {currentUser?.status === 'Inactive'
+                          ? 'Account Deactivated by Administrator'
+                          : currentUser?.isFlagged
+                          ? 'Account Flagged by Administrator'
+                          : 'Credential Reset Requested by Administrator'}
+                      </div>
+                      <p className="text-[11px] text-amber-800/90 dark:text-amber-300/90">
+                        {currentUser?.flagReason
+                          ? `Reason: ${currentUser.flagReason}. `
+                          : ''}
+                        {currentUser?.credentialResetRequestedAt
+                          ? 'Please update your account password inside Profile & Security.'
+                          : 'Review your profile details or contact institutional support.'}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsProfileOpen(true)}
+                    className="px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-normal cursor-pointer shrink-0 transition-colors"
+                  >
+                    Open Profile &amp; Security
+                  </button>
+                </div>
+              )}
+
+              {isModuleSuspended && (
+                <div className="rounded-2xl p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                  <div className="flex items-start gap-2.5">
+                    <Lock className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+                    <div className="space-y-0.5">
+                      <div className="font-normal text-rose-900 dark:text-rose-200">
+                        Learning Module Access Temporarily Suspended ({subscriptionState.billingStatus || 'Past Due'})
+                      </div>
+                      <p className="text-[11px] text-rose-800/90 dark:text-rose-300/90">
+                        Your subscription payment lapsed or access was paused in Billing Provisioning. Complete renewal to unlock quizzes, courses, AI tutor, and certificates.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setStudentNav('subscription')}
+                    className="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-normal cursor-pointer shrink-0 transition-colors"
+                  >
+                    Renew Subscription Now
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {isGatedStudentTab ? (
+            <div className="bg-white dark:bg-[#0E1A2D] rounded-3xl p-8 border border-rose-200 dark:border-rose-900/60 shadow-xs text-center space-y-4 max-w-xl mx-auto my-8">
+              <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto">
+                <Lock className="w-6 h-6" />
+              </div>
+              <h2 className="text-xl font-light text-slate-900 dark:text-white">
+                Module Access Paused Pending Billing Renewal
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                This learning module is locked because your account&apos;s billing provisioning is currently suspended. Renewing your plan immediately restores access across all tabs.
+              </p>
+              <div className="flex items-center justify-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setStudentNav('subscription')}
+                  className="px-5 py-2.5 rounded-xl bg-[#00A896] hover:bg-[#009282] text-white text-xs font-normal cursor-pointer transition-colors"
+                >
+                  Go to Subscription &amp; Payment
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStudentNav('dashboard')}
+                  className="px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-normal cursor-pointer"
+                >
+                  Return to Dashboard
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
           {/* TAB 1: MAIN DASHBOARD VIEW (Top Progress & Filters + Full-Width Agile Study Roadmap + Quick Doubts AI) */}
           {studentNav === 'dashboard' && (
             <div className="space-y-6">
@@ -1457,6 +1624,53 @@ export const StudentView: React.FC = () => {
                             Feeling stuck? Don’t hesitate to ask
                           </p>
                         </div>
+                      </div>
+                    </div>
+
+                    {/* Compact AI Token Quota Meter */}
+                    <div
+                      className={`p-3 rounded-2xl border text-xs transition-colors ${
+                        isExhaustedAiQuota
+                          ? 'bg-rose-50 dark:bg-rose-950/30 border-rose-200 dark:border-rose-800/60'
+                          : isLowAiQuota
+                          ? 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800/60'
+                          : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200/70 dark:border-slate-700/60'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2 mb-1.5">
+                        <span className="inline-flex items-center gap-1.5 font-semibold text-slate-700 dark:text-slate-200">
+                          <Cpu className="w-3.5 h-3.5 text-[#00A896]" />
+                          AI Token Balance: {formatCompactTokens(totalAvailableTokens)} left
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setStudentNav('subscription')}
+                          className="text-[11px] font-bold text-[#00A896] hover:underline cursor-pointer shrink-0"
+                        >
+                          {isExhaustedAiQuota || isLowAiQuota ? 'Top Up / Upgrade' : 'Add Credits'}
+                        </button>
+                      </div>
+                      <div className="w-full h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all ${
+                            isExhaustedAiQuota
+                              ? 'bg-rose-500'
+                              : isLowAiQuota
+                              ? 'bg-amber-500'
+                              : 'bg-[#00A896]'
+                          }`}
+                          style={{ width: `${quotaUsagePercent}%` }}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400 mt-1">
+                        <span>
+                          Plan: {formatCompactTokens(currentStudentAiQuota.monthlyTokensUsed)} / {formatCompactTokens(currentStudentAiQuota.monthlyQuota)} used
+                        </span>
+                        {currentStudentAiQuota.addonCreditsRemaining > 0 && (
+                          <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                            +{formatCompactTokens(currentStudentAiQuota.addonCreditsRemaining)} Add-On Wallet
+                          </span>
+                        )}
                       </div>
                     </div>
 
@@ -2692,12 +2906,30 @@ export const StudentView: React.FC = () => {
                   </div>
                 </div>
 
-                <button
-                  onClick={() => sendTutorMessage('Can you summarize our key physics takeaways today?')}
-                  className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-white hover:bg-slate-200 transition-colors cursor-pointer"
-                >
-                  Summary
-                </button>
+                <div className="flex items-center gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setStudentNav('subscription')}
+                    className={`hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-colors cursor-pointer ${
+                      isExhaustedAiQuota
+                        ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800'
+                        : isLowAiQuota
+                        ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'
+                        : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:border-[#00A896]'
+                    }`}
+                    title="View AI token balance or buy add-on credits"
+                  >
+                    <Cpu className="w-3.5 h-3.5 text-[#00A896]" />
+                    <span>{formatCompactTokens(totalAvailableTokens)} tokens left</span>
+                    <span className="text-[#00A896] font-bold">• Top Up</span>
+                  </button>
+                  <button
+                    onClick={() => sendTutorMessage('Can you summarize our key physics takeaways today?')}
+                    className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-white hover:bg-slate-200 transition-colors cursor-pointer"
+                  >
+                    Summary
+                  </button>
+                </div>
               </div>
 
               {/* Chat Body */}
@@ -2820,10 +3052,13 @@ export const StudentView: React.FC = () => {
             <div className="space-y-6">
               <div className="bg-white dark:bg-[#0E1A2D] rounded-2xl p-6 border border-slate-200/90 dark:border-slate-800/80 shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                  <h2 className="text-2xl font-light text-slate-900 dark:text-white tracking-wide">Digital Certificates & Badges</h2>
+                  <h2 className="text-2xl font-light text-slate-900 dark:text-white tracking-wide">Digital Certificates &amp; Badges</h2>
                   <p className="text-xs sm:text-sm text-slate-500 dark:text-white mt-1">
-                    Cryptographically verified credentials awarded for curriculum mastery
+                    Cryptographically verified credentials synced live with Admin Credential Vault &amp; Download Logs
                   </p>
+                </div>
+                <div className="text-xs text-slate-500 dark:text-slate-300">
+                  Total Issued: {certificates.length}
                 </div>
               </div>
 
@@ -2833,23 +3068,70 @@ export const StudentView: React.FC = () => {
                     key={cert.id}
                     className="p-6 rounded-2xl bg-white dark:bg-[#0E1A2D] border border-slate-200/90 dark:border-slate-800/80 shadow-xs space-y-4 relative overflow-hidden"
                   >
-                    <div className="flex items-start justify-between">
-                      <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 flex items-center justify-center font-bold">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 flex items-center justify-center">
                         <Award className="w-6 h-6" />
                       </div>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">
-                        {cert.status}
-                      </span>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                          {cert.certificateNumber}
+                        </span>
+                        <span
+                          className={`text-[10px] font-normal px-2.5 py-0.5 rounded-full border ${
+                            cert.status === 'Verified'
+                              ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
+                              : cert.status === 'Pending Approval'
+                              ? 'bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'
+                              : 'bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800'
+                          }`}
+                        >
+                          {cert.status}
+                        </span>
+                      </div>
                     </div>
 
                     <div>
                       <h3 className="font-light text-lg text-slate-900 dark:text-white">{cert.courseTitle}</h3>
-                      <p className="text-xs text-slate-500 dark:text-white mt-0.5">Recipient: {cert.studentName} &bull; Score: {cert.score}%</p>
+                      <p className="text-xs text-slate-500 dark:text-white mt-0.5">
+                        Recipient: {cert.studentName} &bull; Score: {cert.score}% &bull; {cert.triggerSource || 'Manual'} Trigger
+                      </p>
                     </div>
 
                     <div className="pt-2 border-t border-slate-100 dark:border-slate-800 text-[11px] text-slate-500 dark:text-white space-y-1">
                       <div>Issued by: {cert.instructorName} on {cert.issueDate}</div>
-                      <div className="font-mono text-[10px] text-slate-400 dark:text-white truncate">Hash: {cert.verificationHash}</div>
+                      <div className="font-mono text-[10px] text-slate-400 dark:text-slate-300 truncate">
+                        Hash: {cert.verificationHash}
+                      </div>
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400">
+                        Downloads logged: {cert.downloadCount || 0}
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2 pt-1">
+                      <button
+                        type="button"
+                        disabled={cert.status !== 'Verified'}
+                        onClick={() => handleDownloadCertificate(cert)}
+                        className="px-3.5 py-2 rounded-xl bg-[#00A896] hover:bg-[#009282] disabled:opacity-45 disabled:cursor-not-allowed text-white text-xs font-normal flex items-center gap-1.5 cursor-pointer transition-colors"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>
+                          {cert.status === 'Verified'
+                            ? 'Download Certificate'
+                            : cert.status === 'Pending Approval'
+                            ? 'Awaiting Admin Approval'
+                            : 'Credential Revoked'}
+                        </span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleCopyCertHash(cert)}
+                        className="px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-normal flex items-center gap-1.5 cursor-pointer transition-colors"
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                        <span>{copiedCertHashId === cert.id ? 'Verification Link Copied' : 'Copy Verify Link'}</span>
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -2984,6 +3266,8 @@ export const StudentView: React.FC = () => {
           {studentNav === 'subscription' && (
             <SubscriptionPaymentPage onBackToDashboard={() => setStudentNav('dashboard')} />
           )}
+            </>
+          )}
         </main>
       </div>
 
@@ -3014,6 +3298,23 @@ export const StudentView: React.FC = () => {
                 className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 dark:text-white cursor-pointer"
               >
                 <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-700 text-[11px] shrink-0">
+              <span className="inline-flex items-center gap-1.5 font-semibold text-slate-700 dark:text-slate-200">
+                <Cpu className="w-3.5 h-3.5 text-[#00A896]" />
+                {formatCompactTokens(totalAvailableTokens)} AI tokens left
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsQuickDoubtsOpen(false);
+                  setStudentNav('subscription');
+                }}
+                className="font-bold text-[#00A896] hover:underline cursor-pointer"
+              >
+                Upgrade / Add Credits
               </button>
             </div>
 
@@ -3210,6 +3511,90 @@ export const StudentView: React.FC = () => {
         isOpen={isParentDigestOpen}
         onClose={() => setIsParentDigestOpen(false)}
       />
+
+      {/* AI Token Quota Exhausted Modal: Prompt Student to Upgrade Plan or Buy Add-On Credits */}
+      {aiQuotaExhaustedModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="w-full max-w-lg rounded-3xl bg-white dark:bg-[#0E1A2D] border border-slate-200 dark:border-slate-800 shadow-2xl p-6 space-y-5">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                  <AlertTriangle className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                    Monthly AI Token Quota Reached
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    You have used {formatCompactTokens(currentStudentAiQuota.monthlyTokensUsed)} of your{' '}
+                    {formatCompactTokens(currentStudentAiQuota.monthlyQuota)} monthly AI tokens with{' '}
+                    {formatCompactTokens(currentStudentAiQuota.addonCreditsRemaining)} add-on credits remaining.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAiQuotaExhaustedModalOpen(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                aria-label="Close quota alert"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 p-4 space-y-2.5">
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Quick Add-On Credit Packs (+18% GST)
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                {AI_ADDON_PACKS.map((pack) => (
+                  <button
+                    key={pack.id}
+                    type="button"
+                    onClick={() => {
+                      setAiQuotaExhaustedModalOpen(false);
+                      setIsQuickDoubtsOpen(false);
+                      setStudentNav('subscription');
+                    }}
+                    className="text-left p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-[#00A896] transition-all cursor-pointer"
+                  >
+                    <p className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1">
+                      <Coins className="w-3.5 h-3.5 text-[#00A896]" />
+                      +{formatCompactTokens(pack.tokens)}
+                    </p>
+                    <p className="text-sm font-extrabold text-[#00A896] mt-1">INR {pack.priceINR}</p>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+                      {pack.name}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2.5">
+              <button
+                type="button"
+                onClick={() => setAiQuotaExhaustedModalOpen(false)}
+                className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
+              >
+                Maybe Later
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setAiQuotaExhaustedModalOpen(false);
+                  setIsQuickDoubtsOpen(false);
+                  setStudentNav('subscription');
+                }}
+                className="px-5 py-2.5 rounded-xl bg-[#00A896] hover:bg-[#009382] text-white text-xs font-bold inline-flex items-center justify-center gap-2 shadow-sm cursor-pointer"
+              >
+                <span>Upgrade Plan or Buy Add-On Credits</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

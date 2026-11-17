@@ -27,6 +27,9 @@ import {
   Video,
   Award,
   ArrowRight,
+  History,
+  Flag,
+  Power,
 } from 'lucide-react';
 
 export const UserManagement: React.FC = () => {
@@ -35,6 +38,10 @@ export const UserManagement: React.FC = () => {
     addUser,
     updateUser,
     deleteUser,
+    profileAuditLogs,
+    flagUserAccount,
+    triggerCredentialReset,
+    toggleUserActiveStatus,
     setCurrentRole,
     activeGrades,
     toggleGradeFilter,
@@ -53,6 +60,10 @@ export const UserManagement: React.FC = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<AppUser | null>(null);
   const [userToDelete, setUserToDelete] = useState<AppUser | null>(null);
+  const [isAuditModalOpen, setIsAuditModalOpen] = useState(false);
+  const [auditFilterUserId, setAuditFilterUserId] = useState<string>('ALL');
+  const [flagTargetUser, setFlagTargetUser] = useState<AppUser | null>(null);
+  const [flagReasonInput, setFlagReasonInput] = useState('Identity discrepancy review required');
 
   // New User Form State
   const [formName, setFormName] = useState('');
@@ -224,16 +235,30 @@ export const UserManagement: React.FC = () => {
           </p>
         </div>
 
-        <button
-          onClick={() => {
-            resetForm();
-            setIsAddModalOpen(true);
-          }}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-cyan-600 hover:bg-cyan-700 text-white font-normal text-xs shadow-md shadow-cyan-600/20 transition-all cursor-pointer whitespace-nowrap self-start sm:self-auto"
-        >
-          <UserPlus className="w-4 h-4" />
-          <span>Add New User</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+          <button
+            type="button"
+            onClick={() => {
+              setAuditFilterUserId('ALL');
+              setIsAuditModalOpen(true);
+            }}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-normal text-xs transition-all cursor-pointer whitespace-nowrap"
+          >
+            <History className="w-4 h-4 text-[#00A896]" />
+            <span>Audit Trail ({profileAuditLogs.length})</span>
+          </button>
+
+          <button
+            onClick={() => {
+              resetForm();
+              setIsAddModalOpen(true);
+            }}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-cyan-600 hover:bg-cyan-700 text-white font-normal text-xs shadow-md shadow-cyan-600/20 transition-all cursor-pointer whitespace-nowrap"
+          >
+            <UserPlus className="w-4 h-4" />
+            <span>Add New User</span>
+          </button>
+        </div>
       </div>
 
       {/* Tabs & Search Filter Controls */}
@@ -456,9 +481,24 @@ export const UserManagement: React.FC = () => {
                             )}
                           </div>
                           <div>
-                            <span className="font-normal text-slate-900 dark:text-white block">
-                              {user.name}
-                            </span>
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <span className="font-normal text-slate-900 dark:text-white">
+                                {user.name}
+                              </span>
+                              {user.isFlagged && (
+                                <span
+                                  title={user.flagReason || 'Flagged by Admin'}
+                                  className="px-1.5 py-0.5 rounded-full text-[9px] bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800"
+                                >
+                                  Flagged
+                                </span>
+                              )}
+                              {user.credentialResetRequestedAt && (
+                                <span className="px-1.5 py-0.5 rounded-full text-[9px] bg-cyan-100 dark:bg-cyan-950 text-cyan-800 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800">
+                                  Reset Pending
+                                </span>
+                              )}
+                            </div>
                             <span className="text-[11px] text-slate-500 dark:text-slate-400">
                               {user.email}
                             </span>
@@ -537,7 +577,53 @@ export const UserManagement: React.FC = () => {
                       </td>
 
                       {/* Actions */}
-                      <td className="py-3.5 px-4 text-right space-x-1">
+                      <td className="py-3.5 px-4 text-right whitespace-nowrap space-x-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAuditFilterUserId(user.id);
+                            setIsAuditModalOpen(true);
+                          }}
+                          title="View Profile Edit Audit Trail"
+                          className="p-1.5 rounded-lg text-cyan-600 dark:text-cyan-400 hover:bg-cyan-50 dark:hover:bg-cyan-950/40 transition-colors cursor-pointer"
+                        >
+                          <History className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (user.isFlagged) {
+                              flagUserAccount(user.id, false);
+                            } else {
+                              setFlagTargetUser(user);
+                              setFlagReasonInput('Identity verification or suspicious edit check');
+                            }
+                          }}
+                          title={user.isFlagged ? 'Clear Account Flag' : 'Flag Account'}
+                          className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                            user.isFlagged
+                              ? 'text-amber-600 bg-amber-50 dark:bg-amber-950/50'
+                              : 'text-slate-500 dark:text-slate-300 hover:bg-amber-50 dark:hover:bg-amber-950/40 hover:text-amber-600'
+                          }`}
+                        >
+                          <Flag className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => triggerCredentialReset(user.id)}
+                          title="Force Credential / Password Reset"
+                          className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                        >
+                          <KeyRound className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => toggleUserActiveStatus(user.id)}
+                          title={user.status === 'Active' ? 'Deactivate Profile' : 'Activate Profile'}
+                          className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                        >
+                          <Power className="w-3.5 h-3.5" />
+                        </button>
                         <button
                           onClick={() => openEditModal(user)}
                           title="Edit User"
@@ -1003,6 +1089,130 @@ export const UserManagement: React.FC = () => {
                 className="flex-1 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-normal text-xs cursor-pointer shadow-sm"
               >
                 Confirm Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* AUDIT TRAIL MODAL (Module 1) */}
+      {isAuditModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-white dark:bg-[#131d33] rounded-3xl max-w-2xl w-full border border-slate-200 dark:border-slate-800 shadow-2xl p-6 space-y-4 max-h-[85vh] flex flex-col text-xs">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <div>
+                <h3 className="text-base font-normal text-slate-900 dark:text-white flex items-center gap-2">
+                  <History className="w-4 h-4 text-[#00A896]" />
+                  <span>Identity &amp; Profile Edit Audit Trail</span>
+                </h3>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  Tracks previous vs. new values for student &amp; admin edits, status overrides, flags, and security resets.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAuditModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] text-slate-500 dark:text-slate-400">Filter by User:</span>
+              <select
+                value={auditFilterUserId}
+                onChange={(e) => setAuditFilterUserId(e.target.value)}
+                className="px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-[#1a2540] border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-200"
+              >
+                <option value="ALL">All Directory Users</option>
+                {usersList.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.name} ({u.email})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex-1 overflow-y-auto space-y-2.5 pr-1">
+              {profileAuditLogs
+                .filter((log) => auditFilterUserId === 'ALL' || log.userId === auditFilterUserId)
+                .map((log) => (
+                  <div
+                    key={log.id}
+                    className="p-3.5 rounded-2xl bg-slate-50 dark:bg-[#1a2540] border border-slate-200 dark:border-slate-700 space-y-1.5"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="text-slate-900 dark:text-white">
+                        {log.userName} ({log.userEmail}) &bull;{' '}
+                        <span className="text-[#00A896]">{log.field}</span>
+                      </span>
+                      <span className="text-[10px] text-slate-400">{log.timestamp}</span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 text-[11px]">
+                      <span className="px-2 py-0.5 rounded bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200/70 dark:border-rose-800/60">
+                        Prev: {log.oldValue}
+                      </span>
+                      <ArrowRight className="w-3 h-3 text-slate-400" />
+                      <span className="px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/70 dark:border-emerald-800/60">
+                        New: {log.newValue}
+                      </span>
+                    </div>
+                    <div className="text-[10px] text-slate-500 dark:text-slate-400">
+                      Actor: {log.actorName} ({log.actorRole}) &bull; Event: {log.changeType}
+                    </div>
+                  </div>
+                ))}
+              {profileAuditLogs.filter((log) => auditFilterUserId === 'ALL' || log.userId === auditFilterUserId).length === 0 && (
+                <p className="text-center text-slate-400 py-8">No profile edit history found for this filter.</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* FLAG USER MODAL */}
+      {flagTargetUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-white dark:bg-[#131d33] rounded-3xl max-w-md w-full border border-slate-200 dark:border-slate-800 shadow-2xl p-6 space-y-4 text-xs">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <h3 className="text-base font-normal text-slate-900 dark:text-white flex items-center gap-2">
+                <Flag className="w-4 h-4 text-amber-500" />
+                <span>Flag User Account: {flagTargetUser.name}</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setFlagTargetUser(null)}
+                className="text-slate-400 hover:text-slate-600 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-slate-600 dark:text-slate-300 block">Flag Reason (visible in audit trail &amp; student notice)</label>
+              <textarea
+                rows={3}
+                value={flagReasonInput}
+                onChange={(e) => setFlagReasonInput(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-[#1a2540] border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setFlagTargetUser(null)}
+                className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  flagUserAccount(flagTargetUser.id, true, flagReasonInput.trim() || 'Flagged for identity check');
+                  setFlagTargetUser(null);
+                }}
+                className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white cursor-pointer"
+              >
+                Confirm Account Flag
               </button>
             </div>
           </div>

@@ -6,7 +6,18 @@ import path from 'path';
 import http from 'http';
 import { WebSocketServer, WebSocket } from 'ws';
 import { setGlobalDispatcher, Agent } from 'undici';
-import { DEFAULT_SUBJECTS_DB, DEFAULT_TOPICS_DB } from './src/data/curriculumData';
+import {
+  DEFAULT_BOARDS_CONFIG,
+  DEFAULT_BOARD_SUBJECT_MAPPINGS,
+  DEFAULT_SUBJECTS_DB,
+  DEFAULT_TOPICS_DB,
+  resolveSubjectsForBoard,
+} from './src/data/curriculumData';
+import type {
+  BoardConfig,
+  BoardSubjectMapping,
+  SubjectType,
+} from './src/types';
 import {
   detectFoulLanguage,
   detectStressOrMedicalQuery,
@@ -49,6 +60,7 @@ export interface DBSubject {
   name: string;
   grade_level: number; // 6 - 12
   board?: string;
+  subject_type?: SubjectType;
   category?: 'STEM' | 'Language Arts' | 'Humanities' | 'Arts & Electives';
   code?: string;
   description?: string;
@@ -135,8 +147,10 @@ let schoolsDB: DBSchool[] = [
 ];
 
 // In-memory Database Store seeded with full Grades 6-12 Curriculum across all 11 Education Boards
+let boardsConfigDB: BoardConfig[] = [...DEFAULT_BOARDS_CONFIG];
 let subjectsDB: DBSubject[] = [...DEFAULT_SUBJECTS_DB];
 let topicsDB: DBTopic[] = [...DEFAULT_TOPICS_DB];
+let boardSubjectMappingsDB: BoardSubjectMapping[] = [...DEFAULT_BOARD_SUBJECT_MAPPINGS];
 
 // WebSocket Server & Connected Clients for Real-Time Synchronization
 let wss: WebSocketServer | null = null;
@@ -266,6 +280,7 @@ Style & Pedagogical Rules:
           contents: `${promptHistory ? `Previous conversation:\n${promptHistory}\n\n` : ''}Student: ${message}\n\nPlease respond as the AI Tutor.`,
           config: {
             systemInstruction,
+            maxOutputTokens: 700,
             thinkingConfig: {
               thinkingLevel: ThinkingLevel.LOW,
             },
@@ -273,22 +288,67 @@ Style & Pedagogical Rules:
         });
 
         const reply = response.text || "I'm here to help you master this concept! Let's break it down step-by-step.";
-        return res.json({ reply });
+        const meta: any = (response as any)?.usageMetadata || {};
+        const promptTokens = Number(meta.promptTokenCount) || Math.ceil((systemInstruction.length + promptHistory.length + message.length) / 4);
+        const outputTokens = Number(meta.candidatesTokenCount || 0) + Number(meta.thoughtsTokenCount || 0) || Math.ceil(reply.length / 4);
+        const cachedTokens = Number(meta.cachedContentTokenCount || 0);
+        const totalTokens = Number(meta.totalTokenCount) || (promptTokens + outputTokens);
+        return res.json({
+          reply,
+          usage: {
+            promptTokens,
+            outputTokens,
+            cachedTokens,
+            totalTokens,
+            model: 'gemini-4-hydrogen',
+          },
+        });
       } catch (geminiError: any) {
         console.warn('Gemini generateContent notice in /api/tutor/chat:', geminiError?.message || geminiError);
+        const fallbackText = getFallbackReply();
+        const promptTokens = Math.ceil((systemInstruction.length + message.length) / 4);
+        const outputTokens = Math.ceil(fallbackText.length / 4);
         return res.json({
-          reply: getFallbackReply(),
+          reply: fallbackText,
           fallback: true,
+          usage: {
+            promptTokens,
+            outputTokens,
+            cachedTokens: 0,
+            totalTokens: promptTokens + outputTokens,
+            model: 'gemini-3.1-flash-lite',
+          },
         });
       }
     } else {
-      return res.json({ reply: getFallbackReply() });
+      const fallbackText = getFallbackReply();
+      const promptTokens = Math.ceil((180 + message.length) / 4);
+      const outputTokens = Math.ceil(fallbackText.length / 4);
+      return res.json({
+        reply: fallbackText,
+        usage: {
+          promptTokens,
+          outputTokens,
+          cachedTokens: 0,
+          totalTokens: promptTokens + outputTokens,
+          model: 'gemini-3.1-flash-lite',
+        },
+      });
     }
   } catch (error: any) {
     console.error('Error in /api/tutor/chat handler:', error);
+    const fallbackText =
+      "Newton's 3rd Law states: For every action, there is an equal and opposite reaction. Think of swimming: when you push water backward, it pushes you forward!";
     return res.json({
-      reply: "Newton's 3rd Law states: For every action, there is an equal and opposite reaction. Think of swimming: when you push water backward, it pushes you forward!",
+      reply: fallbackText,
       fallback: true,
+      usage: {
+        promptTokens: 120,
+        outputTokens: 65,
+        cachedTokens: 0,
+        totalTokens: 185,
+        model: 'gemini-3.1-flash-lite',
+      },
     });
   }
 });
@@ -585,6 +645,7 @@ app.post('/api/tutor/doubt-solve/stream', async (req: Request, res: Response) =>
       contents,
       config: {
         systemInstruction,
+        maxOutputTokens: 750,
         thinkingConfig: {
           thinkingLevel: ThinkingLevel.LOW,
         },
@@ -592,19 +653,49 @@ app.post('/api/tutor/doubt-solve/stream', async (req: Request, res: Response) =>
     });
 
     let emittedAny = false;
+    let totalEmittedText = '';
+    let latestUsageMeta: any = null;
     for await (const chunk of stream) {
+      if ((chunk as any)?.usageMetadata) {
+        latestUsageMeta = (chunk as any).usageMetadata;
+      }
       const text = chunk.text;
       if (text) {
         emittedAny = true;
+        totalEmittedText += text;
         res.write(`data: ${JSON.stringify({ text })}\n\n`);
       }
     }
 
     if (!emittedAny) {
-      res.write(`data: ${JSON.stringify({ text: '### Resolution\nI analyzed your question—could you share a little more detail about what step you want clarified?\n\n### Further Learning\n- Share your current attempt so I can walk through it with you step-by-step.' })}\n\n`);
+      const fallbackPrompt =
+        '### Resolution\nI analyzed your question—could you share a little more detail about what step you want clarified?\n\n### Further Learning\n- Share your current attempt so I can walk through it with you step-by-step.';
+      totalEmittedText = fallbackPrompt;
+      res.write(`data: ${JSON.stringify({ text: fallbackPrompt })}\n\n`);
     }
 
-    res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
+    const promptTokens =
+      Number(latestUsageMeta?.promptTokenCount) ||
+      Math.ceil((systemInstruction.length + userPrompt.length + (imageBase64 ? 1024 : 0)) / 4);
+    const outputTokens =
+      Number(latestUsageMeta?.candidatesTokenCount || 0) +
+        Number(latestUsageMeta?.thoughtsTokenCount || 0) ||
+      Math.ceil(totalEmittedText.length / 4);
+    const cachedTokens = Number(latestUsageMeta?.cachedContentTokenCount || 0);
+    const totalTokens = Number(latestUsageMeta?.totalTokenCount) || promptTokens + outputTokens;
+
+    res.write(
+      `data: ${JSON.stringify({
+        done: true,
+        usage: {
+          promptTokens,
+          outputTokens,
+          cachedTokens,
+          totalTokens,
+          model: 'gemini-4-hydrogen',
+        },
+      })}\n\n`
+    );
     return res.end();
   } catch (geminiError: any) {
     console.error('Gemini streaming error in /api/tutor/doubt-solve/stream:', geminiError);
@@ -689,13 +780,34 @@ app.post('/api/tutor/doubt-solve', async (req: Request, res: Response) => {
       contents,
       config: {
         systemInstruction,
+        maxOutputTokens: 750,
         thinkingConfig: {
           thinkingLevel: ThinkingLevel.LOW,
         },
       },
     });
 
-    return res.json({ solution: response.text || 'Unable to generate an explanation for this question.' });
+    const solText = response.text || 'Unable to generate an explanation for this question.';
+    const meta: any = (response as any)?.usageMetadata || {};
+    const promptTokens =
+      Number(meta.promptTokenCount) ||
+      Math.ceil((systemInstruction.length + userPrompt.length + (imageBase64 ? 1024 : 0)) / 4);
+    const outputTokens =
+      Number(meta.candidatesTokenCount || 0) + Number(meta.thoughtsTokenCount || 0) ||
+      Math.ceil(solText.length / 4);
+    const cachedTokens = Number(meta.cachedContentTokenCount || 0);
+    const totalTokens = Number(meta.totalTokenCount) || promptTokens + outputTokens;
+
+    return res.json({
+      solution: solText,
+      usage: {
+        promptTokens,
+        outputTokens,
+        cachedTokens,
+        totalTokens,
+        model: 'gemini-4-hydrogen',
+      },
+    });
   } catch (error: any) {
     console.error('Error in /api/tutor/doubt-solve:', error);
     return res.status(500).json({ error: error?.message || 'Failed to resolve doubt via Gemini LLM.' });
@@ -943,28 +1055,46 @@ app.post('/api/events', (req: Request, res: Response) => {
 
 // --- 6. Admin Curriculum Management API (Subjects & Topics CRUD) ---
 
-// Get all subjects (optionally filtered by status or grade)
+// Get all subjects (optionally filtered by status, grade, or relational board_id)
 app.get('/api/curriculum/subjects', (req: Request, res: Response) => {
   const { status, grade, board } = req.query;
-  let result = [...subjectsDB];
+  const boardId = board ? String(board) : 'ALL';
+  let result = resolveSubjectsForBoard(boardId, subjectsDB as any, boardSubjectMappingsDB);
   if (status) {
     result = result.filter((s) => s.status === status);
   }
   if (grade) {
     result = result.filter((s) => s.grade_level === Number(grade));
   }
-  if (board && board !== 'ALL') {
-    result = result.filter((s) => !s.board || s.board === 'ALL' || s.board === String(board));
-  }
-  res.json({ subjects: result });
+  res.json({
+    subjects: result,
+    boardsConfig: boardsConfigDB,
+    boardSubjectMappings: boardSubjectMappingsDB,
+  });
 });
 
-// Create a new subject
+// Create a new subject + relational board_id -> subject_id mapping
 app.post('/api/curriculum/subjects', (req: Request, res: Response) => {
-  const { name, grade_level, board = 'CBSE', category = 'STEM', code, description, status = 'ACTIVE' } = req.body;
+  const {
+    name,
+    grade_level,
+    board = 'CBSE',
+    subject_type,
+    category = 'STEM',
+    code,
+    description,
+    status = 'ACTIVE',
+  } = req.body;
   if (!name || !grade_level) {
     return res.status(400).json({ error: 'Name and grade_level (6-12) are required' });
   }
+
+  const resolvedType: SubjectType =
+    subject_type === 'CORE' || subject_type === 'REGIONAL_LANGUAGE' || subject_type === 'ELECTIVE'
+      ? subject_type
+      : category === 'Arts & Electives'
+      ? 'ELECTIVE'
+      : 'CORE';
 
   const generatedCode = code || `${name.slice(0, 3).toUpperCase()}-${grade_level}01`;
   const newSubject: DBSubject = {
@@ -972,6 +1102,7 @@ app.post('/api/curriculum/subjects', (req: Request, res: Response) => {
     name,
     grade_level: Number(grade_level),
     board: board || 'CBSE',
+    subject_type: resolvedType,
     category,
     code: generatedCode,
     description: description || `${name} curriculum for Grade ${grade_level} (${board})`,
@@ -981,12 +1112,25 @@ app.post('/api/curriculum/subjects', (req: Request, res: Response) => {
 
   subjectsDB.unshift(newSubject);
 
+  const newMapping: BoardSubjectMapping = {
+    id: `map-${String(board || 'CBSE').toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${newSubject.id}`,
+    board_id: (board || 'CBSE') as any,
+    subject_id: newSubject.id,
+    subject_type: resolvedType,
+    is_required: resolvedType === 'CORE' || resolvedType === 'REGIONAL_LANGUAGE',
+    created_at: new Date().toISOString().split('T')[0],
+  };
+  boardSubjectMappingsDB.unshift(newMapping);
+
   // Broadcast Real-time sync event
   broadcastCurriculumUpdate('CURRICULUM_UPDATED', {
     action: 'SUBJECT_CREATED',
     subject: newSubject,
+    mapping: newMapping,
     subjects: subjectsDB,
     topics: topicsDB,
+    boardsConfig: boardsConfigDB,
+    boardSubjectMappings: boardSubjectMappingsDB,
   });
 
   // Log system event
@@ -995,16 +1139,54 @@ app.post('/api/curriculum/subjects', (req: Request, res: Response) => {
     timestamp: new Date().toLocaleTimeString(),
     source: 'admin',
     type: 'curriculum_updated',
-    data: { action: 'SUBJECT_CREATED', subjectName: newSubject.name, grade: newSubject.grade_level, board: newSubject.board },
+    data: { action: 'SUBJECT_CREATED', subjectName: newSubject.name, grade: newSubject.grade_level, board: newSubject.board, subject_type: resolvedType },
   });
 
-  res.status(201).json({ success: true, subject: newSubject });
+  res.status(201).json({ success: true, subject: newSubject, mapping: newMapping });
+});
+
+// Create or update a relational board_id -> subject_id mapping
+app.post('/api/curriculum/mappings', (req: Request, res: Response) => {
+  const { board_id, subject_id, subject_type = 'REGIONAL_LANGUAGE', is_required = true } = req.body || {};
+  if (!board_id || !subject_id) {
+    return res.status(400).json({ error: 'board_id and subject_id are required' });
+  }
+  const existingIdx = boardSubjectMappingsDB.findIndex(
+    (m) => m.board_id === board_id && m.subject_id === subject_id
+  );
+  const mappingRow: BoardSubjectMapping = {
+    id:
+      existingIdx >= 0
+        ? boardSubjectMappingsDB[existingIdx].id
+        : `map-${String(board_id).toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${subject_id}`,
+    board_id,
+    subject_id,
+    subject_type,
+    is_required: Boolean(is_required),
+    created_at: new Date().toISOString().split('T')[0],
+  };
+  if (existingIdx >= 0) {
+    boardSubjectMappingsDB[existingIdx] = mappingRow;
+  } else {
+    boardSubjectMappingsDB.unshift(mappingRow);
+  }
+
+  broadcastCurriculumUpdate('CURRICULUM_UPDATED', {
+    action: 'MAPPING_UPDATED',
+    mapping: mappingRow,
+    subjects: subjectsDB,
+    topics: topicsDB,
+    boardsConfig: boardsConfigDB,
+    boardSubjectMappings: boardSubjectMappingsDB,
+  });
+
+  res.status(201).json({ success: true, mapping: mappingRow, boardSubjectMappings: boardSubjectMappingsDB });
 });
 
 // Update an existing subject
 app.put('/api/curriculum/subjects/:id', (req: Request, res: Response) => {
   const { id } = req.params;
-  const { name, grade_level, board, category, code, description, status } = req.body;
+  const { name, grade_level, board, subject_type, category, code, description, status } = req.body;
   const index = subjectsDB.findIndex((s) => s.id === id);
 
   if (index === -1) {
@@ -1017,6 +1199,7 @@ app.put('/api/curriculum/subjects/:id', (req: Request, res: Response) => {
     name: name !== undefined ? name : existing.name,
     grade_level: grade_level !== undefined ? Number(grade_level) : existing.grade_level,
     board: board !== undefined ? board : existing.board,
+    subject_type: subject_type !== undefined ? subject_type : existing.subject_type,
     category: category !== undefined ? category : existing.category,
     code: code !== undefined ? code : existing.code,
     description: description !== undefined ? description : existing.description,
@@ -1025,12 +1208,26 @@ app.put('/api/curriculum/subjects/:id', (req: Request, res: Response) => {
 
   subjectsDB[index] = updated;
 
+  if (board !== undefined || subject_type !== undefined) {
+    boardSubjectMappingsDB = boardSubjectMappingsDB.map((m) =>
+      m.subject_id === id
+        ? {
+            ...m,
+            board_id: (board !== undefined ? board : m.board_id) as any,
+            subject_type: (subject_type !== undefined ? subject_type : m.subject_type) as SubjectType,
+          }
+        : m
+    );
+  }
+
   // Broadcast Real-time sync event
   broadcastCurriculumUpdate('CURRICULUM_UPDATED', {
     action: 'SUBJECT_UPDATED',
     subject: updated,
     subjects: subjectsDB,
     topics: topicsDB,
+    boardsConfig: boardsConfigDB,
+    boardSubjectMappings: boardSubjectMappingsDB,
   });
 
   res.json({ success: true, subject: updated });
@@ -1040,14 +1237,17 @@ app.put('/api/curriculum/subjects/:id', (req: Request, res: Response) => {
 app.delete('/api/curriculum/subjects/:id', (req: Request, res: Response) => {
   const { id } = req.params;
   subjectsDB = subjectsDB.filter((s) => s.id !== id);
-  // Also clean topics under it
+  // Also clean topics and relational mappings under it
   topicsDB = topicsDB.filter((t) => t.subject_id !== id);
+  boardSubjectMappingsDB = boardSubjectMappingsDB.filter((m) => m.subject_id !== id);
 
   broadcastCurriculumUpdate('CURRICULUM_UPDATED', {
     action: 'SUBJECT_DELETED',
     subjectId: id,
     subjects: subjectsDB,
     topics: topicsDB,
+    boardsConfig: boardsConfigDB,
+    boardSubjectMappings: boardSubjectMappingsDB,
   });
 
   res.json({ success: true, message: 'Subject deleted successfully' });
@@ -1152,13 +1352,19 @@ app.delete('/api/curriculum/topics/:id', (req: Request, res: Response) => {
   res.json({ success: true, message: 'Topic deleted successfully' });
 });
 
-// Consolidated full curriculum data endpoint (subjects with their topics)
+// Consolidated full curriculum data endpoint (subjects with topics & relational board mappings)
 app.get('/api/curriculum/full', (_req: Request, res: Response) => {
   const data = subjectsDB.map((s) => ({
     ...s,
     topics: topicsDB.filter((t) => t.subject_id === s.id),
   }));
-  res.json({ curriculum: data, subjects: subjectsDB, topics: topicsDB });
+  res.json({
+    curriculum: data,
+    subjects: subjectsDB,
+    topics: topicsDB,
+    boardsConfig: boardsConfigDB,
+    boardSubjectMappings: boardSubjectMappingsDB,
+  });
 });
 
 // --- 7. Live Student Monitoring & Google Meet Integration API ---
@@ -1789,6 +1995,8 @@ async function startServer() {
           payload: {
             subjects: subjectsDB,
             topics: topicsDB,
+            boardsConfig: boardsConfigDB,
+            boardSubjectMappings: boardSubjectMappingsDB,
           },
           timestamp: new Date().toISOString(),
         })

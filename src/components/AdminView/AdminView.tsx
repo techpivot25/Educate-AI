@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import { EducationBoard } from '../../types';
-import { ALL_EDUCATION_BOARDS, BOARD_LABELS } from '../../data/curriculumData';
+import { resolveSubjectsForBoard } from '../../data/curriculumData';
 import { PivotIQLogo } from '../common/PivotIQLogo';
 import {
   ShieldCheck,
@@ -29,10 +29,22 @@ import {
   UserPlus,
   BookOpen,
   Sparkles,
+  ClipboardCheck,
+  MessageSquare,
+  CreditCard,
+  Copy,
+  Flag,
+  History,
+  SlidersHorizontal,
+  Layers,
+  Cpu,
 } from 'lucide-react';
 import { AnomalyType } from '../../types';
 import { UserManagement } from './UserManagement';
 import { CurriculumTopicManager } from './CurriculumTopicManager';
+import { AdminOperationsSync } from './AdminOperationsSync';
+import { SubscriptionPlansManager } from './SubscriptionPlansManager';
+import { AiCostMonitorDashboard } from './AiCostMonitorDashboard';
 
 export const AdminView: React.FC = () => {
   const {
@@ -48,11 +60,26 @@ export const AdminView: React.FC = () => {
     addUser,
     certificates,
     issueCertificate,
+    certAutoTriggerConfig,
+    setCertAutoTriggerConfig,
+    approveCertificate,
+    revokeCertificate,
+    certificateDownloadLogs,
+    dailyTasks,
+    doubts,
+    quickDoubts,
+    billingLedger,
+    subscriptionPlans,
+    flagUserAccount,
     sensitivity,
     setSensitivity,
     localWebcamActive,
     setLocalWebcamActive,
     curriculumList,
+    boardsConfig,
+    boardSubjectMappings,
+    subjectsDB,
+    topicsDB,
     activeGrades,
     toggleGradeFilter,
     activeCategories,
@@ -62,6 +89,7 @@ export const AdminView: React.FC = () => {
     setIsCurriculumModalOpen,
   } = useApp();
 
+  const [copiedCertVerifyId, setCopiedCertVerifyId] = useState<string | null>(null);
   const [searchStudent, setSearchStudent] = useState('');
   const [catalogBoardFilter, setCatalogBoardFilter] = useState<EducationBoard | 'ALL'>('ALL');
   const [showAllCatalogRows, setShowAllCatalogRows] = useState(false);
@@ -265,6 +293,87 @@ export const AdminView: React.FC = () => {
                   <span className="font-normal">Student Management</span>
                 </div>
                 <span className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">{studentsList.length}</span>
+              </button>
+
+              <button
+                onClick={() => setAdminNav('tasks-sync')}
+                className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl transition-all cursor-pointer font-normal ${
+                  adminNav === 'tasks-sync'
+                    ? 'bg-[#00A896]/10 dark:bg-[#00A896]/20 text-[#00A896] dark:text-[#00A896] border-l-4 border-[#00A896] shadow-inner'
+                    : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <ClipboardCheck className={`w-4 h-4 ${adminNav === 'tasks-sync' ? 'text-[#00A896]' : 'text-slate-500 dark:text-slate-400'}`} />
+                  <span className="font-normal">Tasks &amp; Submissions</span>
+                </div>
+                <span className="text-[10px] text-cyan-600 dark:text-cyan-400 font-normal">
+                  {dailyTasks.filter((t) => t.isCustom && (t.approvalStatus || 'Pending Approval') === 'Pending Approval').length} Queue
+                </span>
+              </button>
+
+              <button
+                onClick={() => setAdminNav('interactions')}
+                className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl transition-all cursor-pointer font-normal ${
+                  adminNav === 'interactions'
+                    ? 'bg-[#00A896]/10 dark:bg-[#00A896]/20 text-[#00A896] dark:text-[#00A896] border-l-4 border-[#00A896] shadow-inner'
+                    : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <MessageSquare className={`w-4 h-4 ${adminNav === 'interactions' ? 'text-[#00A896]' : 'text-slate-500 dark:text-slate-400'}`} />
+                  <span className="font-normal">Live Doubts &amp; Quizzes</span>
+                </div>
+                <span className="text-[10px] text-amber-600 dark:text-amber-400 font-normal">
+                  {doubts.filter((d) => d.resolutionStatus !== 'Resolved' && d.resolutionStatus !== 'Closed').length + quickDoubts.filter((q) => q.resolutionStatus !== 'Resolved' && q.resolutionStatus !== 'Closed').length} Open
+                </span>
+              </button>
+
+              <button
+                onClick={() => setAdminNav('billing')}
+                className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl transition-all cursor-pointer font-normal ${
+                  adminNav === 'billing'
+                    ? 'bg-[#00A896]/10 dark:bg-[#00A896]/20 text-[#00A896] dark:text-[#00A896] border-l-4 border-[#00A896] shadow-inner'
+                    : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <CreditCard className={`w-4 h-4 ${adminNav === 'billing' ? 'text-[#00A896]' : 'text-slate-500 dark:text-slate-400'}`} />
+                  <span className="font-normal">Billing &amp; Access</span>
+                </div>
+                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-normal">{billingLedger.length}</span>
+              </button>
+
+              <button
+                onClick={() => setAdminNav('subscription-plans')}
+                className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl transition-all cursor-pointer font-normal ${
+                  adminNav === 'subscription-plans'
+                    ? 'bg-[#00A896]/10 dark:bg-[#00A896]/20 text-[#00A896] dark:text-[#00A896] border-l-4 border-[#00A896] shadow-inner'
+                    : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Layers className={`w-4 h-4 ${adminNav === 'subscription-plans' ? 'text-[#00A896]' : 'text-slate-500 dark:text-slate-400'}`} />
+                  <span className="font-normal">Subscription Plans</span>
+                </div>
+                <span className="text-[10px] text-cyan-600 dark:text-cyan-400 font-normal">
+                  {subscriptionPlans.filter((p) => p.status === 'Active').length} Active
+                </span>
+              </button>
+
+              <button
+                onClick={() => setAdminNav('ai-cost-monitor')}
+                className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl transition-all cursor-pointer font-normal ${
+                  adminNav === 'ai-cost-monitor'
+                    ? 'bg-[#00A896]/10 dark:bg-[#00A896]/20 text-[#00A896] dark:text-[#00A896] border-l-4 border-[#00A896] shadow-inner'
+                    : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Cpu className={`w-4 h-4 ${adminNav === 'ai-cost-monitor' ? 'text-[#00A896]' : 'text-slate-500 dark:text-slate-400'}`} />
+                  <span className="font-normal">AI Token &amp; Cost Monitor</span>
+                </div>
+                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-normal">FinOps</span>
               </button>
 
               <button
@@ -818,12 +927,38 @@ export const AdminView: React.FC = () => {
 
               {/* Active Curriculum Modules Table */}
               {(() => {
-                const filteredCatalog = curriculumList.filter(
-                  (c) =>
-                    activeGrades.includes(c.grade) &&
-                    activeCategories.includes(c.category) &&
-                    (catalogBoardFilter === 'ALL' || !c.board || c.board === 'ALL' || c.board === catalogBoardFilter)
-                );
+                const resolvedForCatalog = resolveSubjectsForBoard(
+                  catalogBoardFilter,
+                  subjectsDB,
+                  boardSubjectMappings
+                )
+                  .filter(
+                    (s) =>
+                      s.status === 'ACTIVE' &&
+                      activeGrades.includes(s.grade_level) &&
+                      activeCategories.includes(s.category || 'STEM')
+                  )
+                  .map((s) => ({
+                    id: s.id,
+                    grade: s.grade_level,
+                    board: s.board || 'ALL',
+                    subjectType: s.resolvedSubjectType,
+                    category: s.category || 'STEM',
+                    subjectName: s.name,
+                    code: s.code || `${s.name.slice(0, 3).toUpperCase()}-${s.grade_level}01`,
+                    sampleTopics: topicsDB
+                      .filter((t) => t.subject_id === s.id && t.status === 'ACTIVE')
+                      .map((t) => t.title),
+                  }));
+
+                const filteredCatalog = resolvedForCatalog.length > 0 || catalogBoardFilter !== 'ALL'
+                  ? resolvedForCatalog
+                  : curriculumList.filter(
+                      (c) =>
+                        activeGrades.includes(c.grade) &&
+                        activeCategories.includes(c.category)
+                    ).map((c) => ({ ...c, subjectType: c.subject_type || 'CORE' }));
+
                 const visibleCatalog = showAllCatalogRows ? filteredCatalog : filteredCatalog.slice(0, 50);
 
                 return (
@@ -834,7 +969,7 @@ export const AdminView: React.FC = () => {
                           Institutional Course Catalog ({filteredCatalog.length} active courses)
                         </h3>
                         <span className="text-xs text-slate-500 dark:text-slate-400">
-                          Board: [{catalogBoardFilter === 'ALL' ? 'All 11 Boards' : catalogBoardFilter}] &bull; Grades [{activeGrades.join(', ')}] &bull; [{activeCategories.join(', ')}]
+                          Board: [{catalogBoardFilter === 'ALL' ? `All ${boardsConfig.length} Boards` : catalogBoardFilter}] &bull; Grades [{activeGrades.join(', ')}] &bull; [{activeCategories.join(', ')}]
                         </span>
                       </div>
 
@@ -848,10 +983,10 @@ export const AdminView: React.FC = () => {
                           }}
                           className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-normal text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#FF6B00] cursor-pointer"
                         >
-                          <option value="ALL">All Governing Boards (11)</option>
-                          {ALL_EDUCATION_BOARDS.map((b) => (
-                            <option key={b} value={b}>
-                              {BOARD_LABELS[b]}
+                          <option value="ALL">All Governing Boards ({boardsConfig.length})</option>
+                          {boardsConfig.map((b) => (
+                            <option key={b.board_id} value={b.board_id}>
+                              {b.name}
                             </option>
                           ))}
                         </select>
@@ -977,7 +1112,14 @@ export const AdminView: React.FC = () => {
                       .map((stu) => (
                         <tr key={stu.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
                           <td className="p-3 font-normal text-slate-900 dark:text-white">
-                            <div>{stu.name}</div>
+                            <div className="flex items-center gap-1.5">
+                              <span>{stu.name}</span>
+                              {stu.isFlagged && (
+                                <span className="px-1.5 py-0.5 rounded-full text-[9px] bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                                  Flagged
+                                </span>
+                              )}
+                            </div>
                             <div className="text-[11px] text-slate-400">{stu.email}</div>
                           </td>
                           <td className="p-3 text-slate-600 dark:text-slate-300">{stu.grade}</td>
@@ -998,15 +1140,41 @@ export const AdminView: React.FC = () => {
                             </span>
                           </td>
                           <td className="p-3">
-                            <button
-                              onClick={() => {
-                                setNewCertStudent(stu.name);
-                                setAdminNav('certificates');
-                              }}
-                              className="px-2 py-1 rounded bg-cyan-50 dark:bg-cyan-950 border border-cyan-200 dark:border-cyan-800 text-cyan-700 dark:text-cyan-300 hover:bg-cyan-100 dark:hover:bg-cyan-900 text-[10px] font-normal cursor-pointer"
-                            >
-                              Issue Cert
-                            </button>
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <button
+                                onClick={() => {
+                                  setNewCertStudent(stu.name);
+                                  setAdminNav('certificates');
+                                }}
+                                className="px-2 py-1 rounded bg-cyan-50 dark:bg-cyan-950 border border-cyan-200 dark:border-cyan-800 text-cyan-700 dark:text-cyan-300 hover:bg-cyan-100 dark:hover:bg-cyan-900 text-[10px] font-normal cursor-pointer"
+                              >
+                                Issue Cert
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setAdminNav('users')}
+                                title="Open Directory Controls & Audit Trail"
+                                className="px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 text-[10px] flex items-center gap-1 cursor-pointer"
+                              >
+                                <History className="w-3 h-3" />
+                                <span>Audit</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const match = usersList.find((u) => u.email === stu.email);
+                                  if (match) flagUserAccount(match.id, !match.isFlagged, 'Flagged via Student Roster');
+                                }}
+                                className={`px-2 py-1 rounded border text-[10px] flex items-center gap-1 cursor-pointer ${
+                                  stu.isFlagged
+                                    ? 'bg-amber-100 dark:bg-amber-950 border-amber-300 text-amber-800 dark:text-amber-300'
+                                    : 'bg-slate-50 dark:bg-slate-800/70 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'
+                                }`}
+                              >
+                                <Flag className="w-3 h-3" />
+                                <span>{stu.isFlagged ? 'Unflag' : 'Flag'}</span>
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -1015,6 +1183,13 @@ export const AdminView: React.FC = () => {
               </div>
             </div>
           )}
+
+          {(adminNav === 'tasks-sync' || adminNav === 'interactions' || adminNav === 'billing') && (
+            <AdminOperationsSync section={adminNav} />
+          )}
+
+          {adminNav === 'subscription-plans' && <SubscriptionPlansManager />}
+          {adminNav === 'ai-cost-monitor' && <AiCostMonitorDashboard />}
 
           {/* TEACHER MANAGEMENT TAB */}
           {adminNav === 'teachers' && (
@@ -1109,51 +1284,221 @@ export const AdminView: React.FC = () => {
             </div>
           )}
 
-          {/* CERTIFICATES STUDIO TAB */}
+          {/* CERTIFICATES STUDIO & CREDENTIAL VAULT TAB (Module 4) */}
           {adminNav === 'certificates' && (
-            <div className="bg-white dark:bg-[#131d33] rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-2xl space-y-6 transition-colors">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                  <h2 className="text-xl font-normal text-slate-900 dark:text-white">Autonomous Certificate Issuance & Ledger</h2>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">Verifiable credentials backed by cryptographically hashed tokens</p>
+            <div className="space-y-6">
+              <div className="bg-white dark:bg-[#131d33] rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-2xl space-y-6 transition-colors">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-xl font-normal text-slate-900 dark:text-white">
+                      Credential Vault &amp; Autonomous Certificate Studio
+                    </h2>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Master list of issued credentials, auto-trigger rules, manual approve/revoke controls, and student download telemetry.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <select
+                      value={newCertStudent}
+                      onChange={(e) => setNewCertStudent(e.target.value)}
+                      className="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#1a2540] text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500 cursor-pointer"
+                    >
+                      {studentsList.map((stu) => (
+                        <option key={stu.id} value={stu.name}>
+                          {stu.name}
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      type="text"
+                      value={newCertCourse}
+                      onChange={(e) => setNewCertCourse(e.target.value)}
+                      placeholder="Milestone / Course Title"
+                      className="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#1a2540] text-xs text-slate-800 dark:text-slate-200"
+                    />
+                    <input
+                      type="number"
+                      min={0}
+                      max={100}
+                      value={newCertScore}
+                      onChange={(e) => setNewCertScore(Number(e.target.value))}
+                      className="w-20 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#1a2540] text-xs text-slate-800 dark:text-slate-200"
+                    />
+                    <button
+                      onClick={() => issueCertificate(newCertStudent, newCertCourse, newCertScore, 'Manual')}
+                      className="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-normal text-xs flex items-center gap-1.5 cursor-pointer shadow-md"
+                    >
+                      <Award className="w-4 h-4" />
+                      <span>Issue Credential</span>
+                    </button>
+                  </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2">
-                  <select
-                    value={newCertStudent}
-                    onChange={(e) => setNewCertStudent(e.target.value)}
-                    className="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#1a2540] text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500 cursor-pointer"
-                  >
-                    {studentsList.map((stu) => (
-                      <option key={stu.id} value={stu.name}>
-                        {stu.name}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    onClick={() => issueCertificate(newCertStudent, newCertCourse, newCertScore)}
-                    className="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-normal text-xs flex items-center gap-1.5 cursor-pointer shadow-md"
-                  >
-                    <Award className="w-4 h-4" />
-                    <span>Issue New Verified Certificate</span>
-                  </button>
+                {/* Auto-Trigger Policy Controls */}
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#1a2540] border border-slate-200 dark:border-slate-700 flex flex-col lg:flex-row lg:items-center justify-between gap-4 text-xs">
+                  <div className="flex items-center gap-2 text-slate-800 dark:text-slate-200">
+                    <SlidersHorizontal className="w-4 h-4 text-[#00A896]" />
+                    <span>Auto-Trigger Issuance Policy (Syncs with Student Practice Assessments):</span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-4">
+                    <label className="flex items-center gap-2 cursor-pointer text-slate-700 dark:text-slate-300">
+                      <input
+                        type="checkbox"
+                        checked={certAutoTriggerConfig.enabled}
+                        onChange={(e) =>
+                          setCertAutoTriggerConfig((prev) => ({ ...prev, enabled: e.target.checked }))
+                        }
+                        className="accent-[#00A896] cursor-pointer"
+                      />
+                      <span>Enable Auto-Trigger</span>
+                    </label>
+                    <label className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
+                      <span>Min Passing Score %</span>
+                      <input
+                        type="number"
+                        min={50}
+                        max={100}
+                        value={certAutoTriggerConfig.minScore}
+                        onChange={(e) =>
+                          setCertAutoTriggerConfig((prev) => ({ ...prev, minScore: Number(e.target.value) || 80 }))
+                        }
+                        className="w-16 px-2 py-1 rounded-lg bg-white dark:bg-[#131d33] border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200"
+                      />
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer text-slate-700 dark:text-slate-300">
+                      <input
+                        type="checkbox"
+                        checked={certAutoTriggerConfig.requireAdminApproval}
+                        onChange={(e) =>
+                          setCertAutoTriggerConfig((prev) => ({
+                            ...prev,
+                            requireAdminApproval: e.target.checked,
+                          }))
+                        }
+                        className="accent-[#00A896] cursor-pointer"
+                      />
+                      <span>Hold for Manual Admin Approval</span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Issued Certificates Vault Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {certificates.map((cert) => (
+                    <div
+                      key={cert.id}
+                      className="p-5 rounded-2xl bg-slate-50 dark:bg-[#1a2540] border border-slate-200 dark:border-slate-700 space-y-2.5 text-xs"
+                    >
+                      <div className="flex justify-between items-start gap-2">
+                        <div>
+                          <div className="text-[10px] font-mono text-slate-500 dark:text-slate-400">
+                            {cert.certificateNumber} &bull; {cert.triggerSource || 'Manual'} Trigger
+                          </div>
+                          <h4 className="font-normal text-slate-900 dark:text-white text-sm mt-0.5">
+                            {cert.courseTitle}
+                          </h4>
+                        </div>
+                        <span
+                          className={`text-[10px] font-mono px-2 py-0.5 rounded border shrink-0 ${
+                            cert.status === 'Verified'
+                              ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800'
+                              : cert.status === 'Pending Approval'
+                              ? 'bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800'
+                              : 'bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-300 border-rose-200 dark:border-rose-800'
+                          }`}
+                        >
+                          {cert.status}
+                        </span>
+                      </div>
+
+                      <div className="text-slate-700 dark:text-slate-300">
+                        Recipient: <span className="text-cyan-700 dark:text-cyan-300">{cert.studentName}</span> &bull; Score: {cert.score}% &bull; Downloads: {cert.downloadCount || 0}
+                      </div>
+                      <div className="font-mono text-[10px] text-slate-500 dark:text-slate-400 break-all">
+                        Hash: {cert.verificationHash}
+                      </div>
+                      <div className="text-slate-500 dark:text-slate-400 text-[10px]">
+                        Issued: {cert.issueDate} by {cert.instructorName}
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2 pt-1">
+                        {cert.status !== 'Verified' && (
+                          <button
+                            type="button"
+                            onClick={() => approveCertificate(cert.id)}
+                            className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] cursor-pointer"
+                          >
+                            {cert.status === 'Pending Approval' ? 'Approve Credential' : 'Re-Verify'}
+                          </button>
+                        )}
+                        {cert.status !== 'Revoked' && (
+                          <button
+                            type="button"
+                            onClick={() => revokeCertificate(cert.id)}
+                            className="px-3 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/50 hover:bg-rose-100 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 text-[11px] cursor-pointer"
+                          >
+                            Revoke
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const link = `${window.location.origin}/verify/${cert.certificateNumber}?hash=${encodeURIComponent(cert.verificationHash)}`;
+                            navigator.clipboard?.writeText(link).catch(() => {});
+                            setCopiedCertVerifyId(cert.id);
+                            setTimeout(() => setCopiedCertVerifyId((p) => (p === cert.id ? null : p)), 2000);
+                          }}
+                          className="px-3 py-1.5 rounded-xl bg-white dark:bg-[#131d33] border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-[11px] flex items-center gap-1 cursor-pointer"
+                        >
+                          <Copy className="w-3 h-3" />
+                          <span>{copiedCertVerifyId === cert.id ? 'Link Copied' : 'Verification Link'}</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {certificates.map((cert) => (
-                  <div key={cert.id} className="p-5 rounded-2xl bg-slate-50 dark:bg-[#1a2540] border border-slate-200 dark:border-slate-700 space-y-2 text-xs">
-                    <div className="flex justify-between items-start">
-                      <h4 className="font-normal text-slate-900 dark:text-white text-sm">{cert.courseTitle}</h4>
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
-                        {cert.status}
-                      </span>
-                    </div>
-                    <div className="text-slate-700 dark:text-slate-300">Recipient: <strong className="text-cyan-700 dark:text-cyan-300">{cert.studentName}</strong></div>
-                    <div className="font-mono text-[10px] text-slate-500 dark:text-slate-400 break-all">Hash: {cert.verificationHash}</div>
-                    <div className="text-slate-500 dark:text-slate-400 text-[10px]">Issued: {cert.issueDate} &bull; Score: {cert.score}%</div>
+              {/* Certificate Download Logs Ledger */}
+              <div className="bg-white dark:bg-[#131d33] rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-base font-normal text-slate-900 dark:text-white flex items-center gap-2">
+                      <Download className="w-4 h-4 text-[#00A896]" />
+                      <span>Student Certificate Download Logs</span>
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Audit log of every download triggered from the Student Certificates tab.
+                    </p>
                   </div>
-                ))}
+                  <span className="text-xs text-slate-500 dark:text-slate-400">
+                    {certificateDownloadLogs.length} Download Events
+                  </span>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-50 dark:bg-[#1a2540] text-slate-500 dark:text-slate-400 uppercase border-b border-slate-200 dark:border-slate-800">
+                      <tr>
+                        <th className="p-3">Certificate #</th>
+                        <th className="p-3">Student</th>
+                        <th className="p-3">Export Format</th>
+                        <th className="p-3">Downloaded At</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                      {certificateDownloadLogs.map((log) => (
+                        <tr key={log.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/30">
+                          <td className="p-3 font-mono text-slate-800 dark:text-slate-200">{log.certificateNumber}</td>
+                          <td className="p-3 text-slate-900 dark:text-white">{log.studentName}</td>
+                          <td className="p-3 text-slate-600 dark:text-slate-300">{log.format}</td>
+                          <td className="p-3 text-slate-500 dark:text-slate-400">{log.downloadedAt}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           )}
