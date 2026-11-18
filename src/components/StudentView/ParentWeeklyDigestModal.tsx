@@ -18,6 +18,8 @@ import {
   Download,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { useTranslation } from 'react-i18next';
+import { translateBoardLabel, translateStatusLabel } from '../../i18n/helpers';
 
 interface ParentWeeklyDigestModalProps {
   isOpen: boolean;
@@ -29,6 +31,7 @@ export const ParentWeeklyDigestModal: React.FC<ParentWeeklyDigestModalProps> = (
   onClose,
 }) => {
   const { currentUser, currentBoard, addNotification } = useApp();
+  const { t, i18n } = useTranslation(['student', 'common']);
 
   const [activeTab, setActiveTab] = useState<'digest' | 'preview-pdf' | 'settings'>('digest');
 
@@ -51,10 +54,10 @@ export const ParentWeeklyDigestModal: React.FC<ParentWeeklyDigestModalProps> = (
   const adherenceRate = Math.round((completedHours / plannedHours) * 100);
 
   const subjectBreakdown = [
-    { subject: 'Mathematics (Core Sprint)', planned: 10.5, completed: 10.5, adherence: 100, color: '#4F46E5' },
-    { subject: 'Physics (Kinematics & Optics)', planned: 8.0, completed: 7.5, adherence: 94, color: '#0284C7' },
-    { subject: 'Chemistry (Chemical Reactions)', planned: 4.0, completed: 4.0, adherence: 100, color: '#10B981' },
-    { subject: 'World History (Global Trade)', planned: 6.0, completed: 4.0, adherence: 67, color: '#F59E0B' },
+    { subject: t('student:parentDigest.subMathCore'), planned: 10.5, completed: 10.5, adherence: 100, color: '#4F46E5' },
+    { subject: t('student:parentDigest.subPhysicsKin'), planned: 8.0, completed: 7.5, adherence: 94, color: '#0284C7' },
+    { subject: t('student:parentDigest.subChemReact'), planned: 4.0, completed: 4.0, adherence: 100, color: '#10B981' },
+    { subject: t('student:parentDigest.subWorldHist'), planned: 6.0, completed: 4.0, adherence: 67, color: '#F59E0B' },
   ];
 
   const handleSendTestEmail = () => {
@@ -63,12 +66,12 @@ export const ParentWeeklyDigestModal: React.FC<ParentWeeklyDigestModalProps> = (
     setTimeout(() => {
       setIsSending(false);
       setSendSuccess(true);
-      const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const timeStr = new Date().toLocaleTimeString(i18n.language || 'en-US', { hour: '2-digit', minute: '2-digit' });
       setSentTimestamp(timeStr);
 
       addNotification(
-        'Parent Weekly Digest Dispatched',
-        `Automated 1-page sprint summary successfully emailed to ${parentEmail}.`,
+        t('student:parentDigest.notifTitle'),
+        t('student:parentDigest.notifBody', { email: parentEmail }),
         'success',
         'system'
       );
@@ -93,13 +96,13 @@ export const ParentWeeklyDigestModal: React.FC<ParentWeeklyDigestModalProps> = (
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-xl font-normal tracking-tight">Parental Weekly Digest</h3>
+                <h3 className="text-xl font-normal tracking-tight">{t('student:parentDigest.modalTitle')}</h3>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-normal uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                  Sunday Auto-Email
+                  {t('student:parentDigest.sundayAutoEmail')}
                 </span>
               </div>
               <p className="text-xs font-normal text-slate-300 mt-0.5">
-                Automated 1-Page PDF Summary: Completed sprint hours vs planned hours sent to parent.
+                {t('student:parentDigest.modalSub')}
               </p>
             </div>
           </div>
@@ -123,7 +126,7 @@ export const ParentWeeklyDigestModal: React.FC<ParentWeeklyDigestModalProps> = (
             }`}
           >
             <Clock className="w-3.5 h-3.5" />
-            <span>Sprint Hours & Progress</span>
+            <span>{t('student:parentDigest.tabSprintHours')}</span>
           </button>
           <button
             onClick={() => setActiveTab('preview-pdf')}
@@ -134,7 +137,7 @@ export const ParentWeeklyDigestModal: React.FC<ParentWeeklyDigestModalProps> = (
             }`}
           >
             <FileText className="w-3.5 h-3.5" />
-            <span>1-Page PDF Summary Preview</span>
+            <span>{t('student:parentDigest.tabPdfPreview')}</span>
           </button>
           <button
             onClick={() => setActiveTab('settings')}
@@ -145,7 +148,7 @@ export const ParentWeeklyDigestModal: React.FC<ParentWeeklyDigestModalProps> = (
             }`}
           >
             <UserCheck className="w-3.5 h-3.5" />
-            <span>Parent Email & Schedule</span>
+            <span>{t('student:parentDigest.tabParentSettings')}</span>
           </button>
         </div>
 
@@ -159,14 +162,13 @@ export const ParentWeeklyDigestModal: React.FC<ParentWeeklyDigestModalProps> = (
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
                     <span className="text-[10px] font-normal uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-                      Weekly Sprint Adherence
+                      {t('student:parentDigest.weeklyAdherence')}
                     </span>
                     <h4 className="text-xl font-normal text-slate-900 dark:text-white mt-0.5">
-                      {completedHours} / {plannedHours} Hours Completed
+                      {t('student:parentDigest.hoursCompletedRatio', { done: completedHours, total: plannedHours })}
                     </h4>
                     <p className="text-xs font-normal text-slate-600 dark:text-white mt-1">
-                      Outstanding performance! Student has completed 91.2% of their planned sprint study
-                      hours this week.
+                      {t('student:parentDigest.adherenceDesc')}
                     </p>
                   </div>
 
@@ -175,12 +177,12 @@ export const ParentWeeklyDigestModal: React.FC<ParentWeeklyDigestModalProps> = (
                       <div className="text-2xl font-normal text-emerald-600 dark:text-emerald-400">
                         {adherenceRate}%
                       </div>
-                      <div className="text-[10px] font-normal text-slate-500 dark:text-white uppercase">Adherence</div>
+                      <div className="text-[10px] font-normal text-slate-500 dark:text-white uppercase">{t('student:parentDigest.adherenceLabel')}</div>
                     </div>
 
                     <div className="text-center px-4 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
                       <div className="text-2xl font-normal text-amber-500">14</div>
-                      <div className="text-[10px] font-normal text-slate-500 dark:text-white uppercase">Day Streak</div>
+                      <div className="text-[10px] font-normal text-slate-500 dark:text-white uppercase">{t('student:parentDigest.dayStreakLabel')}</div>
                     </div>
                   </div>
                 </div>
@@ -188,8 +190,8 @@ export const ParentWeeklyDigestModal: React.FC<ParentWeeklyDigestModalProps> = (
                 {/* Progress bar */}
                 <div className="mt-4">
                   <div className="flex items-center justify-between text-xs font-normal text-slate-600 dark:text-white mb-1.5">
-                    <span>Weekly Sprint Completion Meter</span>
-                    <span>{completedHours} hrs done &bull; 2.5 hrs remaining</span>
+                    <span>{t('student:parentDigest.completionMeter')}</span>
+                    <span>{t('student:parentDigest.hoursDoneRemaining', { done: completedHours, rem: 2.5 })}</span>
                   </div>
                   <div className="w-full h-3.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
                     <div
@@ -203,7 +205,7 @@ export const ParentWeeklyDigestModal: React.FC<ParentWeeklyDigestModalProps> = (
               {/* Subject Breakdown Table */}
               <div>
                 <h5 className="text-xs font-normal uppercase tracking-wider text-slate-500 dark:text-white mb-2">
-                  Subject-by-Subject Sprint Hours Breakdown
+                  {t('student:parentDigest.subjectBreakdownTitle')}
                 </h5>
 
                 <div className="space-y-2">
@@ -223,7 +225,7 @@ export const ParentWeeklyDigestModal: React.FC<ParentWeeklyDigestModalProps> = (
                           </span>
                         </div>
                         <div className="text-[11px] font-normal text-slate-500 dark:text-white mt-0.5">
-                          Completed {sb.completed} hrs of {sb.planned} hrs target
+                          {t('student:parentDigest.completedHrsOfPlanned', { done: sb.completed, planned: sb.planned })}
                         </div>
                       </div>
 
@@ -250,16 +252,13 @@ export const ParentWeeklyDigestModal: React.FC<ParentWeeklyDigestModalProps> = (
               <div className="p-4 rounded-2xl bg-blue-50/50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900/60">
                 <div className="flex items-center gap-2 text-blue-900 dark:text-blue-300 font-normal text-xs uppercase tracking-wider mb-1">
                   <Sparkles className="w-4 h-4 text-blue-500" />
-                  <span>Teacher & AI Advisor Remarks for Parent</span>
+                  <span>{t('student:parentDigest.teacherRemarksHeading')}</span>
                 </div>
                 <p className="text-xs font-normal text-blue-950 dark:text-blue-100 leading-relaxed">
-                  "{currentUser?.name || 'Alex'} has demonstrated outstanding dedication to daily core
-                  Mathematics, logging 10.5 consecutive sprint hours without missed days. Recommended
-                  focus for the upcoming week: reinforce Kinematics vector decomposition before Wednesday's
-                  formative assessment."
+                  {t('student:parentDigest.teacherRemarksQuote', { name: currentUser?.name || 'Alex' })}
                 </p>
                 <div className="mt-2 text-[11px] text-blue-700 dark:text-blue-300 font-normal">
-                  &bull; Certified by: Dr. Evelyn Reed (Physics Lead) & Marcus Vance (Math Chair)
+                  {t('student:parentDigest.certifiedBy')}
                 </div>
               </div>
             </div>
@@ -271,10 +270,10 @@ export const ParentWeeklyDigestModal: React.FC<ParentWeeklyDigestModalProps> = (
               <div className="flex items-center justify-between">
                 <div>
                   <h4 className="text-xs font-normal uppercase tracking-wider text-slate-500 dark:text-white">
-                    Printable 1-Page Sunday Digest
+                    {t('student:parentDigest.printableHeading')}
                   </h4>
                   <p className="text-xs font-normal text-slate-500 dark:text-white">
-                    This exact 1-page document is attached to the weekly Sunday email.
+                    {t('student:parentDigest.printableSub')}
                   </p>
                 </div>
 
@@ -283,7 +282,7 @@ export const ParentWeeklyDigestModal: React.FC<ParentWeeklyDigestModalProps> = (
                   className="px-4 py-2 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-slate-800 text-xs font-normal flex items-center gap-1.5 cursor-pointer shadow-xs transition-all"
                 >
                   <Printer className="w-3.5 h-3.5" />
-                  <span>Print / Save as PDF</span>
+                  <span>{t('student:offlinePack.printSavePdf')}</span>
                 </button>
               </div>
 
@@ -297,18 +296,18 @@ export const ParentWeeklyDigestModal: React.FC<ParentWeeklyDigestModalProps> = (
                 <div className="border-b-2 border-[#00A896] pb-4 flex items-center justify-between">
                   <div>
                     <h2 className="text-xl font-normal text-[#0D1B3E] tracking-tight">
-                      PIVOTIQ ACADEMY &bull; PARENT WEEKLY DIGEST
+                      {t('student:parentDigest.letterheadTitle')}
                     </h2>
                     <p className="text-xs font-normal text-slate-500">
-                      State Board & CBSE Accredited Academic Sprints &bull; Confidential Guardian Report
+                      {t('student:parentDigest.letterheadSub')}
                     </p>
                   </div>
                   <div className="text-right">
                     <span className="inline-block px-2.5 py-1 bg-emerald-100 text-emerald-800 text-[11px] font-normal rounded-md">
-                      WEEK 2 SPRINT REPORT
+                      {t('student:parentDigest.week2Badge')}
                     </span>
                     <div className="text-[10px] font-normal text-slate-400 mt-1">
-                      Generated: Sunday, Oct 19, 2026 &bull; 07:00 PM
+                      {t('student:parentDigest.generatedSampleTime')}
                     </div>
                   </div>
                 </div>
@@ -316,21 +315,21 @@ export const ParentWeeklyDigestModal: React.FC<ParentWeeklyDigestModalProps> = (
                 {/* Metadata Row */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs">
                   <div>
-                    <span className="text-slate-400 block text-[10px] uppercase font-normal">Student Name</span>
+                    <span className="text-slate-400 block text-[10px] uppercase font-normal">{t('student:parentDigest.studentLabel')}</span>
                     <span className="font-normal text-slate-800">{currentUser?.name || 'Alex Rivera'}</span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block text-[10px] uppercase font-normal">Grade & Board</span>
+                    <span className="text-slate-400 block text-[10px] uppercase font-normal">{t('student:parentDigest.boardGradeLabel')}</span>
                     <span className="font-normal text-slate-800">
-                      {currentUser?.grade || 'Grade 10'} ({currentBoard || 'CBSE'})
+                      {currentUser?.grade || 'Grade 10'} ({translateBoardLabel(currentBoard || 'CBSE', t)})
                     </span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block text-[10px] uppercase font-normal">Parent/Guardian</span>
+                    <span className="text-slate-400 block text-[10px] uppercase font-normal">{t('student:parentDigest.parentGuardianLabel')}</span>
                     <span className="font-normal text-slate-800">{parentName}</span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block text-[10px] uppercase font-normal">Delivery Email</span>
+                    <span className="text-slate-400 block text-[10px] uppercase font-normal">{t('student:parentDigest.deliveryEmailLabel')}</span>
                     <span className="font-normal text-slate-800 truncate block">{parentEmail}</span>
                   </div>
                 </div>
@@ -339,10 +338,10 @@ export const ParentWeeklyDigestModal: React.FC<ParentWeeklyDigestModalProps> = (
                 <div className="border border-slate-200 rounded-xl p-4 bg-slate-50/50">
                   <div className="flex items-center justify-between mb-2">
                     <h5 className="text-xs font-normal uppercase tracking-wider text-slate-700">
-                      Sprint Hours Adherence (Completed vs Planned)
+                      {t('student:parentDigest.sprintAdherenceTitle')}
                     </h5>
                     <span className="text-xs font-normal text-emerald-600">
-                      {completedHours} hrs completed / {plannedHours} hrs planned ({adherenceRate}%)
+                      {t('student:parentDigest.completedVsPlannedMeta', { done: completedHours, planned: plannedHours, pct: adherenceRate })}
                     </span>
                   </div>
 
@@ -355,16 +354,16 @@ export const ParentWeeklyDigestModal: React.FC<ParentWeeklyDigestModalProps> = (
 
                   <div className="grid grid-cols-3 gap-2 mt-3 text-center text-xs">
                     <div className="p-2 bg-white rounded-lg border border-slate-200">
-                      <span className="text-slate-400 block text-[10px] font-normal">Planned Sprints</span>
-                      <span className="font-normal text-slate-800">{plannedHours} Hours</span>
+                      <span className="text-slate-400 block text-[10px] font-normal">{t('student:parentDigest.plannedSprints')}</span>
+                      <span className="font-normal text-slate-800">{t('student:parentDigest.hoursCount', { hrs: plannedHours })}</span>
                     </div>
                     <div className="p-2 bg-white rounded-lg border border-slate-200">
-                      <span className="text-slate-400 block text-[10px] font-normal">Actual Completed</span>
-                      <span className="font-normal text-emerald-600">{completedHours} Hours</span>
+                      <span className="text-slate-400 block text-[10px] font-normal">{t('student:parentDigest.actualCompleted')}</span>
+                      <span className="font-normal text-emerald-600">{t('student:parentDigest.hoursCount', { hrs: completedHours })}</span>
                     </div>
                     <div className="p-2 bg-white rounded-lg border border-slate-200">
-                      <span className="text-slate-400 block text-[10px] font-normal">Daily Streak</span>
-                      <span className="font-normal text-amber-600">14 Days Active</span>
+                      <span className="text-slate-400 block text-[10px] font-normal">{t('student:parentDigest.dailyStreak')}</span>
+                      <span className="font-normal text-amber-600">{t('student:parentDigest.daysActive', { days: 14 })}</span>
                     </div>
                   </div>
                 </div>
@@ -373,23 +372,23 @@ export const ParentWeeklyDigestModal: React.FC<ParentWeeklyDigestModalProps> = (
                 <table className="w-full text-xs border-collapse">
                   <thead>
                     <tr className="bg-[#0D1B3E] text-white">
-                      <th className="p-2 text-left font-normal">Subject</th>
-                      <th className="p-2 text-center font-normal">Planned Hours</th>
-                      <th className="p-2 text-center font-normal">Completed Hours</th>
-                      <th className="p-2 text-center font-normal">Adherence</th>
-                      <th className="p-2 text-center font-normal">Status</th>
+                      <th className="p-2 text-left font-normal">{t('student:parentDigest.colSubject')}</th>
+                      <th className="p-2 text-center font-normal">{t('student:parentDigest.plannedHrsCol')}</th>
+                      <th className="p-2 text-center font-normal">{t('student:parentDigest.completedHrsCol')}</th>
+                      <th className="p-2 text-center font-normal">{t('student:parentDigest.adherenceCol')}</th>
+                      <th className="p-2 text-center font-normal">{t('student:parentDigest.colStatus')}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {subjectBreakdown.map((sb, idx) => (
                       <tr key={idx} className="border-b border-slate-200">
                         <td className="p-2 font-normal text-slate-800">{sb.subject}</td>
-                        <td className="p-2 text-center font-normal text-slate-600">{sb.planned} hrs</td>
-                        <td className="p-2 text-center font-normal text-slate-800">{sb.completed} hrs</td>
+                        <td className="p-2 text-center font-normal text-slate-600">{t('student:parentDigest.hrsShort', { hrs: sb.planned })}</td>
+                        <td className="p-2 text-center font-normal text-slate-800">{t('student:parentDigest.hrsShort', { hrs: sb.completed })}</td>
                         <td className="p-2 text-center font-normal text-emerald-600">{sb.adherence}%</td>
                         <td className="p-2 text-center">
                           <span className="px-2 py-0.5 rounded-full text-[10px] font-normal bg-emerald-100 text-emerald-800">
-                            On Track
+                            {translateStatusLabel('On Track', t)}
                           </span>
                         </td>
                       </tr>
@@ -400,12 +399,12 @@ export const ParentWeeklyDigestModal: React.FC<ParentWeeklyDigestModalProps> = (
                 {/* Signatures & Verification */}
                 <div className="pt-4 border-t border-slate-200 flex items-end justify-between text-xs text-slate-500">
                   <div>
-                    <p className="font-normal text-slate-700">Dean of Academics: Dr. Sarah Jenkins</p>
-                    <p className="text-[10px] font-normal text-slate-400">Digitally verified via PivotIQ SIS Core &bull; ID: PVQ-RPT-9021</p>
+                    <p className="font-normal text-slate-700">{t('student:parentDigest.deanAcademics')}</p>
+                    <p className="text-[10px] font-normal text-slate-400">{t('student:parentDigest.verifiedCoreId')}</p>
                   </div>
                   <div className="text-right">
                     <div className="font-serif italic font-normal text-slate-600 text-sm">Sarah Jenkins</div>
-                    <span className="text-[10px] font-normal text-slate-400 block">Authorized Signature</span>
+                    <span className="text-[10px] font-normal text-slate-400 block">{t('student:parentDigest.authorizedSig')}</span>
                   </div>
                 </div>
               </div>
@@ -417,12 +416,12 @@ export const ParentWeeklyDigestModal: React.FC<ParentWeeklyDigestModalProps> = (
             <div className="space-y-4">
               <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/80 space-y-3">
                 <h5 className="text-xs font-normal uppercase tracking-wider text-slate-700 dark:text-white">
-                  Parent / Guardian Contact Configuration
+                  {t('student:parentDigest.contactConfigTitle')}
                 </h5>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                   <div>
-                    <label className="block text-slate-500 dark:text-white mb-1 font-normal">Parent / Guardian Name</label>
+                    <label className="block text-slate-500 dark:text-white mb-1 font-normal">{t('student:parentDigest.parentNameLabel')}</label>
                     <input
                       type="text"
                       value={parentName}
@@ -431,7 +430,7 @@ export const ParentWeeklyDigestModal: React.FC<ParentWeeklyDigestModalProps> = (
                     />
                   </div>
                   <div>
-                    <label className="block text-slate-500 dark:text-white mb-1 font-normal">Registered Email Address</label>
+                    <label className="block text-slate-500 dark:text-white mb-1 font-normal">{t('student:parentDigest.registeredEmailLabel')}</label>
                     <input
                       type="email"
                       value={parentEmail}
@@ -446,10 +445,10 @@ export const ParentWeeklyDigestModal: React.FC<ParentWeeklyDigestModalProps> = (
                     <Calendar className="w-4 h-4 text-emerald-500" />
                     <div>
                       <span className="text-xs font-normal text-slate-900 dark:text-white block">
-                        Automatic Sunday Evening Dispatch
+                        {t('student:parentDigest.autoSundayTitle')}
                       </span>
                       <span className="text-[11px] font-normal text-slate-500 dark:text-white">
-                        Dispatches every Sunday at 07:00 PM IST with the attached 1-page PDF.
+                        {t('student:parentDigest.autoSundayDesc')}
                       </span>
                     </div>
                   </div>
@@ -473,10 +472,10 @@ export const ParentWeeklyDigestModal: React.FC<ParentWeeklyDigestModalProps> = (
               <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-[#00A896]/10 border border-blue-200 dark:border-blue-800 flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div>
                   <h4 className="text-xs font-normal text-slate-900 dark:text-white">
-                    Send Test Digest Email Now
+                    {t('student:parentDigest.sendTestHeading')}
                   </h4>
                   <p className="text-[11px] font-normal text-slate-500 dark:text-white mt-0.5">
-                    Trigger an instant sample dispatch to <span className="font-normal text-slate-700 dark:text-white">{parentEmail}</span> to preview how it arrives in your inbox.
+                    {t('student:parentDigest.sendTestDesc', { email: parentEmail })}
                   </p>
                 </div>
 
@@ -488,12 +487,12 @@ export const ParentWeeklyDigestModal: React.FC<ParentWeeklyDigestModalProps> = (
                   {isSending ? (
                     <>
                       <Send className="w-3.5 h-3.5 animate-spin" />
-                      <span>Sending Email...</span>
+                      <span>{t('student:parentDigest.sendingEmail')}</span>
                     </>
                   ) : (
                     <>
                       <Send className="w-3.5 h-3.5" />
-                      <span>Send Test Email</span>
+                      <span>{t('student:parentDigest.sendTestBtn')}</span>
                     </>
                   )}
                 </button>
@@ -503,7 +502,7 @@ export const ParentWeeklyDigestModal: React.FC<ParentWeeklyDigestModalProps> = (
                 <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200 text-xs font-normal flex items-center gap-2 animate-in fade-in">
                   <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
                   <span>
-                    Weekly Digest successfully delivered to <span className="font-normal">{parentEmail}</span> at {sentTimestamp}! Verified with 1-page PDF attachment.
+                    {t('student:parentDigest.sentDeliveredBanner', { email: parentEmail, time: sentTimestamp })}
                   </span>
                 </div>
               )}
@@ -520,7 +519,7 @@ export const ParentWeeklyDigestModal: React.FC<ParentWeeklyDigestModalProps> = (
               className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-normal flex items-center gap-1.5 cursor-pointer shadow-xs transition-all"
             >
               <Send className="w-3.5 h-3.5" />
-              <span>Email Sunday Summary Now</span>
+              <span>{t('student:parentDigest.emailSundayNow')}</span>
             </button>
           </div>
 
@@ -528,7 +527,7 @@ export const ParentWeeklyDigestModal: React.FC<ParentWeeklyDigestModalProps> = (
             onClick={onClose}
             className="px-4 py-1.5 rounded-xl bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-white text-xs font-normal transition-colors cursor-pointer"
           >
-            Close
+            {t('common:actions.close')}
           </button>
         </div>
       </div>

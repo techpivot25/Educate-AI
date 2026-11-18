@@ -12,6 +12,8 @@ import {
 } from 'recharts';
 import { useApp } from '../../context/AppContext';
 import { useTheme } from '../../context/ThemeContext';
+import { useTranslation } from 'react-i18next';
+import { translateSubjectLabel, translateBoardLabel, translateStatusLabel } from '../../i18n/helpers';
 import { getLocalizedSubjectName, formatEnrolledCourseEntry, resolveSubjectsForBoard } from '../../data/curriculumData';
 import { SubjectIcon } from '../common/SubjectIcon';
 import { LottieIcon } from '../common/LottieIcon';
@@ -101,6 +103,7 @@ export const CourseProgressTracker: React.FC = () => {
     setIsProfileOpen,
   } = useApp();
   const { theme } = useTheme();
+  const { t } = useTranslation(['student', 'common']);
   const [viewMode, setViewMode] = useState<'chart' | 'list'>('list');
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
 
@@ -149,17 +152,19 @@ export const CourseProgressTracker: React.FC = () => {
       }
 
       // Filter tasks from Agile Study Roadmap that belong to this enrolled course
-      const matchingTasks = dailyTasks.filter((t) => doesTaskMatchCourse(t.subject, name, code));
+      const matchingTasks = dailyTasks.filter((taskItem) => doesTaskMatchCourse(taskItem.subject, name, code));
 
       const agileTotalTasks = matchingTasks.length;
-      const agileCompletedTasks = matchingTasks.filter((t) => t.status === 'Completed').length;
-      const agileInProgressTasks = matchingTasks.filter((t) => t.status === 'In Progress').length;
-      const agileRevisionTasks = matchingTasks.filter((t) => t.status === 'Revision').length;
-      const agileTodoTasks = matchingTasks.filter((t) => t.status === 'To Do' || t.status === 'On Hold').length;
+      const agileCompletedTasks = matchingTasks.filter((taskItem) => taskItem.status === 'Completed').length;
+      const agileInProgressTasks = matchingTasks.filter((taskItem) => taskItem.status === 'In Progress').length;
+      const agileRevisionTasks = matchingTasks.filter((taskItem) => taskItem.status === 'Revision').length;
+      const agileTodoTasks = matchingTasks.filter((taskItem) => taskItem.status === 'To Do' || taskItem.status === 'On Hold').length;
 
       // Find next upcoming task from the Agile Roadmap
-      const nextTask = matchingTasks.find((t) => t.status === 'In Progress' || t.status === 'To Do');
-      const nextTaskTopic = nextTask ? `${nextTask.topic} (Day ${nextTask.day})` : 'All scheduled roadmap sprint tasks completed!';
+      const nextTask = matchingTasks.find((taskItem) => taskItem.status === 'In Progress' || taskItem.status === 'To Do');
+      const nextTaskTopic = nextTask
+        ? t('student:courses.dayLabel', { topic: nextTask.topic, day: nextTask.day })
+        : t('student:courses.allSprintDone');
 
       // Baseline syllabus units + sprint tasks
       const totalUnits = Math.max(10, agileTotalTasks + 3);
@@ -167,20 +172,14 @@ export const CourseProgressTracker: React.FC = () => {
       const completedUnits = baselineUnits + agileCompletedTasks;
 
       // Dynamic reactive percentage calculation:
-      // Each status change on the Agile board directly moves the completion score:
-      // - Completed: 100% of task weight
-      // - Revision: 75% of task weight
-      // - In Progress: 45% of task weight
-      // - On Hold: 15% of task weight
-      // - To Do: 0% of task weight
       let completion = 0;
       if (agileTotalTasks > 0) {
-        const totalAgilePoints = matchingTasks.reduce((acc, t) => acc + (t.points || 25), 0);
-        const earnedAgilePoints = matchingTasks.reduce((acc, t) => {
-          if (t.status === 'Completed') return acc + (t.points || 25);
-          if (t.status === 'Revision') return acc + (t.points || 25) * 0.75;
-          if (t.status === 'In Progress') return acc + (t.points || 25) * 0.45;
-          if (t.status === 'On Hold') return acc + (t.points || 25) * 0.15;
+        const totalAgilePoints = matchingTasks.reduce((acc, taskItem) => acc + (taskItem.points || 25), 0);
+        const earnedAgilePoints = matchingTasks.reduce((acc, taskItem) => {
+          if (taskItem.status === 'Completed') return acc + (taskItem.points || 25);
+          if (taskItem.status === 'Revision') return acc + (taskItem.points || 25) * 0.75;
+          if (taskItem.status === 'In Progress') return acc + (taskItem.points || 25) * 0.45;
+          if (taskItem.status === 'On Hold') return acc + (taskItem.points || 25) * 0.15;
           return acc;
         }, 0);
 
@@ -209,8 +208,9 @@ export const CourseProgressTracker: React.FC = () => {
       else if (completion >= 65) grade = 'B';
       else grade = 'C+';
 
+      const displayName = translateSubjectLabel(name, t);
       // Truncate name for small screen Y-Axis
-      const shortName = name.length > 13 ? `${name.substring(0, 12)}...` : name;
+      const shortName = displayName.length > 13 ? `${displayName.substring(0, 12)}...` : displayName;
 
       return {
         id: `course-${index}`,
@@ -231,7 +231,7 @@ export const CourseProgressTracker: React.FC = () => {
         nextTaskTopic,
       };
     });
-  }, [currentUser, dailyTasks, subjectsDB, studentGradeLevel, currentBoard, activeCategories]);
+  }, [currentUser, dailyTasks, subjectsDB, boardSubjectMappings, studentGradeLevel, currentBoard, activeCategories, t]);
 
   // Overall aggregate completion stats
   const averageCompletion = useMemo(() => {
@@ -274,7 +274,7 @@ export const CourseProgressTracker: React.FC = () => {
         <div className="bg-white dark:bg-[#0E1A2D] p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xl text-xs space-y-2.5 max-w-xs transition-colors">
           <div className="flex items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-2">
             <span className="font-normal text-slate-900 dark:text-white truncate">
-              {data.name}
+              {translateSubjectLabel(data.name, t)}
             </span>
             <span className="text-[10px] font-normal px-2 py-0.5 rounded-full bg-[#00A896]/15 text-[#00A896] dark:bg-[#00A896]/20 shrink-0">
               {data.code}
@@ -282,7 +282,7 @@ export const CourseProgressTracker: React.FC = () => {
           </div>
 
           <div className="flex items-baseline justify-between">
-            <span className="text-slate-500 dark:text-white">Current Completion:</span>
+            <span className="text-slate-500 dark:text-white">{t('student:courses.currentCompletion')}</span>
             <span className="text-sm font-normal text-[#00A896]">
               {data.completion}%
             </span>
@@ -300,29 +300,29 @@ export const CourseProgressTracker: React.FC = () => {
             <div className="flex items-center justify-between text-slate-700 dark:text-white font-medium">
               <span className="flex items-center gap-1">
                 <Zap className="w-3 h-3 text-amber-500" />
-                Agile Tasks:
+                {t('student:courses.agileTasks')}
               </span>
-              <span>{data.agileCompletedTasks} of {data.agileTotalTasks} Finished</span>
+              <span>{t('student:courses.finishedCount', { done: data.agileCompletedTasks, total: data.agileTotalTasks })}</span>
             </div>
             <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-white">
-              <span>Sprint in Flight:</span>
-              <span>{data.agileInProgressTasks} in progress · {data.agileRevisionTasks} revision</span>
+              <span>{t('student:courses.sprintInFlight')}</span>
+              <span>{t('student:courses.inFlightRevision', { inProgress: data.agileInProgressTasks, revision: data.agileRevisionTasks })}</span>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-2 pt-1 text-[11px] text-slate-600 dark:text-white">
             <div>
-              <span className="text-slate-400 dark:text-white block text-[10px]">Total Units:</span>
-              <span className="dark:text-white font-normal">{data.completedUnits} / {data.totalUnits} Done</span>
+              <span className="text-slate-400 dark:text-white block text-[10px]">{t('student:courses.totalUnitsLabel')}</span>
+              <span className="dark:text-white font-normal">{t('student:courses.doneShortRatio', { done: data.completedUnits, total: data.totalUnits })}</span>
             </div>
             <div>
-              <span className="text-slate-400 dark:text-white block text-[10px]">Academic Mark:</span>
+              <span className="text-slate-400 dark:text-white block text-[10px]">{t('student:courses.academicMarkLabel')}</span>
               <span className="font-normal text-slate-900 dark:text-white">{data.grade}</span>
             </div>
           </div>
 
           <div className="pt-1.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[10px]">
-            <span className="text-slate-400 dark:text-white">Status:</span>
+            <span className="text-slate-400 dark:text-white">{t('student:courses.statusLabel')}</span>
             <span
               className={`px-1.5 py-0.5 rounded font-normal ${
                 data.status === 'Completed'
@@ -332,7 +332,7 @@ export const CourseProgressTracker: React.FC = () => {
                   : 'bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400'
               }`}
             >
-              {data.status}
+              {translateStatusLabel(data.status, t)}
             </span>
           </div>
         </div>
@@ -360,16 +360,16 @@ export const CourseProgressTracker: React.FC = () => {
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <h3 className="text-base font-normal text-slate-900 dark:text-white tracking-wide">
-                  Enrolled Course Completion Tracker
+                  {t('student:courses.title')}
                 </h3>
                 {/* Live Agile Sync Indicator */}
                 <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-[10px] font-normal text-emerald-700 dark:text-emerald-300 whitespace-nowrap">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
-                  <span>Agile Roadmap Live Sync</span>
+                  <span>{t('student:courses.agileLiveSync')}</span>
                 </div>
               </div>
               <p className="text-xs font-normal text-slate-500 dark:text-white mt-0.5">
-                Visual progress tracking bars powered by Recharts • Dynamically recalculates as you update task statuses on the Agile Board
+                {t('student:courses.chartSubtitle')}
               </p>
             </div>
           </div>
@@ -387,7 +387,7 @@ export const CourseProgressTracker: React.FC = () => {
               }`}
             >
               <BarChart3 className="w-3.5 h-3.5 text-[#00A896] shrink-0" />
-              <span>Chart Bar</span>
+              <span>{t('student:courses.chartBar')}</span>
             </button>
             <button
               onClick={() => setViewMode('list')}
@@ -398,7 +398,7 @@ export const CourseProgressTracker: React.FC = () => {
               }`}
             >
               <Layers className="w-3.5 h-3.5 text-[#00A896] shrink-0" />
-              <span>Course Cards</span>
+              <span>{t('student:courses.courseCards')}</span>
             </button>
           </div>
         </div>
@@ -408,14 +408,14 @@ export const CourseProgressTracker: React.FC = () => {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="p-3.5 rounded-xl bg-slate-200/55 dark:bg-[#132A4C]/70 border border-slate-200/90 dark:border-[#1C3A66] space-y-1">
           <div className="flex items-center justify-between text-slate-500 dark:text-white text-xs">
-            <span>Overall Completion</span>
+            <span>{t('student:courses.overallCompletion')}</span>
             <TrendingUp className="w-3.5 h-3.5 text-[#00A896]" />
           </div>
           <div className="flex items-baseline gap-2">
             <span className="text-xl font-normal text-slate-900 dark:text-white">
               {averageCompletion}%
             </span>
-            <span className="text-[11px] font-normal text-[#00A896]">Live Tracked</span>
+            <span className="text-[11px] font-normal text-[#00A896]">{t('student:courses.liveTracked')}</span>
           </div>
           <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-1.5 overflow-hidden">
             <div
@@ -427,51 +427,51 @@ export const CourseProgressTracker: React.FC = () => {
 
         <div className="p-3.5 rounded-xl bg-slate-200/55 dark:bg-[#132A4C]/70 border border-slate-200/90 dark:border-[#1C3A66] space-y-1">
           <div className="flex items-center justify-between text-slate-500 dark:text-white text-xs">
-            <span>Agile Roadmap Tasks</span>
+            <span>{t('student:courses.agileRoadmapTasks')}</span>
             <Zap className="w-3.5 h-3.5 text-amber-400" />
           </div>
           <div className="flex items-baseline gap-2">
             <span className="text-xl font-normal text-slate-900 dark:text-white">
               {totalAgileTasksCompleted} / {totalAgileTasksPlanned}
             </span>
-            <span className="text-[11px] font-normal text-slate-500 dark:text-white">Done</span>
+            <span className="text-[11px] font-normal text-slate-500 dark:text-white">{t('student:courses.done')}</span>
           </div>
-          <p className="text-[10px] text-slate-400 dark:text-white">Real-Time Board Sync</p>
+          <p className="text-[10px] text-slate-400 dark:text-white">{t('student:courses.realTimeBoardSync')}</p>
         </div>
 
         <div className="p-3.5 rounded-xl bg-slate-200/55 dark:bg-[#132A4C]/70 border border-slate-200/90 dark:border-[#1C3A66] space-y-1">
           <div className="flex items-center justify-between text-slate-500 dark:text-white text-xs">
-            <span>Mastery Milestone</span>
+            <span>{t('student:courses.masteryMilestone')}</span>
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
           </div>
           <div className="flex items-baseline gap-2">
             <span className="text-xl font-normal text-slate-900 dark:text-white">
-              {completedCoursesCount} of {coursesData.length}
+              {t('student:courses.ofCount', { done: completedCoursesCount, total: coursesData.length })}
             </span>
             <span className="text-[11px] font-normal text-emerald-500 dark:text-emerald-400">&gt;90%</span>
           </div>
-          <p className="text-[10px] text-slate-400 dark:text-white">Ready for Certification</p>
+          <p className="text-[10px] text-slate-400 dark:text-white">{t('student:courses.readyForCert')}</p>
         </div>
 
         <div className="p-3.5 rounded-xl bg-slate-200/55 dark:bg-[#132A4C]/70 border border-slate-200/90 dark:border-[#1C3A66] space-y-1">
           <div className="flex items-center justify-between text-slate-500 dark:text-white text-xs">
-            <span>Active Courses</span>
+            <span>{t('student:courses.activeCourses')}</span>
             <BookOpen className="w-3.5 h-3.5 text-blue-400" />
           </div>
           <div className="flex items-baseline gap-2">
             <span className="text-xl font-normal text-slate-900 dark:text-white">
               {coursesData.length}
             </span>
-            <span className="text-[11px] font-normal text-slate-500 dark:text-white">Subjects</span>
+            <span className="text-[11px] font-normal text-slate-500 dark:text-white">{t('student:courses.subjectsWord')}</span>
           </div>
           <div className="flex items-center justify-between text-[10px]">
-            <span className="text-slate-400 dark:text-white">{currentBoard} Aligned</span>
+            <span className="text-slate-400 dark:text-white">{t('student:courses.boardAligned', { board: translateBoardLabel(currentBoard, t) })}</span>
             <button
               type="button"
               onClick={() => setIsProfileOpen(true)}
               className="text-[#00A896] hover:underline font-normal cursor-pointer"
             >
-              Select
+              {t('student:courses.selectBtn')}
             </button>
           </div>
         </div>
@@ -484,16 +484,16 @@ export const CourseProgressTracker: React.FC = () => {
             <SubjectIcon subject={selectedCourse.name} size="md" />
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-normal text-slate-900 dark:text-white">{selectedCourse.name}</span>
+                <span className="font-normal text-slate-900 dark:text-white">{translateSubjectLabel(selectedCourse.name, t)}</span>
                 <span className="text-[10px] px-1.5 py-0.2 rounded font-normal bg-teal-100 dark:bg-teal-900 text-[#00A896] dark:text-[#4DF0D7]">
-                  {selectedCourse.completion}% Completed
+                  {t('student:courses.completedPct', { pct: selectedCourse.completion })}
                 </span>
                 <span className="text-[10px] text-slate-500 dark:text-white font-normal">
-                  Mark: {selectedCourse.grade}
+                  {t('student:courses.markLabel', { grade: selectedCourse.grade })}
                 </span>
               </div>
               <p className="text-[11px] text-slate-600 dark:text-white mt-0.5">
-                Agile Roadmap: <span className="font-normal text-teal-700 dark:text-teal-300">{selectedCourse.agileCompletedTasks} of {selectedCourse.agileTotalTasks} tasks completed</span> ({selectedCourse.agileInProgressTasks} in flight, {selectedCourse.agileTodoTasks} to do). Next: {selectedCourse.nextTaskTopic}
+                {t('student:courses.agileRoadmapPrefix')} <span className="font-normal text-teal-700 dark:text-teal-300">{t('student:courses.agileBreakdownBanner', { done: selectedCourse.agileCompletedTasks, total: selectedCourse.agileTotalTasks })}</span> {t('student:courses.agileFlightTodo', { inProgress: selectedCourse.agileInProgressTasks, todo: selectedCourse.agileTodoTasks, next: selectedCourse.nextTaskTopic })}
               </p>
             </div>
           </div>
@@ -502,17 +502,17 @@ export const CourseProgressTracker: React.FC = () => {
             <button
               onClick={() => {
                 setStudentNav('ai-tutor');
-                sendTutorMessage(`I want to practice more on ${selectedCourse.name}.`);
+                sendTutorMessage(t('student:courses.practiceDrillPrompt', { course: translateSubjectLabel(selectedCourse.name, t) }));
               }}
               className="px-2.5 py-1.5 rounded-lg bg-[#00A896] text-white font-normal text-[11px] hover:bg-teal-600 transition-colors cursor-pointer"
             >
-              Practice AI Drill
+              {t('student:courses.practiceAiDrill')}
             </button>
             <button
               onClick={() => setSelectedCourseId(null)}
               className="px-2 py-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:text-slate-300 dark:hover:text-white text-[11px] cursor-pointer"
             >
-              Dismiss
+              {t('common:actions.dismiss')}
             </button>
           </div>
         </div>
@@ -523,10 +523,10 @@ export const CourseProgressTracker: React.FC = () => {
         <div className="space-y-3">
           <div className="flex items-center justify-between text-xs text-slate-500 dark:text-white px-1">
             <span className="flex items-center gap-1.5">
-              <span>Course Subject</span>
-              <span className="text-[10px] text-slate-400 dark:text-white">(Click any bar for Agile breakdown)</span>
+              <span>{t('student:courses.courseSubject')}</span>
+              <span className="text-[10px] text-slate-400 dark:text-white">{t('student:courses.clickBarHint')}</span>
             </span>
-            <span>Completion Percentage (0–100%)</span>
+            <span>{t('student:courses.completionPctAxis')}</span>
           </div>
 
           <div className="h-64 sm:h-72 w-full pt-1">
@@ -603,7 +603,7 @@ export const CourseProgressTracker: React.FC = () => {
                 >
                   <SubjectIcon subject={c.name} size="xs" />
                   <span className="text-[11px] font-normal text-slate-700 dark:text-white truncate max-w-[120px]">
-                    {c.name}
+                    {translateSubjectLabel(c.name, t)}
                   </span>
                   <span className="text-[10px] font-normal text-[#00A896]">
                     {c.completion}%
@@ -616,7 +616,7 @@ export const CourseProgressTracker: React.FC = () => {
               onClick={() => setStudentNav('my-courses')}
               className="text-xs font-normal text-[#00A896] hover:underline flex items-center gap-1 cursor-pointer"
             >
-              <span>Explore All Modules</span>
+              <span>{t('student:courses.exploreAllModules')}</span>
               <ArrowUpRight className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -638,10 +638,10 @@ export const CourseProgressTracker: React.FC = () => {
                 <div>
                   <h4 className="text-xs font-normal text-slate-900 dark:text-white flex items-center gap-2">
                     <SubjectIcon subject={course.name} size="md" />
-                    <span>{course.name}</span>
+                    <span>{translateSubjectLabel(course.name, t)}</span>
                   </h4>
                   <span className="text-[10px] font-normal text-slate-500 dark:text-white block mt-0.5">
-                    {course.code} &bull; {course.completedUnits} of {course.totalUnits} Units Finished
+                    {t('student:courses.unitsFinishedLine', { code: course.code, done: course.completedUnits, total: course.totalUnits })}
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
@@ -672,27 +672,27 @@ export const CourseProgressTracker: React.FC = () => {
               <div className="flex items-center justify-between text-[10px] py-1 px-2 rounded-lg bg-white/70 dark:bg-slate-800/60 border border-slate-200/50 dark:border-slate-700/50">
                 <span className="text-slate-600 dark:text-white font-normal flex items-center gap-1">
                   <Zap className="w-3 h-3 text-amber-500" />
-                  Agile Roadmap:
+                  {t('student:courses.agileRoadmapPrefix')}
                 </span>
                 <span className="font-normal text-[#00A896]">
-                  {course.agileCompletedTasks}/{course.agileTotalTasks} Tasks Done
+                  {t('student:courses.tasksDoneCount', { done: course.agileCompletedTasks, total: course.agileTotalTasks })}
                 </span>
               </div>
 
               {/* Action Buttons */}
               <div className="flex items-center justify-between pt-1">
                 <span className="text-[10px] font-normal text-slate-400 dark:text-white truncate max-w-[200px]" title={course.nextTaskTopic}>
-                  Next: {course.nextTaskTopic}
+                  {t('student:courses.nextPrefix', { topic: course.nextTaskTopic })}
                 </span>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     setStudentNav('ai-tutor');
-                    sendTutorMessage(`I want to practice more on ${course.name}.`);
+                    sendTutorMessage(t('student:courses.practiceDrillPrompt', { course: translateSubjectLabel(course.name, t) }));
                   }}
                   className="text-[11px] font-normal text-[#00A896] hover:text-teal-600 dark:hover:text-teal-300 flex items-center gap-1 cursor-pointer shrink-0"
                 >
-                  <span>Practice Drill</span>
+                  <span>{t('student:courses.practiceDrillBtn')}</span>
                   <ArrowUpRight className="w-3 h-3" />
                 </button>
               </div>

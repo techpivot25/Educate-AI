@@ -1,4 +1,10 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import i18n, {
+  getStoredLocale,
+  normalizeLocaleCode,
+  persistLocaleStorageAndCookie,
+  getLocaleMeta,
+} from '../i18n';
 import { useTheme } from './ThemeContext';
 export { useTheme } from './ThemeContext';
 import {
@@ -305,6 +311,10 @@ interface AppContextType {
   // Global Localization & Education Boards
   globalLanguage: string;
   setGlobalLanguage: (lang: string) => void;
+  changePlatformLanguage: (
+    lang: string,
+    options?: { silent?: boolean; skipApi?: boolean }
+  ) => Promise<void>;
   currentBoard: string;
   setCurrentBoard: (board: string) => void;
 
@@ -1105,9 +1115,94 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     },
   ]);
 
-  // Global Language & Board Configuration
-  const [globalLanguage, setGlobalLanguage] = useState<string>('en');
+  // Global Language & Board Configuration (hydrated from user record -> localStorage -> cookie -> 'en')
+  const [globalLanguage, setGlobalLanguageState] = useState<string>(() =>
+    getStoredLocale(currentUser?.preferred_language)
+  );
   const [currentBoard, setCurrentBoard] = useState<string>('CBSE');
+
+  // Keep i18next & <html lang="..."> synced with globalLanguage state
+  useEffect(() => {
+    const code = normalizeLocaleCode(globalLanguage);
+    if (i18n.language !== code) {
+      void i18n.changeLanguage(code);
+    }
+    persistLocaleStorageAndCookie(code);
+  }, [globalLanguage]);
+
+  // Hydrate user's server-saved preferred_language on initial mount or user switch
+  useEffect(() => {
+    const userId = currentUser?.id;
+    if (!userId) return;
+    let cancelled = false;
+    fetch(`/api/users/${encodeURIComponent(userId)}/preferences`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (cancelled || !data?.preferred_language) return;
+        const dbLang = normalizeLocaleCode(data.preferred_language);
+        const storedLocal = getStoredLocale();
+        // Prefer explicit server preference if present, else local stored preference
+        const resolved = dbLang !== 'en' ? dbLang : (currentUser?.preferred_language ? normalizeLocaleCode(currentUser.preferred_language) : storedLocal);
+        if (resolved && resolved !== globalLanguage) {
+          setGlobalLanguageState(resolved);
+          void i18n.changeLanguage(resolved);
+          persistLocaleStorageAndCookie(resolved);
+        }
+      })
+      .catch(() => {
+        // Offline / fallback cleanly handled by localStorage + cookie
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [currentUser?.id]);
+
+  const changePlatformLanguage = async (
+    lang: string,
+    options?: { silent?: boolean; skipApi?: boolean }
+  ): Promise<void> => {
+    const nextCode = normalizeLocaleCode(lang);
+    setGlobalLanguageState(nextCode);
+    await i18n.changeLanguage(nextCode);
+    persistLocaleStorageAndCookie(nextCode);
+
+    if (currentUser) {
+      const updatedUser: AppUser = { ...currentUser, preferred_language: nextCode };
+      setCurrentUser(updatedUser);
+      setUsersList((prev) => prev.map((u) => (u.id === updatedUser.id ? updatedUser : u)));
+      try {
+        localStorage.setItem('educate_ai_current_user', JSON.stringify(updatedUser));
+      } catch {
+        // ignore storage errors
+      }
+      if (!options?.skipApi) {
+        try {
+          await fetch(`/api/users/${encodeURIComponent(updatedUser.id)}/preferences`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ preferred_language: nextCode }),
+          });
+        } catch {
+          // Persisted locally + cookie even if network temporarily unavailable
+        }
+      }
+    }
+
+    if (!options?.silent) {
+      const meta = getLocaleMeta(nextCode);
+      const label = meta.code === 'en' ? meta.nativeName : `${meta.nativeName} (${meta.englishName})`;
+      addNotification(
+        i18n.t('common:languageSwitcher.updatedTitle'),
+        i18n.t('common:languageSwitcher.updatedDesc', { language: label }),
+        'info',
+        currentUser?.role || 'system'
+      );
+    }
+  };
+
+  const setGlobalLanguage = (lang: string) => {
+    void changePlatformLanguage(lang, { silent: true });
+  };
 
   // Institutional Schools State
   const [schools, setSchools] = useState<DBSchool[]>([
@@ -4119,7 +4214,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setCurrentUser(newUser);
     setCurrentRoleState(data.role);
     setIsAuthenticated(true);
-    if (data.preferred_language) setGlobalLanguage(data.preferred_language);
+    const initialSignupLang = normalizeLocaleCode(data.preferred_language || globalLanguage);
+    void changePlatformLanguage(initialSignupLang, { silent: true });
     if (data.education_board) setCurrentBoard(data.education_board);
 
     addNotification(
@@ -4141,6 +4237,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         localStorage.setItem('educate_ai_current_user', JSON.stringify(matched));
       } catch (e) {
         // ignore
+      }
+      if (matched.preferred_language) {
+        const nextLang = normalizeLocaleCode(matched.preferred_language);
+        setGlobalLanguageState(nextLang);
+        void i18n.changeLanguage(nextLang);
+        persistLocaleStorageAndCookie(nextLang);
       }
     }
   };
@@ -4167,6 +4269,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
     setCurrentRoleState(role);
     setIsAuthenticated(true);
+
+    if (matched.preferred_language) {
+      const nextLang = normalizeLocaleCode(matched.preferred_language);
+      setGlobalLanguageState(nextLang);
+      void i18n.changeLanguage(nextLang);
+      persistLocaleStorageAndCookie(nextLang);
+    }
 
     addNotification(
       `Welcome, ${matched.name}!`,
@@ -4270,6 +4379,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch (e) {
       console.warn('Failed to save current user', e);
     }
+
+    if (updates.preferred_language) {
+      const nextCode = normalizeLocaleCode(updates.preferred_language);
+      setGlobalLanguageState(nextCode);
+      void i18n.changeLanguage(nextCode);
+      persistLocaleStorageAndCookie(nextCode);
+      void fetch(`/api/users/${encodeURIComponent(updated.id)}/preferences`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ preferred_language: nextCode }),
+      }).catch(() => {
+        // Silent fallback
+      });
+    }
+
     addNotification('Profile Updated & Synced', 'Your profile edits have been logged and synced to the Admin directory.', 'success', currentUser.role);
   };
 
@@ -6245,6 +6369,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         // Localization & Board
         globalLanguage,
         setGlobalLanguage,
+        changePlatformLanguage,
         currentBoard,
         setCurrentBoard,
         signup,

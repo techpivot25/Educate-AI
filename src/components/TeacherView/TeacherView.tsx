@@ -1,9 +1,13 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useApp } from '../../context/AppContext';
 import { useTheme } from '../../context/ThemeContext';
 import { PivotIQLogo } from '../common/PivotIQLogo';
+import { NotificationBell } from '../common/NotificationBell';
+import { LanguageSwitcher } from '../common/LanguageSwitcher';
 import { CommunityDoubtForum } from '../StudentView/CommunityDoubtForum';
 import { resolveSubjectsForBoard } from '../../data/curriculumData';
+import { translateSubjectLabel, translateBoardLabel, translateStatusLabel } from '../../i18n/helpers';
 import {
   Briefcase,
   FileText,
@@ -69,6 +73,8 @@ export const TeacherView: React.FC = () => {
   } = useApp();
 
   const { theme, toggleTheme } = useTheme();
+  const { t, i18n } = useTranslation(['teacher', 'common']);
+  const intlLocale = i18n.language === 'en' ? 'en-US' : `${i18n.language}-IN`;
 
   // Navigation tab state (similar to StudentView)
   const [teacherNav, setTeacherNav] = useState<string>('workspace');
@@ -87,13 +93,21 @@ export const TeacherView: React.FC = () => {
   // Class Selection state
   const [selectedClass, setSelectedClass] = useState('Class 7B - Science');
 
+  const getClassLabel = (cls: string) => {
+    if (cls === 'Class 7B - Science') return t('teacher:classes.class7BScience');
+    if (cls === 'Class 8A - Physics') return t('teacher:classes.class8APhysics');
+    if (cls === 'Class 8C - Adv Biology') return t('teacher:classes.class8CBio');
+    if (cls === 'All Enrolled Classes') return t('teacher:classes.allEnrolled');
+    return cls;
+  };
+
   // Broadcast Quiz State
   const [isBroadcastModalOpen, setIsBroadcastModalOpen] = useState(false);
   const [selectedBroadcastQuizId, setSelectedBroadcastQuizId] = useState<string>(quizzes[0]?.id || '');
   const [broadcastTargetClass, setBroadcastTargetClass] = useState<string>(selectedClass);
   const [broadcastDuration, setBroadcastDuration] = useState('15 Minutes');
   const [broadcastProctoring, setBroadcastProctoring] = useState(true);
-  const [broadcastSuccessMessage, setBroadcastSuccessMessage] = useState<string | null>(null);
+  const [broadcastBannerData, setBroadcastBannerData] = useState<{ title: string; targetClass: string; isFull: boolean } | null>(null);
   const [isBroadcastedRecently, setIsBroadcastedRecently] = useState(false);
 
   const handleExecuteBroadcast = (targetQuiz?: any) => {
@@ -102,7 +116,7 @@ export const TeacherView: React.FC = () => {
     
     publishQuiz(quizToBroadcast, broadcastTargetClass);
     setIsBroadcastedRecently(true);
-    setBroadcastSuccessMessage(`Assessment "${quizToBroadcast.title}" is now broadcasting live to ${broadcastTargetClass}! Real-time student proctoring & responses are active.`);
+    setBroadcastBannerData({ title: quizToBroadcast.title, targetClass: broadcastTargetClass, isFull: true });
     setIsBroadcastModalOpen(false);
     
     setTimeout(() => {
@@ -110,7 +124,7 @@ export const TeacherView: React.FC = () => {
     }, 4500);
   };
 
-  const currentDateStr = new Date().toLocaleDateString('en-US', {
+  const currentDateStr = new Date().toLocaleDateString(intlLocale, {
     weekday: 'short',
     month: 'short',
     day: 'numeric',
@@ -134,18 +148,20 @@ export const TeacherView: React.FC = () => {
   };
 
   const navTabs = [
-    { id: 'workspace', label: "Teacher's Desktop", icon: <Briefcase className="w-4 h-4" /> },
-    { id: 'lesson-plans', label: 'AI Lesson Studio', icon: <FileText className="w-4 h-4" />, badge: `${lessonPlans.length}` },
-    { id: 'quizzes', label: 'Assessment Creator', icon: <CheckCircle2 className="w-4 h-4" />, badge: `${quizzes.length}` },
-    { id: 'classes', label: 'Class Analytics & KPIs', icon: <TrendingUp className="w-4 h-4" /> },
-    { id: 'roster', label: 'Student Roster & Proctor', icon: <Users className="w-4 h-4" />, badge: '6 Live' },
+    { id: 'workspace', label: t('teacher:nav.workspace'), icon: <Briefcase className="w-4 h-4" /> },
+    { id: 'lesson-plans', label: t('teacher:nav.lessonPlans'), icon: <FileText className="w-4 h-4" />, badge: `${lessonPlans.length}` },
+    { id: 'quizzes', label: t('teacher:nav.quizzes'), icon: <CheckCircle2 className="w-4 h-4" />, badge: `${quizzes.length}` },
+    { id: 'classes', label: t('teacher:nav.classes'), icon: <TrendingUp className="w-4 h-4" /> },
+    { id: 'roster', label: t('teacher:nav.roster'), icon: <Users className="w-4 h-4" />, badge: t('teacher:nav.liveBadge') },
     {
       id: 'community',
-      label: 'Community Forum',
+      label: t('teacher:nav.community'),
       icon: <MessageSquare className="w-4 h-4" />,
-      badge: `${communityPosts.filter((p) => !p.accepted_comment_id && !p.is_verified).length} Open`,
+      badge: t('teacher:nav.openCount', {
+        count: communityPosts.filter((p) => !p.accepted_comment_id && !p.is_verified).length,
+      }),
     },
-    { id: 'curriculum', label: 'Grades 6-12 Curriculum', icon: <BookOpen className="w-4 h-4" /> },
+    { id: 'curriculum', label: t('teacher:nav.curriculumNav'), icon: <BookOpen className="w-4 h-4" /> },
   ];
 
   return (
@@ -176,11 +192,11 @@ export const TeacherView: React.FC = () => {
               <PivotIQLogo size={40} />
               <div>
                 <h1 className="font-light text-white text-base tracking-wide leading-tight">
-                  PivotIQ
+                  {t('common:appName')}
                 </h1>
                 <div className="flex items-center gap-1.5 text-[10px] text-[#00A896] font-normal uppercase tracking-wider">
                   <span className="w-2 h-2 rounded-full bg-[#00A896] animate-pulse" />
-                  <span>Educator Portal</span>
+                  <span>{t('teacher:portal.educatorPortal')}</span>
                 </div>
               </div>
             </div>
@@ -198,7 +214,7 @@ export const TeacherView: React.FC = () => {
           <div
             onClick={() => setIsProfileOpen(true)}
             className="group relative p-3 rounded-2xl bg-[#132A4C]/90 hover:bg-[#16335C] border border-[#1E3E6B]/80 transition-all cursor-pointer shadow-sm flex items-center gap-3"
-            title="Manage Teacher Profile"
+            title={t('teacher:portal.manageProfile')}
           >
             <div className="relative w-11 h-11 rounded-xl overflow-hidden shrink-0 bg-[#0D1B3E] border-2 border-[#00A896] flex items-center justify-center text-white font-normal text-sm shadow-inner">
               {currentUser?.avatar ? (
@@ -210,7 +226,7 @@ export const TeacherView: React.FC = () => {
               ) : (
                 <img
                   src="https://api.dicebear.com/7.x/bottts/svg?seed=ProfEliza"
-                  alt="Faculty"
+                  alt={t('teacher:portal.facultyShort')}
                   className="w-full h-full object-cover"
                 />
               )}
@@ -225,7 +241,7 @@ export const TeacherView: React.FC = () => {
                 <Edit3 className="w-3.5 h-3.5 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
               </div>
               <p className="text-[11px] text-slate-300 font-light truncate mt-0.5">
-                {currentUser?.department || 'ALL STEM SUBJECTS'} &bull; Gr 6-12
+                {currentUser?.department || t('teacher:portal.allStemShort')} &bull; {t('teacher:portal.grRange')}
               </p>
             </div>
           </div>
@@ -233,7 +249,7 @@ export const TeacherView: React.FC = () => {
           {/* Navigation Links Menu - Changes only color upon selection, NO BOLD */}
           <div className="space-y-1 pt-1">
             <span className="px-3 text-[10px] font-normal uppercase tracking-wider text-slate-400">
-              Platform Menu
+              {t('common:nav.platformMenu')}
             </span>
             <nav className="space-y-1 mt-2">
               {navTabs.map((tab) => {
@@ -287,10 +303,10 @@ export const TeacherView: React.FC = () => {
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-normal text-white flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-[#00A896] animate-pulse" />
-                <span className="truncate max-w-[130px]">{selectedClass}</span>
+                <span className="truncate max-w-[130px]">{getClassLabel(selectedClass)}</span>
               </span>
               <span className="text-[10px] font-normal px-1.5 py-0.5 rounded-md bg-[#00A896] text-white">
-                Active
+                {t('teacher:portal.activeBadge')}
               </span>
             </div>
             {/* Progress / Synchronized Sync Bar */}
@@ -309,13 +325,15 @@ export const TeacherView: React.FC = () => {
               className="flex items-center gap-1.5 text-slate-300 hover:text-white transition-colors cursor-pointer font-normal"
             >
               <UserIcon className="w-3.5 h-3.5 text-[#00A896]" />
-              <span>Faculty</span>
+              <span>{t('teacher:portal.facultyShort')}</span>
             </button>
 
             <button
               onClick={toggleTheme}
               className="p-1.5 rounded-lg bg-[#132A4C] hover:bg-[#1C3A66] text-slate-300 hover:text-white transition-colors cursor-pointer"
-              title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} mode`}
+              title={t('teacher:portal.switchThemeTitle', {
+                mode: theme === 'dark' ? t('common:header.lightShort') : t('common:header.darkShort'),
+              })}
             >
               {theme === 'dark' ? <Sun className="w-3.5 h-3.5 text-amber-400" /> : <Moon className="w-3.5 h-3.5" />}
             </button>
@@ -324,15 +342,15 @@ export const TeacherView: React.FC = () => {
               <button
                 onClick={() => setCurrentRole('admin')}
                 className="flex items-center gap-1 text-[11px] font-normal text-[#00A896] hover:text-teal-300 transition-colors cursor-pointer"
-                title="Return to Admin Panel"
+                title={t('common:header.exitToAdmin')}
               >
-                <span>Admin &rarr;</span>
+                <span>{t('teacher:portal.returnAdmin')}</span>
               </button>
             ) : (
               <button
                 onClick={logout}
                 className="flex items-center gap-1 text-slate-400 hover:text-rose-400 transition-colors cursor-pointer"
-                title="Sign Out"
+                title={t('common:nav.signOut')}
               >
                 <LogOut className="w-3.5 h-3.5" />
               </button>
@@ -349,38 +367,44 @@ export const TeacherView: React.FC = () => {
         <header className="sticky top-0 z-30 bg-white/95 dark:bg-[#0E1A2D]/95 backdrop-blur-md border-b border-slate-200/90 dark:border-slate-800/80 px-4 sm:px-6 lg:px-8 py-3.5 transition-colors shadow-2xs">
           <div className="flex items-center justify-between gap-4">
             {/* Left: Mobile hamburger + Active View Title & Breadcrumb */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 min-w-0">
               <button
                 onClick={() => setMobileSidebarOpen(true)}
-                className="lg:hidden p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                aria-label="Open Navigation"
+                className="lg:hidden p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
+                aria-label={t('common:nav.openNavigation')}
               >
                 <Menu className="w-5 h-5 stroke-[2.2]" />
               </button>
 
-              <div>
-                <h2 className="text-base sm:text-lg font-light text-slate-900 dark:text-white tracking-wide flex items-center gap-2">
-                  <span>A Teacher's Desktop</span>
+              <div className="min-w-0">
+                <h2 className="text-base sm:text-lg font-light text-slate-900 dark:text-white tracking-wide flex items-center gap-2 truncate">
+                  <span className="truncate">{t('teacher:portal.desktopTitle')}</span>
                 </h2>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 hidden sm:block font-light">
-                  Academic Year 2026–2027 &bull; {selectedClass} &bull; Socratic Curriculum Alignment
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 hidden sm:block font-light truncate">
+                  {t('teacher:portal.academicYearContext', { className: getClassLabel(selectedClass) })}
                 </p>
               </div>
             </div>
 
-            {/* Right: Quick Context Controls & Badges */}
-            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            {/* Right: Quick Context Controls, Notifications, Language Switcher & Profile */}
+            <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
               {/* Class Selector Badge */}
-              <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700/80 shadow-2xs">
-                <Users className="w-3.5 h-3.5 text-[#00A896]" />
+              <div className="hidden md:flex items-center gap-2 bg-slate-100 dark:bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700/80 shadow-2xs shrink-0">
+                <Users className="w-3.5 h-3.5 text-[#00A896] shrink-0" />
                 <select
                   value={selectedClass}
                   onChange={(e) => setSelectedClass(e.target.value)}
                   className="text-xs font-normal text-slate-800 dark:text-slate-200 bg-transparent focus:outline-none cursor-pointer"
                 >
-                  <option value="Class 7B - Science" className="dark:bg-slate-900">Class 7B - Science (28 Students)</option>
-                  <option value="Class 8A - Physics" className="dark:bg-slate-900">Class 8A - Physics (32 Students)</option>
-                  <option value="Class 8C - Adv Biology" className="dark:bg-slate-900">Class 8C - Adv Biology (24 Students)</option>
+                  <option value="Class 7B - Science" className="dark:bg-slate-900">
+                    {t('teacher:classes.studentsCount', { name: t('teacher:classes.class7BScience'), count: 28 })}
+                  </option>
+                  <option value="Class 8A - Physics" className="dark:bg-slate-900">
+                    {t('teacher:classes.studentsCount', { name: t('teacher:classes.class8APhysics'), count: 32 })}
+                  </option>
+                  <option value="Class 8C - Adv Biology" className="dark:bg-slate-900">
+                    {t('teacher:classes.studentsCount', { name: t('teacher:classes.class8CBio'), count: 24 })}
+                  </option>
                 </select>
               </div>
 
@@ -391,22 +415,22 @@ export const TeacherView: React.FC = () => {
                   setBroadcastTargetClass(selectedClass);
                   setIsBroadcastModalOpen(true);
                 }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-normal shadow-sm transition-all cursor-pointer ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-normal shadow-sm transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                   isBroadcastedRecently
                     ? 'bg-emerald-600 text-white shadow-emerald-600/30'
                     : 'bg-[#00A896] hover:bg-[#009282] text-white shadow-[#00A896]/20'
                 }`}
-                title="Broadcast Live Assessment to Student Portal"
+                title={t('teacher:headerBtns.broadcastTooltip')}
               >
                 {isBroadcastedRecently ? (
                   <>
-                    <Check className="w-3.5 h-3.5" />
-                    <span>Broadcasted! ✓</span>
+                    <Check className="w-3.5 h-3.5 shrink-0" />
+                    <span>{t('teacher:headerBtns.broadcasted')}</span>
                   </>
                 ) : (
                   <>
-                    <Send className="w-3.5 h-3.5" />
-                    <span>Broadcast Quiz</span>
+                    <Send className="w-3.5 h-3.5 shrink-0" />
+                    <span className="hidden sm:inline">{t('teacher:headerBtns.broadcastQuiz')}</span>
                   </>
                 )}
               </button>
@@ -414,27 +438,33 @@ export const TeacherView: React.FC = () => {
               {/* Workflow & Ecosystem Map Button */}
               <button
                 onClick={() => setEcosystemOverviewMode(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-normal text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700/80 shadow-2xs transition-all cursor-pointer"
-                title="View 3-Panel Connected Workflow & Data Flow"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-normal text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700/80 shadow-2xs transition-all cursor-pointer whitespace-nowrap shrink-0"
+                title={t('teacher:headerBtns.workflowTooltip')}
               >
-                <Layers className="w-3.5 h-3.5 text-[#00A896]" />
-                <span className="hidden sm:inline">Workflow Map</span>
+                <Layers className="w-3.5 h-3.5 text-[#00A896] shrink-0" />
+                <span className="hidden xl:inline">{t('teacher:headerBtns.workflowMap')}</span>
               </button>
 
               {/* Date pill */}
-              <div className="hidden xl:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 text-xs font-normal text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700/80">
+              <div className="hidden 2xl:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 text-xs font-normal text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700/80 whitespace-nowrap shrink-0">
                 <Calendar className="w-3.5 h-3.5 text-slate-400" />
                 <span>{currentDateStr}</span>
               </div>
 
+              {/* Notifications Bell */}
+              <NotificationBell />
+
+              {/* Persistent Top-Right Language Switcher */}
+              <LanguageSwitcher variant="portal" />
+
               {/* Direct Profile trigger avatar */}
               <button
                 onClick={() => setIsProfileOpen(true)}
-                className="w-9 h-9 rounded-xl overflow-hidden ring-2 ring-[#00A896]/60 bg-[#0D1B3E] flex items-center justify-center text-white text-xs font-normal shadow-xs hover:scale-105 transition-all cursor-pointer"
-                title="Account Settings"
+                className="w-9 h-9 rounded-xl overflow-hidden ring-2 ring-[#00A896]/60 bg-[#0D1B3E] flex items-center justify-center text-white text-xs font-normal shadow-xs hover:scale-105 transition-all cursor-pointer shrink-0"
+                title={t('teacher:portal.accountSettings')}
               >
                 {currentUser?.avatar ? (
-                  <img src={currentUser.avatar} alt="Profile" className="w-full h-full object-cover" />
+                  <img src={currentUser.avatar} alt={t('common:header.profile')} className="w-full h-full object-cover" />
                 ) : (
                   <span>{(currentUser?.name || 'T').charAt(0)}</span>
                 )}
@@ -444,28 +474,38 @@ export const TeacherView: React.FC = () => {
         </header>
 
         {/* LIVE ASSESSMENT BROADCAST BANNER IN TEACHER DESKTOP */}
-        {broadcastSuccessMessage && (
+        {broadcastBannerData && (
           <div className="bg-gradient-to-r from-[#00A896] via-[#0D1B3E] to-[#0B1E38] text-white px-4 py-3 shadow-md flex items-center justify-between z-20 border-b border-[#00A896]/30">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center animate-pulse shrink-0">
                 <Send className="w-5 h-5 text-white" />
               </div>
               <div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-[10px] font-normal uppercase tracking-wider bg-[#00A896] text-white px-2 py-0.5 rounded-full">
-                    LIVE BROADCAST ACTIVE
+                    {t('teacher:headerBtns.liveBroadcastActive')}
                   </span>
-                  <span className="font-normal text-xs sm:text-sm">{broadcastSuccessMessage}</span>
+                  <span className="font-normal text-xs sm:text-sm">
+                    {broadcastBannerData.isFull
+                      ? t('teacher:broadcastModal.successBanner', {
+                          title: broadcastBannerData.title,
+                          targetClass: getClassLabel(broadcastBannerData.targetClass),
+                        })
+                      : t('teacher:broadcastModal.successLiveNotice', {
+                          title: broadcastBannerData.title,
+                          targetClass: getClassLabel(broadcastBannerData.targetClass),
+                        })}
+                  </span>
                 </div>
                 <p className="text-[11px] text-white/80 font-light mt-0.5">
-                  Synchronized with Socratic Practice tab in Student Portal &bull; Anomaly detection ready
+                  {t('teacher:headerBtns.liveBroadcastSub')}
                 </p>
               </div>
             </div>
             <button
-              onClick={() => setBroadcastSuccessMessage(null)}
+              onClick={() => setBroadcastBannerData(null)}
               className="p-1 hover:bg-white/10 rounded-lg text-white/80 hover:text-white cursor-pointer shrink-0"
-              title="Dismiss"
+              title={t('common:actions.dismiss')}
             >
               <X className="w-4 h-4" />
             </button>
@@ -486,10 +526,10 @@ export const TeacherView: React.FC = () => {
             <div className="md:col-span-4 bg-white dark:bg-[#0E1A2D] rounded-3xl p-5 shadow-xs border border-slate-200/90 dark:border-slate-800/80 transition-colors">
               <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
                 <span className="text-[10px] font-normal uppercase tracking-wider text-slate-400">
-                  Faculty Profile
+                  {t('teacher:facultyCard.headerLabel')}
                 </span>
                 <span className="text-[10px] text-[#00A896] bg-[#00A896]/10 px-2 py-0.5 rounded-full font-normal">
-                  STEM Faculty
+                  {t('teacher:facultyCard.badge')}
                 </span>
               </div>
               <div className="flex items-center gap-3.5 pt-3">
@@ -497,13 +537,13 @@ export const TeacherView: React.FC = () => {
                   {currentUser?.avatar ? (
                     <img
                       src={currentUser.avatar}
-                      alt="Teacher Avatar"
+                      alt={t('teacher:facultyCard.headerLabel')}
                       className="w-full h-full rounded-xl object-cover"
                     />
                   ) : (
                     <img
                       src="https://api.dicebear.com/7.x/bottts/svg?seed=ProfEliza"
-                      alt="Teacher Avatar"
+                      alt={t('teacher:facultyCard.headerLabel')}
                       className="w-full h-full rounded-xl object-cover"
                     />
                   )}
@@ -513,10 +553,10 @@ export const TeacherView: React.FC = () => {
                     {currentUser?.name || 'PROF. ELIZA G., Ph.D.'}
                   </h3>
                   <p className="text-xs text-[#00A896] font-normal uppercase tracking-wide truncate mt-0.5">
-                    {currentUser?.department || 'ALL STEM SUBJECTS (Grades 6-12)'}
+                    {currentUser?.department || t('teacher:facultyCard.defaultDept')}
                   </p>
                   <p className="text-[10px] text-slate-400 font-light mt-0.5">
-                    Assigned: 7B Science, 8A Physics, 10th AP
+                    {t('teacher:facultyCard.assignedSummary')}
                   </p>
                 </div>
               </div>
@@ -527,10 +567,10 @@ export const TeacherView: React.FC = () => {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
                 <div>
                   <span className="text-[10px] font-normal uppercase tracking-wider text-[#00A896]">
-                    Current Subject / Grade Context:
+                    {t('teacher:contextSelector.heading')}
                   </span>
                   <p className="text-xs text-slate-500 dark:text-slate-400 font-light">
-                    Select context to dynamically configure AI lesson plans, quiz prompts, and student monitoring.
+                    {t('teacher:portal.desktopSubtitle')}
                   </p>
                 </div>
 
@@ -551,7 +591,7 @@ export const TeacherView: React.FC = () => {
                       );
                       if (matchedSubj) {
                         setGrade(`${matchedSubj.grade_level}th`);
-                        const relatedTopic = topicsDB.find((t) => t.subject_id === matchedSubj.id && t.status === 'ACTIVE');
+                        const relatedTopic = topicsDB.find((tItem) => tItem.subject_id === matchedSubj.id && tItem.status === 'ACTIVE');
                         if (relatedTopic) {
                           setTopic(relatedTopic.title);
                           setQuizPrompt(`Draft a 10-question MCQ quiz on ${relatedTopic.title} (Grade ${matchedSubj.grade_level} ${matchedSubj.name})`);
@@ -579,18 +619,21 @@ export const TeacherView: React.FC = () => {
                     }}
                     className="px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#0D1B3E] text-xs font-normal text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#00A896] cursor-pointer shadow-2xs max-w-xs"
                   >
-                    <optgroup label={`Real-Time Admin Curriculum (${currentBoard || 'CBSE'})`}>
+                    <optgroup label={t('teacher:contextSelector.realtimeAdminCurriculum', { board: translateBoardLabel(currentBoard || 'CBSE', t) })}>
                       {resolveSubjectsForBoard(currentBoard || 'CBSE', subjectsDB, boardSubjectMappings)
                         .filter((s) => s.status === 'ACTIVE')
                         .map((subj) => (
                           <option key={subj.id} value={`Grade ${subj.grade_level} ${subj.name}`}>
-                            [Grade {subj.grade_level} {subj.name}
-                            {subj.resolvedSubjectType === 'REGIONAL_LANGUAGE' ? ' • Regional' : ''}]
+                            [{t('teacher:lessonStudio.gradePrefix', {
+                              grade: subj.grade_level,
+                              subject: translateSubjectLabel(subj.name, t),
+                            })}
+                            {subj.resolvedSubjectType === 'REGIONAL_LANGUAGE' ? t('teacher:contextSelector.regionalSuffix') : ''}]
                           </option>
                         ))}
                     </optgroup>
-                    <optgroup label="Syllabus Explorer">
-                      <option value="full-list">[Full Grades 6-12 Syllabus Explorer...]</option>
+                    <optgroup label={t('teacher:contextSelector.syllabusExplorerGroup')}>
+                      <option value="full-list">{t('teacher:contextSelector.fullSyllabusOption')}</option>
                     </optgroup>
                   </select>
                 </div>
@@ -600,14 +643,15 @@ export const TeacherView: React.FC = () => {
               <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center">
                 <div className="sm:col-span-6 space-y-2">
                   <span className="text-[11px] font-normal uppercase tracking-wider text-slate-700 dark:text-slate-300 block">
-                    Assisted Lesson Plans
+                    {t('teacher:contextSelector.assistedPlansHeading')}
                   </span>
                   <p className="text-xs text-slate-500 dark:text-slate-400 font-light leading-relaxed">
-                    High-yield curriculum alignment calibrated to <strong className="font-normal text-[#00A896]">{teacherSubjectContext}</strong>.
+                    {t('teacher:contextSelector.highYieldDesc')}{' '}
+                    <strong className="font-normal text-[#00A896]">{teacherSubjectContext}</strong>.
                   </p>
                   <div className="flex flex-wrap gap-2 pt-1">
                     <span className="px-2.5 py-1 rounded-full text-[10px] font-normal bg-[#00A896]/15 text-[#00A896] border border-[#00A896]/30">
-                      Active Context: {teacherSubjectContext}
+                      {t('teacher:contextSelector.activeContextBadge', { ctx: teacherSubjectContext })}
                     </span>
                   </div>
                 </div>
@@ -616,15 +660,15 @@ export const TeacherView: React.FC = () => {
                   <div className="relative rounded-2xl overflow-hidden bg-slate-900 aspect-video flex items-center justify-center border border-slate-200 dark:border-slate-800 shadow-sm">
                     <img
                       src="https://images.unsplash.com/photo-1544717305-2782549b5136?w=400&auto=format&fit=crop&q=80"
-                      alt="Classroom Studio"
+                      alt={t('teacher:contextSelector.liveStudio')}
                       className="w-full h-full object-cover opacity-80"
                     />
                     <div className="absolute top-2 left-2 bg-[#00A896] text-white text-[9px] font-normal px-2 py-0.5 rounded-md flex items-center gap-1 shadow-sm">
                       <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                      <span>LIVE STUDIO</span>
+                      <span>{t('teacher:contextSelector.liveStudio')}</span>
                     </div>
                     <div className="absolute top-2 right-2 bg-emerald-600 text-white text-[9px] font-normal px-2 py-0.5 rounded-md shadow-sm">
-                      ✔ Sync Ready
+                      {t('teacher:contextSelector.syncReady')}
                     </div>
                   </div>
                 </div>
@@ -645,52 +689,52 @@ export const TeacherView: React.FC = () => {
                     </div>
                     <div>
                       <h3 className="font-light text-slate-900 dark:text-white text-base leading-tight">
-                        AI Lesson Plan Generator
+                        {t('teacher:lessonStudio.heading')}
                       </h3>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400 font-light">Autonomous curriculum alignment</p>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 font-light">{t('teacher:lessonStudio.subheadingShort')}</p>
                     </div>
                   </div>
 
                   <form onSubmit={handleGeneratePlan} className="space-y-3.5">
                     <div>
-                      <label className="block text-xs font-normal text-slate-700 dark:text-slate-300 mb-1">Topic</label>
+                      <label className="block text-xs font-normal text-slate-700 dark:text-slate-300 mb-1">{t('teacher:lessonStudio.topicLabel')}</label>
                       <input
                         type="text"
                         value={topic}
                         onChange={(e) => setTopic(e.target.value)}
-                        placeholder="e.g. Photosynthesis"
+                        placeholder={t('teacher:lessonStudio.topicPlaceholder')}
                         className="w-full bg-slate-50 dark:bg-[#0D1B3E] text-slate-900 dark:text-white text-xs px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-[#00A896] transition-all font-normal"
                       />
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-xs font-normal text-slate-700 dark:text-slate-300 mb-1">Grade</label>
+                        <label className="block text-xs font-normal text-slate-700 dark:text-slate-300 mb-1">{t('teacher:lessonStudio.gradeLabel')}</label>
                         <select
                           value={grade}
                           onChange={(e) => setGrade(e.target.value)}
                           className="w-full bg-slate-50 dark:bg-[#0D1B3E] text-slate-900 dark:text-white text-xs px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-[#00A896] font-normal cursor-pointer"
                         >
-                          <option value="6th">6th</option>
-                          <option value="7th">7th</option>
-                          <option value="8th">8th</option>
-                          <option value="9th">9th</option>
-                          <option value="10th">10th</option>
-                          <option value="AP/Honors">AP / Honors</option>
+                          <option value="6th">{t('teacher:lessonStudio.grades.6th')}</option>
+                          <option value="7th">{t('teacher:lessonStudio.grades.7th')}</option>
+                          <option value="8th">{t('teacher:lessonStudio.grades.8th')}</option>
+                          <option value="9th">{t('teacher:lessonStudio.grades.9th')}</option>
+                          <option value="10th">{t('teacher:lessonStudio.grades.10th')}</option>
+                          <option value="AP/Honors">{t('teacher:lessonStudio.grades.AP/Honors')}</option>
                         </select>
                       </div>
 
                       <div>
-                        <label className="block text-xs font-normal text-slate-700 dark:text-slate-300 mb-1">Style</label>
+                        <label className="block text-xs font-normal text-slate-700 dark:text-slate-300 mb-1">{t('teacher:lessonStudio.styleLabel')}</label>
                         <select
                           value={style}
                           onChange={(e) => setStyle(e.target.value)}
                           className="w-full bg-slate-50 dark:bg-[#0D1B3E] text-slate-900 dark:text-white text-xs px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-[#00A896] font-normal cursor-pointer"
                         >
-                          <option value="Interactive">Interactive</option>
-                          <option value="Socratic Inquiry">Socratic Inquiry</option>
-                          <option value="Project-Based">Project-Based</option>
-                          <option value="Remedial Synthesis">Remedial Synthesis</option>
+                          <option value="Interactive">{t('teacher:lessonStudio.styles.Interactive')}</option>
+                          <option value="Socratic Inquiry">{t('teacher:lessonStudio.styles.Socratic Inquiry')}</option>
+                          <option value="Project-Based">{t('teacher:lessonStudio.styles.Project-Based')}</option>
+                          <option value="Remedial Synthesis">{t('teacher:lessonStudio.styles.Remedial Synthesis')}</option>
                         </select>
                       </div>
                     </div>
@@ -701,7 +745,7 @@ export const TeacherView: React.FC = () => {
                       className="w-full py-2.5 px-4 rounded-xl bg-[#00A896] hover:bg-[#009282] disabled:opacity-50 text-white font-normal text-xs shadow-sm flex items-center justify-center gap-2 transition-all cursor-pointer"
                     >
                       <Sparkles className="w-3.5 h-3.5" />
-                      <span>{isDraftingPlan ? 'Drafting Curriculum with AI...' : 'Generate Lesson Plan'}</span>
+                      <span>{isDraftingPlan ? t('teacher:lessonStudio.draftingStatus') : t('teacher:lessonStudio.generateBtn')}</span>
                     </button>
                   </form>
                 </div>
@@ -711,10 +755,10 @@ export const TeacherView: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 text-slate-900 dark:text-slate-100 font-normal text-xs">
                       <span className="w-2 h-2 rounded-full bg-[#00A896] animate-ping" />
-                      <span>AI Drafting Status</span>
+                      <span>{t('teacher:lessonStudio.aiStatus')}</span>
                     </div>
                     <span className="text-[10px] text-[#00A896] font-normal">
-                      {isDraftingPlan ? 'Generating...' : 'Ready'}
+                      {isDraftingPlan ? t('teacher:lessonStudio.generating') : t('teacher:lessonStudio.ready')}
                     </span>
                   </div>
 
@@ -729,15 +773,15 @@ export const TeacherView: React.FC = () => {
                   <div className="grid grid-cols-3 gap-1 pt-1 text-[11px] text-slate-600 dark:text-slate-400 font-light">
                     <div className="flex items-center gap-1">
                       <CheckCircle2 className="w-3 h-3 text-[#00A896]" />
-                      <span>Objectives</span>
+                      <span className="truncate">{t('teacher:lessonStudio.objectives')}</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <CheckCircle2 className="w-3 h-3 text-[#00A896]" />
-                      <span>Activities</span>
+                      <span className="truncate">{t('teacher:lessonStudio.activities')}</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <CheckCircle2 className="w-3 h-3 text-[#00A896]" />
-                      <span>Reading</span>
+                      <span className="truncate">{t('teacher:lessonStudio.reading')}</span>
                     </div>
                   </div>
 
@@ -746,7 +790,7 @@ export const TeacherView: React.FC = () => {
                       onClick={() => setActivePlanModal(lessonPlans[0])}
                       className="w-full mt-2 py-1.5 px-3 rounded-lg bg-white dark:bg-[#12234e] border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 hover:bg-[#00A896]/10 text-xs font-normal transition-colors cursor-pointer text-center"
                     >
-                      Inspect Plan: "{lessonPlans[0].topic}"
+                      {t('teacher:lessonStudio.inspectPlanBtn', { topic: lessonPlans[0].topic })}
                     </button>
                   )}
                 </div>
@@ -761,22 +805,22 @@ export const TeacherView: React.FC = () => {
                     </div>
                     <div>
                       <h3 className="font-light text-slate-900 dark:text-white text-base leading-tight">
-                        Quiz Creator
+                        {t('teacher:quizCreator.heading')}
                       </h3>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400 font-light">Instant MCQs & detailed explanations</p>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 font-light">{t('teacher:quizCreator.subtitle')}</p>
                     </div>
                   </div>
 
                   <form onSubmit={handleGenerateQuiz} className="space-y-4">
                     <div>
                       <label className="block text-xs font-normal text-slate-700 dark:text-slate-300 mb-1.5">
-                        Prompt or Topic Description
+                        {t('teacher:quizCreator.promptLabel')}
                       </label>
                       <textarea
                         rows={5}
                         value={quizPrompt}
                         onChange={(e) => setQuizPrompt(e.target.value)}
-                        placeholder="e.g. Draft a 10-question MCQ quiz on Plant Cells"
+                        placeholder={t('teacher:quizCreator.promptPlaceholder')}
                         className="w-full bg-slate-50 dark:bg-[#0D1B3E] text-slate-900 dark:text-white text-xs p-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-[#00A896] transition-all font-normal resize-none leading-relaxed"
                       />
                     </div>
@@ -787,7 +831,7 @@ export const TeacherView: React.FC = () => {
                       className="w-full py-3 px-4 rounded-xl bg-[#00A896] hover:bg-[#009282] disabled:opacity-50 text-white font-normal text-sm shadow-md shadow-[#00A896]/20 transition-all cursor-pointer flex items-center justify-center gap-2"
                     >
                       <Sparkles className="w-4 h-4" />
-                      <span>{isDraftingQuiz ? 'AI Generating Assessment...' : 'Generate Quiz'}</span>
+                      <span>{isDraftingQuiz ? t('teacher:quizCreator.draftingQuizStatus') : t('teacher:quizCreator.generateQuizBtn')}</span>
                     </button>
                   </form>
                 </div>
@@ -795,8 +839,8 @@ export const TeacherView: React.FC = () => {
                 {/* Recent Quizzes List preview */}
                 <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#0D1B3E] border border-slate-200 dark:border-slate-700 space-y-2 transition-colors">
                   <div className="flex items-center justify-between text-xs text-slate-900 dark:text-slate-100 font-normal">
-                    <span>Class Assessments Pool</span>
-                    <span className="text-[10px] text-[#00A896] font-normal">{quizzes.length} Quizzes</span>
+                    <span>{t('teacher:quizCreator.assessmentsPool')}</span>
+                    <span className="text-[10px] text-[#00A896] font-normal">{t('teacher:quizCreator.quizzesCount', { count: quizzes.length })}</span>
                   </div>
                   {quizzes.slice(0, 2).map((q) => (
                     <div
@@ -805,20 +849,20 @@ export const TeacherView: React.FC = () => {
                     >
                       <div className="truncate max-w-[160px]">
                         <div className="font-normal text-slate-800 dark:text-white truncate">{q.title}</div>
-                        <span className="text-[10px] text-slate-400 font-light">{q.questions.length} questions</span>
+                        <span className="text-[10px] text-slate-400 font-light">{q.questions.length} {t('common:units.questions')}</span>
                       </div>
                       <div className="flex items-center gap-1.5">
                         <button
                           onClick={() => setActiveQuizModal(q)}
                           className="px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-[11px] font-normal cursor-pointer"
                         >
-                          Inspect
+                          {t('teacher:quizCreator.inspectShort')}
                         </button>
                         <button
                           onClick={() => publishQuiz(q)}
                           className="px-2 py-1 rounded-lg bg-[#00A896] hover:bg-[#009282] text-white text-[11px] font-normal cursor-pointer"
                         >
-                          Publish
+                          {t('teacher:quizCreator.publishShort')}
                         </button>
                       </div>
                     </div>
@@ -833,16 +877,16 @@ export const TeacherView: React.FC = () => {
               <div className="bg-white dark:bg-[#0E1A2D] rounded-3xl p-6 shadow-xs border border-slate-200/90 dark:border-slate-800/80 space-y-4 transition-colors">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="font-light text-slate-900 dark:text-white text-base">My Classes</h3>
+                    <h3 className="font-light text-slate-900 dark:text-white text-base">{t('teacher:classesChart.myClasses')}</h3>
                     <span className="text-xs font-normal text-[#00A896] bg-[#00A896]/15 px-2 py-0.5 rounded-full border border-[#00A896]/30">
-                      {selectedClass}
+                      {getClassLabel(selectedClass)}
                     </span>
                   </div>
-                  <span className="text-xs text-slate-400 font-light">Weekly Trend</span>
+                  <span className="text-xs text-slate-400 font-light">{t('teacher:classesChart.weeklyTrend')}</span>
                 </div>
 
                 <div>
-                  <span className="text-xs font-normal text-slate-700 dark:text-slate-300 block mb-2">Student Progress</span>
+                  <span className="text-xs font-normal text-slate-700 dark:text-slate-300 block mb-2">{t('teacher:classesChart.studentProgress')}</span>
 
                   {/* SVG Curve Graphs with Teal & Indigo Curves matching PivotIQ theme */}
                   <div className="bg-slate-50 dark:bg-[#0D1B3E] p-3 rounded-2xl border border-slate-200 dark:border-slate-700 relative">
@@ -887,11 +931,11 @@ export const TeacherView: React.FC = () => {
                     <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400 font-light pt-2 border-t border-slate-200 dark:border-slate-700">
                       <span className="flex items-center gap-1">
                         <span className="w-2 h-2 rounded-full bg-[#00A896]" />
-                        Science Mastery (84%)
+                        {t('teacher:classesChart.scienceMasteryPct', { pct: 84 })}
                       </span>
                       <span className="flex items-center gap-1">
                         <span className="w-2 h-2 rounded-full bg-[#38BDF8]" />
-                        Retention Velocity (76%)
+                        {t('teacher:classesChart.retentionVelocityPct', { pct: 76 })}
                       </span>
                     </div>
                   </div>
@@ -903,10 +947,10 @@ export const TeacherView: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <h3 className="font-light text-slate-900 dark:text-white text-base flex items-center gap-2">
                     <Sparkles className="w-4 h-4 text-[#00A896]" />
-                    AI-Powered Suggestions
+                    {t('teacher:suggestions.heading')}
                   </h3>
                   <span className="text-[10px] bg-[#00A896]/15 text-[#00A896] px-2 py-0.5 rounded-full font-normal">
-                    {aiSuggestions.length} Active
+                    {t('teacher:suggestions.activeCount', { count: aiSuggestions.length })}
                   </span>
                 </div>
 
@@ -926,7 +970,7 @@ export const TeacherView: React.FC = () => {
                               onClick={() => dismissSuggestion(sug.id)}
                               className="text-[10px] text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer"
                             >
-                              Resolve
+                              {t('teacher:suggestions.resolve')}
                             </button>
                           </div>
                         </div>
@@ -940,13 +984,13 @@ export const TeacherView: React.FC = () => {
 
           {/* BOTTOM SECTION: Student Progress & Proctoring Alert Integration */}
           <div className="bg-white dark:bg-[#0E1A2D] rounded-3xl p-6 shadow-xs border border-slate-200/90 dark:border-slate-800/80 space-y-4 transition-colors">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-2">
               <div>
-                <h3 className="font-light text-slate-900 dark:text-white text-lg">Class Roster & Exam Proctoring Status</h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 font-light">Live synchronized tracking across student activity and exam proctoring</p>
+                <h3 className="font-light text-slate-900 dark:text-white text-lg">{t('teacher:roster.title')}</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-light">{t('teacher:roster.subtitle')}</p>
               </div>
               <span className="text-xs font-normal text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-[#0D1B3E] px-3 py-1 rounded-full border border-slate-200 dark:border-slate-700">
-                Showing 6 Core Monitored Students
+                {t('teacher:roster.showingCount', { count: studentsList.length })}
               </span>
             </div>
 
@@ -954,12 +998,12 @@ export const TeacherView: React.FC = () => {
               <table className="w-full text-left text-xs font-normal">
                 <thead className="bg-slate-50 dark:bg-[#0D1B3E] text-slate-600 dark:text-slate-300 uppercase font-normal border-b border-slate-200 dark:border-slate-700">
                   <tr>
-                    <th className="p-3">Student</th>
-                    <th className="p-3">Current Grade</th>
-                    <th className="p-3">Attendance</th>
-                    <th className="p-3">Physics Progress</th>
-                    <th className="p-3">Exam Proctor State</th>
-                    <th className="p-3">Actions</th>
+                    <th className="p-3">{t('teacher:roster.colStudent')}</th>
+                    <th className="p-3">{t('teacher:roster.colGrade')}</th>
+                    <th className="p-3">{t('teacher:roster.colAttendance')}</th>
+                    <th className="p-3">{t('teacher:roster.colPhysicsProgress')}</th>
+                    <th className="p-3">{t('teacher:roster.colProctorState')}</th>
+                    <th className="p-3">{t('teacher:roster.colActions')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -992,15 +1036,15 @@ export const TeacherView: React.FC = () => {
                       <td className="p-3">
                         {stu.activeProctorStatus === 'Clear' ? (
                           <span className="px-2 py-0.5 rounded-full text-[10px] font-normal bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
-                            Clear
+                            {translateStatusLabel('Clear', t)}
                           </span>
                         ) : stu.activeProctorStatus === 'Head Rotation' ? (
                           <span className="px-2 py-0.5 rounded-full text-[10px] font-normal bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
-                            Head Rotation Flag
+                            {translateStatusLabel('Head Rotation', t)}
                           </span>
                         ) : (
                           <span className="px-2 py-0.5 rounded-full text-[10px] font-normal bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-400 border border-red-200 dark:border-red-800">
-                            Multiple Faces Flag
+                            {translateStatusLabel('Multiple Faces', t)}
                           </span>
                         )}
                       </td>
@@ -1012,7 +1056,7 @@ export const TeacherView: React.FC = () => {
                           }}
                           className="px-2.5 py-1 rounded-lg bg-[#00A896]/10 hover:bg-[#00A896]/20 text-[#00A896] font-normal text-[11px] transition-colors cursor-pointer border border-[#00A896]/30"
                         >
-                          Send Practice Quiz
+                          {t('teacher:roster.sendPracticeQuiz')}
                         </button>
                       </td>
                     </tr>
@@ -1033,6 +1077,7 @@ export const TeacherView: React.FC = () => {
             <button
               onClick={() => setActivePlanModal(null)}
               className="absolute top-5 right-5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-lg cursor-pointer"
+              title={t('teacher:inspectModal.close')}
             >
               ✕
             </button>
@@ -1040,12 +1085,16 @@ export const TeacherView: React.FC = () => {
             <div className="flex items-start justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
               <div>
                 <span className="text-xs font-normal text-[#00A896] bg-[#00A896]/15 px-2.5 py-0.5 rounded-full border border-[#00A896]/30">
-                  Lesson Plan &bull; {activePlanModal.grade} Grade
+                  {t('teacher:inspectModal.lessonPlanBadge', { grade: activePlanModal.grade })}
                 </span>
                 <h2 className="text-xl font-light text-slate-900 dark:text-white mt-1">
                   {activePlanModal.topic} ({activePlanModal.duration})
                 </h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400 font-light">Approach: {activePlanModal.style}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-light">
+                  {t('teacher:inspectModal.approachLabel', {
+                    style: t(`teacher:lessonStudio.styles.${activePlanModal.style}`, { defaultValue: activePlanModal.style }),
+                  })}
+                </p>
               </div>
             </div>
 
@@ -1053,7 +1102,7 @@ export const TeacherView: React.FC = () => {
               <div>
                 <h4 className="font-normal text-slate-900 dark:text-white text-sm mb-2 flex items-center gap-1.5">
                   <CheckCircle2 className="w-4 h-4 text-[#00A896]" />
-                  Key Learning Objectives
+                  {t('teacher:lessonStudio.objectives')}
                 </h4>
                 <ul className="list-disc pl-5 space-y-1 text-slate-700 dark:text-slate-300 font-light">
                   {activePlanModal.learningObjectives?.map((obj: string, i: number) => (
@@ -1065,7 +1114,10 @@ export const TeacherView: React.FC = () => {
               {activePlanModal.warmUpActivity && (
                 <div className="p-4 rounded-2xl bg-[#00A896]/10 border border-[#00A896]/30">
                   <span className="font-normal text-[#00A896] block mb-1">
-                    Warm-Up Activity: {activePlanModal.warmUpActivity.title} ({activePlanModal.warmUpActivity.duration})
+                    {t('teacher:inspectModal.warmUpActivity', {
+                      title: activePlanModal.warmUpActivity.title,
+                      duration: activePlanModal.warmUpActivity.duration,
+                    })}
                   </span>
                   <p className="text-slate-700 dark:text-slate-300 font-light">{activePlanModal.warmUpActivity.prompt}</p>
                 </div>
@@ -1074,7 +1126,7 @@ export const TeacherView: React.FC = () => {
               <div>
                 <h4 className="font-normal text-slate-900 dark:text-white text-sm mb-2 flex items-center gap-1.5">
                   <Layers className="w-4 h-4 text-[#00A896]" />
-                  Core Classroom Activities
+                  {t('teacher:lessonStudio.activities')}
                 </h4>
                 <div className="space-y-2">
                   {activePlanModal.coreActivities?.map((act: any, idx: number) => (
@@ -1086,7 +1138,7 @@ export const TeacherView: React.FC = () => {
                       <p className="text-slate-600 dark:text-slate-300 mt-1 font-light">{act.description}</p>
                       {act.teacherGuide && (
                         <p className="text-[11px] text-[#00A896] mt-1 italic font-light">
-                          Teacher Note: {act.teacherGuide}
+                          {t('teacher:inspectModal.teacherNote', { note: act.teacherGuide })}
                         </p>
                       )}
                     </div>
@@ -1096,14 +1148,14 @@ export const TeacherView: React.FC = () => {
 
               {activePlanModal.readingMaterial && (
                 <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#0D1B3E] border border-slate-200 dark:border-slate-700">
-                  <span className="font-normal text-slate-900 dark:text-white block mb-1">Reading Material Summary:</span>
+                  <span className="font-normal text-slate-900 dark:text-white block mb-1">{t('teacher:inspectModal.readingSummary')}</span>
                   <p className="text-slate-700 dark:text-slate-300 leading-relaxed font-light">{activePlanModal.readingMaterial}</p>
                 </div>
               )}
 
               {activePlanModal.homeworkChallenge && (
                 <div className="p-4 rounded-2xl bg-[#00A896]/10 border border-[#00A896]/30">
-                  <span className="font-normal text-[#00A896] block mb-1">Homework Challenge:</span>
+                  <span className="font-normal text-[#00A896] block mb-1">{t('teacher:inspectModal.homeworkChallenge')}</span>
                   <p className="text-slate-700 dark:text-slate-300 font-light">{activePlanModal.homeworkChallenge}</p>
                 </div>
               )}
@@ -1115,13 +1167,13 @@ export const TeacherView: React.FC = () => {
                 className="px-4 py-2 rounded-xl bg-[#00A896] hover:bg-[#009282] text-white text-xs font-normal flex items-center gap-1.5 cursor-pointer"
               >
                 <Download className="w-4 h-4" />
-                <span>Export Plan</span>
+                <span>{t('teacher:lessonStudio.downloadPlan')}</span>
               </button>
               <button
                 onClick={() => setActivePlanModal(null)}
                 className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 text-xs font-normal cursor-pointer"
               >
-                Close
+                {t('teacher:inspectModal.close')}
               </button>
             </div>
           </div>
@@ -1135,13 +1187,14 @@ export const TeacherView: React.FC = () => {
             <button
               onClick={() => setActiveQuizModal(null)}
               className="absolute top-5 right-5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-lg cursor-pointer"
+              title={t('teacher:inspectModal.close')}
             >
               ✕
             </button>
 
             <div className="border-b border-slate-100 dark:border-slate-800 pb-3">
               <span className="text-xs font-normal text-[#00A896] bg-[#00A896]/15 px-2.5 py-0.5 rounded-full border border-[#00A896]/30">
-                Assessment Questions &bull; {activeQuizModal.topic}
+                {t('teacher:inspectModal.assessmentBadge', { topic: activeQuizModal.topic })}
               </span>
               <h2 className="text-xl font-light text-slate-900 dark:text-white mt-1">{activeQuizModal.title}</h2>
             </div>
@@ -1164,13 +1217,13 @@ export const TeacherView: React.FC = () => {
                       >
                         <span>{opt}</span>
                         {optIdx === q.answerIndex && (
-                          <span className="text-[10px] text-[#00A896] font-normal uppercase">Correct Answer</span>
+                          <span className="text-[10px] text-[#00A896] font-normal uppercase">{t('teacher:inspectModal.correctAnswer')}</span>
                         )}
                       </div>
                     ))}
                   </div>
                   <p className="text-[11px] text-slate-600 dark:text-slate-400 pt-1 font-light">
-                    Explanation: {q.explanation}
+                    {t('teacher:inspectModal.explanationLabel', { text: q.explanation })}
                   </p>
                 </div>
               ))}
@@ -1182,19 +1235,19 @@ export const TeacherView: React.FC = () => {
                   publishQuiz(activeQuizModal, selectedClass);
                   setActiveQuizModal(null);
                   setIsBroadcastedRecently(true);
-                  setBroadcastSuccessMessage(`Assessment "${activeQuizModal.title}" is now broadcasting live to ${selectedClass}!`);
+                  setBroadcastBannerData({ title: activeQuizModal.title, targetClass: selectedClass, isFull: false });
                   setTimeout(() => setIsBroadcastedRecently(false), 4500);
                 }}
                 className="px-4 py-2 rounded-xl bg-[#00A896] hover:bg-[#009282] text-white text-xs font-normal flex items-center gap-1.5 cursor-pointer shadow-sm shadow-[#00A896]/20"
               >
                 <Send className="w-4 h-4" />
-                <span>Publish to Student Portal</span>
+                <span>{t('teacher:inspectModal.publishNow')}</span>
               </button>
               <button
                 onClick={() => setActiveQuizModal(null)}
                 className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 text-xs font-normal cursor-pointer"
               >
-                Close
+                {t('teacher:inspectModal.close')}
               </button>
             </div>
           </div>
@@ -1212,8 +1265,8 @@ export const TeacherView: React.FC = () => {
                   <Send className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-normal tracking-wide text-white">Broadcast Assessment to Students</h3>
-                  <p className="text-xs text-white/80 font-light">Push live timed quiz with instant student portal synchronization</p>
+                  <h3 className="text-base font-normal tracking-wide text-white">{t('teacher:broadcastModal.title')}</h3>
+                  <p className="text-xs text-white/80 font-light">{t('teacher:broadcastModal.subtitle')}</p>
                 </div>
               </div>
               <button
@@ -1229,17 +1282,17 @@ export const TeacherView: React.FC = () => {
               {/* Target Class Cohort */}
               <div>
                 <label className="block text-xs font-normal text-slate-800 dark:text-slate-200 mb-1.5">
-                  Target Classroom Cohort:
+                  {t('teacher:broadcastModal.targetClass')}
                 </label>
                 <select
                   value={broadcastTargetClass}
                   onChange={(e) => setBroadcastTargetClass(e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-[#1E3E6B] bg-slate-50 dark:bg-[#0D1B3E] text-slate-900 dark:text-white text-xs font-normal focus:outline-none focus:ring-2 focus:ring-[#00A896] cursor-pointer"
                 >
-                  <option value="Class 7B - Science">Class 7B - Science (28 Students)</option>
-                  <option value="Class 8A - Physics">Class 8A - Physics (32 Students)</option>
-                  <option value="Class 8C - Adv Biology">Class 8C - Adv Biology (24 Students)</option>
-                  <option value="All Enrolled Classes">All Enrolled Classes (84 Students)</option>
+                  <option value="Class 7B - Science">{t('teacher:classes.studentsCount', { name: t('teacher:classes.class7BScience'), count: 28 })}</option>
+                  <option value="Class 8A - Physics">{t('teacher:classes.studentsCount', { name: t('teacher:classes.class8APhysics'), count: 32 })}</option>
+                  <option value="Class 8C - Adv Biology">{t('teacher:classes.studentsCount', { name: t('teacher:classes.class8CBio'), count: 24 })}</option>
+                  <option value="All Enrolled Classes">{t('teacher:classes.studentsCount', { name: t('teacher:classes.allEnrolled'), count: 84 })}</option>
                 </select>
               </div>
 
@@ -1247,9 +1300,11 @@ export const TeacherView: React.FC = () => {
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="block text-xs font-normal text-slate-800 dark:text-slate-200">
-                    Select Quiz to Broadcast:
+                    {t('teacher:broadcastModal.selectAssessment')}
                   </label>
-                  <span className="text-[10px] text-[#00A896] font-normal">{quizzes.length} Quizzes Available</span>
+                  <span className="text-[10px] text-[#00A896] font-normal">
+                    {t('teacher:broadcastModal.quizzesAvailable', { count: quizzes.length })}
+                  </span>
                 </div>
                 <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
                   {quizzes.map((q) => {
@@ -1271,12 +1326,12 @@ export const TeacherView: React.FC = () => {
                           <div>
                             <p className="font-normal text-slate-900 dark:text-white text-xs">{q.title}</p>
                             <p className="text-[11px] text-slate-500 dark:text-slate-400 font-light mt-0.5">
-                              {q.topic} &bull; {q.questions.length} Questions &bull; {q.grade}
+                              {t('teacher:broadcastModal.quizMeta', { topic: q.topic, count: q.questions.length, grade: q.grade })}
                             </p>
                           </div>
                         </div>
                         <span className={`text-[10px] px-2 py-0.5 rounded-full font-normal ${isSelected ? 'bg-[#00A896] text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'}`}>
-                          {isSelected ? 'Selected' : 'Choose'}
+                          {isSelected ? t('teacher:broadcastModal.selected') : t('teacher:broadcastModal.choose')}
                         </span>
                       </div>
                     );
@@ -1288,24 +1343,24 @@ export const TeacherView: React.FC = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
                 <div>
                   <label className="block text-[11px] font-normal text-slate-700 dark:text-slate-300 mb-1">
-                    Assessment Duration:
+                    {t('teacher:broadcastModal.durationLabel')}
                   </label>
                   <select
                     value={broadcastDuration}
                     onChange={(e) => setBroadcastDuration(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-[#1E3E6B] bg-slate-50 dark:bg-[#0D1B3E] text-slate-900 dark:text-white text-xs font-normal focus:outline-none focus:ring-2 focus:ring-[#00A896] cursor-pointer"
                   >
-                    <option value="10 Minutes">10 Minutes</option>
-                    <option value="15 Minutes">15 Minutes (Recommended)</option>
-                    <option value="20 Minutes">20 Minutes</option>
-                    <option value="30 Minutes">30 Minutes</option>
-                    <option value="Unlimited">Untimed Practice</option>
+                    <option value="10 Minutes">{t('teacher:broadcastModal.durations.10 Minutes')}</option>
+                    <option value="15 Minutes">{t('teacher:broadcastModal.durations.15 Minutes')}</option>
+                    <option value="20 Minutes">{t('teacher:broadcastModal.durations.20 Minutes')}</option>
+                    <option value="30 Minutes">{t('teacher:broadcastModal.durations.30 Minutes')}</option>
+                    <option value="Unlimited">{t('teacher:broadcastModal.durations.Unlimited')}</option>
                   </select>
                 </div>
 
                 <div>
                   <label className="block text-[11px] font-normal text-slate-700 dark:text-slate-300 mb-1">
-                    AI Proctoring Shield:
+                    {t('teacher:broadcastModal.proctoringLabel')}
                   </label>
                   <button
                     type="button"
@@ -1316,8 +1371,8 @@ export const TeacherView: React.FC = () => {
                         : 'bg-slate-50 dark:bg-[#0D1B3E] border-slate-200 dark:border-slate-700 text-slate-500'
                     }`}
                   >
-                    <span>{broadcastProctoring ? 'Active (Anomaly Detection)' : 'Disabled (Self Paced)'}</span>
-                    <span className="text-[10px]">{broadcastProctoring ? 'ON' : 'OFF'}</span>
+                    <span>{broadcastProctoring ? t('teacher:broadcastModal.proctoringOn') : t('teacher:broadcastModal.proctoringOff')}</span>
+                    <span className="text-[10px]">{broadcastProctoring ? t('teacher:broadcastModal.on') : t('teacher:broadcastModal.off')}</span>
                   </button>
                 </div>
               </div>
@@ -1329,7 +1384,7 @@ export const TeacherView: React.FC = () => {
                   onClick={() => setIsBroadcastModalOpen(false)}
                   className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 text-xs font-normal cursor-pointer transition-colors"
                 >
-                  Cancel
+                  {t('teacher:broadcastModal.cancel')}
                 </button>
 
                 <button
@@ -1338,7 +1393,7 @@ export const TeacherView: React.FC = () => {
                   className="px-5 py-2.5 rounded-xl bg-[#00A896] hover:bg-[#009282] text-white text-xs font-normal flex items-center gap-2 shadow-md shadow-[#00A896]/20 cursor-pointer transition-all hover:scale-[1.02]"
                 >
                   <Send className="w-4 h-4" />
-                  <span>Broadcast Now to {broadcastTargetClass}</span>
+                  <span>{t('teacher:broadcastModal.broadcastNowBtn', { targetClass: getClassLabel(broadcastTargetClass) })}</span>
                 </button>
               </div>
             </div>

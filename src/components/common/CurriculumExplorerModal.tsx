@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useApp } from '../../context/AppContext';
 import { EducationBoard } from '../../types';
 import { ALL_EDUCATION_BOARDS } from '../../data/curriculumData';
+import { translateSubjectLabel, translateBoardLabel, translateCategoryLabel } from '../../i18n/helpers';
 import {
   BookOpen,
   X,
@@ -19,6 +21,7 @@ import {
 } from 'lucide-react';
 
 export const CurriculumExplorerModal: React.FC = () => {
+  const { t } = useTranslation('common');
   const {
     isCurriculumModalOpen,
     setIsCurriculumModalOpen,
@@ -70,20 +73,21 @@ export const CurriculumExplorerModal: React.FC = () => {
               <BookOpen className="w-5 h-5 text-white" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-lg font-bold">Grades 6–12 Curriculum Repository</h2>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-lg font-bold">{t('curriculumExplorer.title')}</h2>
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/20 uppercase tracking-wider">
-                  Global Subject Database
+                  {t('curriculumExplorer.globalDbBadge')}
                 </span>
               </div>
               <p className="text-xs text-white/80">
-                Explore standardized academic frameworks, core competencies, and topic benchmarks across secondary education.
+                {t('curriculumExplorer.subtitle')}
               </p>
             </div>
           </div>
           <button
             onClick={() => setIsCurriculumModalOpen(false)}
             className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white cursor-pointer transition-colors"
+            aria-label={t('actions.close')}
           >
             <X className="w-4 h-4" />
           </button>
@@ -98,7 +102,7 @@ export const CurriculumExplorerModal: React.FC = () => {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by topic, subject title, course code (e.g., Photosynthesis, PHY-1001, Calculus)..."
+              placeholder={t('curriculumExplorer.searchPlaceholder')}
               className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
@@ -106,7 +110,7 @@ export const CurriculumExplorerModal: React.FC = () => {
           {/* Grade Pills */}
           <div className="flex flex-wrap items-center gap-1.5 text-xs">
             <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 mr-1 flex items-center gap-1">
-              <GraduationCap className="w-3.5 h-3.5" /> Grade Level:
+              <GraduationCap className="w-3.5 h-3.5" /> {t('curriculumExplorer.gradeLevelLabel')}
             </span>
             <button
               onClick={() => setSelectedGradeTab('all')}
@@ -116,7 +120,7 @@ export const CurriculumExplorerModal: React.FC = () => {
                   : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100'
               }`}
             >
-              All Grades (6–12)
+              {t('curriculumExplorer.allGrades')}
             </button>
             {grades.map((g) => (
               <button
@@ -128,7 +132,7 @@ export const CurriculumExplorerModal: React.FC = () => {
                     : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100'
                 }`}
               >
-                Grade {g}
+                {t('curriculumExplorer.gradeOption', { grade: g })}
               </button>
             ))}
           </div>
@@ -136,7 +140,7 @@ export const CurriculumExplorerModal: React.FC = () => {
           {/* Board Pills */}
           <div className="flex flex-wrap items-center gap-1.5 text-xs">
             <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 mr-1 flex items-center gap-1">
-              <Globe className="w-3.5 h-3.5 text-indigo-500" /> Education Board:
+              <Globe className="w-3.5 h-3.5 text-indigo-500" /> {t('curriculumExplorer.educationBoardLabel')}
             </span>
             <button
               onClick={() => {
@@ -149,7 +153,7 @@ export const CurriculumExplorerModal: React.FC = () => {
                   : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100'
               }`}
             >
-              All Boards (11)
+              {t('curriculumExplorer.allBoardsCount', { count: ALL_EDUCATION_BOARDS.length })}
             </button>
             {ALL_EDUCATION_BOARDS.map((b) => (
               <button
@@ -172,7 +176,7 @@ export const CurriculumExplorerModal: React.FC = () => {
           {/* Category Pills */}
           <div className="flex flex-wrap items-center gap-1.5 text-xs">
             <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 mr-1 flex items-center gap-1">
-              <Layers className="w-3.5 h-3.5" /> Subject Category:
+              <Layers className="w-3.5 h-3.5" /> {t('curriculumExplorer.subjectCategoryLabel')}
             </span>
             <button
               onClick={() => {
@@ -185,7 +189,7 @@ export const CurriculumExplorerModal: React.FC = () => {
                   : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100'
               }`}
             >
-              All Domains
+              {t('curriculumExplorer.allDomains')}
             </button>
             {categories.map((c) => (
               <button
@@ -200,7 +204,7 @@ export const CurriculumExplorerModal: React.FC = () => {
                     : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100'
                 }`}
               >
-                {c}
+                {translateCategoryLabel(c, t)}
               </button>
             ))}
           </div>
@@ -210,13 +214,17 @@ export const CurriculumExplorerModal: React.FC = () => {
         <div className="flex-1 overflow-y-auto p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
           {filteredCurriculum.length === 0 ? (
             <div className="col-span-2 py-12 text-center text-slate-500 dark:text-slate-400 text-xs">
-              No curriculum entries matched your criteria. Try adjusting the search query, board, or grade filter.
+              {t('curriculumExplorer.noResults')}
             </div>
           ) : (
             visibleCurriculum.map((item) => {
               const isStem = item.category === 'STEM';
               const isEla = item.category === 'Language Arts';
               const isHis = item.category === 'Humanities';
+              const localizedSubjectTitle = translateSubjectLabel(item.subjectName, t);
+              const boardText = !item.board || item.board === 'ALL'
+                ? t('curriculumExplorer.allBoards')
+                : translateBoardLabel(item.board, t, item.board);
 
               return (
                 <div
@@ -227,12 +235,12 @@ export const CurriculumExplorerModal: React.FC = () => {
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
-                          {item.gradeLabel}
+                          {t('curriculumExplorer.gradeOption', { grade: item.grade })}
                         </span>
                         <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                          {!item.board || item.board === 'ALL' ? 'All Boards' : item.board}
+                          {!item.board || item.board === 'ALL' ? t('curriculumExplorer.allBoards') : item.board}
                         </span>
-                        <span className="text-[10px] font-mono text-slate-400 font-semibold">
+                        <span className="text-[10px] font-mono text-slate-400 font-semibold" title={boardText}>
                           {item.code}
                         </span>
                       </div>
@@ -247,12 +255,12 @@ export const CurriculumExplorerModal: React.FC = () => {
                             : 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300'
                         }`}
                       >
-                        {item.category}
+                        {translateCategoryLabel(item.category, t)}
                       </span>
                     </div>
 
                     <h4 className="text-sm font-bold text-slate-900 dark:text-white leading-tight">
-                      {item.subjectName}
+                      {localizedSubjectTitle}
                     </h4>
 
                     <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
@@ -262,7 +270,7 @@ export const CurriculumExplorerModal: React.FC = () => {
                     {/* Sample topics badges */}
                     <div className="pt-1">
                       <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1">
-                        Core Competencies:
+                        {t('curriculumExplorer.coreCompetencies')}
                       </span>
                       <div className="flex flex-wrap gap-1.5">
                         {item.sampleTopics.map((topic, tidx) => (
@@ -287,7 +295,7 @@ export const CurriculumExplorerModal: React.FC = () => {
                       className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 cursor-pointer"
                     >
                       <Check className="w-3.5 h-3.5" />
-                      <span>Set as Context</span>
+                      <span>{t('curriculumExplorer.setAsContext')}</span>
                     </button>
 
                     <button
@@ -300,7 +308,7 @@ export const CurriculumExplorerModal: React.FC = () => {
                       className="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 font-semibold text-[11px] flex items-center gap-1 cursor-pointer transition-colors"
                     >
                       <Sparkles className="w-3 h-3 text-indigo-500" />
-                      <span>Ask AI Tutor</span>
+                      <span>{t('curriculumExplorer.askAiTutor')}</span>
                     </button>
                   </div>
                 </div>
@@ -313,7 +321,7 @@ export const CurriculumExplorerModal: React.FC = () => {
                 onClick={() => setShowAllResults(true)}
                 className="px-4 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 font-bold text-xs cursor-pointer"
               >
-                Show all {filteredCurriculum.length} curriculum courses
+                {t('curriculumExplorer.showAll', { count: filteredCurriculum.length })}
               </button>
             </div>
           )}
@@ -322,13 +330,17 @@ export const CurriculumExplorerModal: React.FC = () => {
         {/* Modal Footer */}
         <div className="p-4 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs">
           <span className="text-slate-500 dark:text-slate-400">
-            Showing {visibleCurriculum.length} of {filteredCurriculum.length} matched courses ({curriculumList.length} total)
+            {t('curriculumExplorer.showingCount', {
+              visible: visibleCurriculum.length,
+              filtered: filteredCurriculum.length,
+              total: curriculumList.length,
+            })}
           </span>
           <button
             onClick={() => setIsCurriculumModalOpen(false)}
             className="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 font-semibold cursor-pointer"
           >
-            Close Explorer
+            {t('curriculumExplorer.closeExplorer')}
           </button>
         </div>
       </div>

@@ -17,6 +17,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { useTranslation } from 'react-i18next';
 
 interface OfflineStudyPackModalProps {
   isOpen: boolean;
@@ -35,6 +36,7 @@ export const OfflineStudyPackModal: React.FC<OfflineStudyPackModalProps> = ({
     addNotification,
   } = useApp();
 
+  const { t } = useTranslation(['student', 'common']);
   const [isExporting, setIsExporting] = useState(false);
   const [exportSuccess, setExportSuccess] = useState(false);
   const [lowBandwidthMode, setLowBandwidthMode] = useState<boolean>(() => {
@@ -44,7 +46,7 @@ export const OfflineStudyPackModal: React.FC<OfflineStudyPackModalProps> = ({
       return false;
     }
   });
-  const [lastSyncDate] = useState<string>('Today at 05:00 AM');
+  const lastSyncDate = t('student:offlinePack.todaySyncTime');
 
   if (!isOpen) return null;
 
@@ -57,8 +59,8 @@ export const OfflineStudyPackModal: React.FC<OfflineStudyPackModalProps> = ({
 
     if (nextVal) {
       addNotification(
-        'Low-Bandwidth Mode Activated',
-        'Enabled text-first compression and disabled heavy animations for tier-2/3 connectivity.',
+        t('student:offlinePack.lowBwNotifTitle'),
+        t('student:offlinePack.lowBwNotifBody'),
         'info',
         'system'
       );
@@ -83,21 +85,21 @@ export const OfflineStudyPackModal: React.FC<OfflineStudyPackModalProps> = ({
       const tasksRows = dailyTasks
         .slice(0, 15)
         .map(
-          (t) => `
+          (taskItem) => `
           <tr style="border-bottom: 1px solid #e2e8f0;">
-            <td style="padding: 8px 12px; font-weight: bold; color: #0f172a;">Day ${t.day}</td>
-            <td style="padding: 8px 12px; color: #475569;">${t.date || 'Scheduled'}</td>
-            <td style="padding: 8px 12px; font-weight: 600; color: #0284c7;">${t.subject}</td>
-            <td style="padding: 8px 12px; color: #1e293b;">${t.topic}</td>
-            <td style="padding: 8px 12px; text-align: center; color: #334155;">${t.duration_hrs} hrs</td>
+            <td style="padding: 8px 12px; font-weight: bold; color: #0f172a;">Day ${taskItem.day}</td>
+            <td style="padding: 8px 12px; color: #475569;">${taskItem.date || 'Scheduled'}</td>
+            <td style="padding: 8px 12px; font-weight: 600; color: #0284c7;">${taskItem.subject}</td>
+            <td style="padding: 8px 12px; color: #1e293b;">${taskItem.topic}</td>
+            <td style="padding: 8px 12px; text-align: center; color: #334155;">${taskItem.duration_hrs} hrs</td>
             <td style="padding: 8px 12px; text-align: center;">
               <span style="display: inline-block; padding: 2px 8px; border-radius: 9999px; font-size: 11px; font-weight: bold; background: ${
-                t.status === 'Completed'
+                taskItem.status === 'Completed'
                   ? '#dcfce7; color: #15803d;'
-                  : t.status === 'In Progress'
+                  : taskItem.status === 'In Progress'
                   ? '#dbeafe; color: #1d4ed8;'
                   : '#f1f5f9; color: #475569;'
-              }">${t.status}</span>
+              }">${taskItem.status}</span>
             </td>
           </tr>
         `
@@ -303,8 +305,8 @@ export const OfflineStudyPackModal: React.FC<OfflineStudyPackModalProps> = ({
       setIsExporting(false);
       setExportSuccess(true);
       addNotification(
-        'Offline Study Pack Downloaded',
-        'Study pack saved as self-contained HTML! You can open it anytime without internet.',
+        t('student:offlinePack.downloadedNotifTitle'),
+        t('student:offlinePack.downloadedNotifBody'),
         'success',
         'student'
       );
@@ -332,14 +334,14 @@ export const OfflineStudyPackModal: React.FC<OfflineStudyPackModalProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-xl font-bold tracking-tight">
-                  Offline Mode & Low-Bandwidth Hub
+                  {t('student:offlinePack.modalTitle')}
                 </h3>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                  Tier-2/3 Ready
+                  {t('student:offlinePack.tierReadyBadge')}
                 </span>
               </div>
               <p className="text-xs text-slate-300 mt-0.5">
-                Save Agile Study Planners & AI Quick Summaries for zero-internet learning.
+                {t('student:offlinePack.modalSubtitle')}
               </p>
             </div>
           </div>
@@ -369,7 +371,7 @@ export const OfflineStudyPackModal: React.FC<OfflineStudyPackModalProps> = ({
               <div>
                 <div className="flex items-center gap-2">
                   <h4 className="text-xs font-bold text-slate-900 dark:text-white">
-                    Low-Bandwidth (2G Data Saver) Mode
+                    {t('student:offlinePack.lowBwCardTitle')}
                   </h4>
                   <span
                     className={`px-2 py-0.2 rounded-full text-[10px] font-bold ${
@@ -378,12 +380,11 @@ export const OfflineStudyPackModal: React.FC<OfflineStudyPackModalProps> = ({
                         : 'bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-white'
                     }`}
                   >
-                    {lowBandwidthMode ? 'Active' : 'Disabled'}
+                    {lowBandwidthMode ? t('common:actions.active') : t('student:offlinePack.disabled')}
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-500 dark:text-white mt-0.5">
-                  Compresses assets, disables high-res video streaming, and caches all sprint data for
-                  rural & tier-2/3 networks.
+                  {t('student:offlinePack.lowBwCardDesc')}
                 </p>
               </div>
             </div>
@@ -396,7 +397,7 @@ export const OfflineStudyPackModal: React.FC<OfflineStudyPackModalProps> = ({
                   : 'bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-white hover:bg-slate-300'
               }`}
             >
-              {lowBandwidthMode ? 'Enabled' : 'Enable 2G Saver'}
+              {lowBandwidthMode ? t('student:offlinePack.enabled') : t('student:offlinePack.enable2gSaver')}
             </button>
           </div>
 
@@ -406,17 +407,17 @@ export const OfflineStudyPackModal: React.FC<OfflineStudyPackModalProps> = ({
               <HardDrive className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
               <div>
                 <h4 className="text-xs font-bold text-emerald-900 dark:text-white">
-                  Local Browser Storage Status
+                  {t('student:offlinePack.localStorageTitle')}
                 </h4>
                 <p className="text-[11px] text-emerald-700 dark:text-emerald-200">
-                  24 Modules, 15 Formulas, and 3 Sprints cached &bull; Last synchronized {lastSyncDate}
+                  {t('student:offlinePack.cachedSummaryLine', { date: lastSyncDate })}
                 </p>
               </div>
             </div>
 
             <span className="flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400">
               <CheckCircle2 className="w-4 h-4" />
-              100% Ready
+              {t('student:offlinePack.ready100')}
             </span>
           </div>
 
@@ -425,15 +426,13 @@ export const OfflineStudyPackModal: React.FC<OfflineStudyPackModalProps> = ({
             <div className="flex items-start justify-between">
               <div>
                 <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#00A896]">
-                  Full Offline Study Package
+                  {t('student:offlinePack.fullPackageEyebrow')}
                 </span>
                 <h4 className="text-base font-bold text-white mt-0.5">
-                  Download All-In-One Offline Study File
+                  {t('student:offlinePack.fullPackageTitle')}
                 </h4>
                 <p className="text-xs text-slate-300 mt-1 max-w-lg">
-                  Contains your Agile Study Roadmap, AI Quick Revision Summaries (Math, Physics,
-                  Chemistry, Biology), master board formulas, and emergency exam checklist in a
-                  single file. Works on any phone or laptop without internet!
+                  {t('student:offlinePack.fullPackageDesc')}
                 </p>
               </div>
               <Download className="w-8 h-8 text-[#00A896] shrink-0" />
@@ -448,12 +447,12 @@ export const OfflineStudyPackModal: React.FC<OfflineStudyPackModalProps> = ({
                 {isExporting ? (
                   <>
                     <RefreshCw className="w-4 h-4 animate-spin" />
-                    <span>Packaging Offline Bundle...</span>
+                    <span>{t('student:offlinePack.packagingBundle')}</span>
                   </>
                 ) : (
                   <>
                     <Download className="w-4 h-4" />
-                    <span>Download Offline Pack (.HTML)</span>
+                    <span>{t('student:offlinePack.downloadHtmlPackBtn')}</span>
                   </>
                 )}
               </button>
@@ -463,13 +462,13 @@ export const OfflineStudyPackModal: React.FC<OfflineStudyPackModalProps> = ({
                 className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold flex items-center gap-2 border border-white/10 cursor-pointer transition-all"
               >
                 <Printer className="w-4 h-4" />
-                <span>Print / Save as PDF</span>
+                <span>{t('student:offlinePack.printSavePdf')}</span>
               </button>
 
               {exportSuccess && (
                 <span className="text-xs font-bold text-emerald-400 flex items-center gap-1.5 animate-in fade-in">
                   <CheckCircle2 className="w-4 h-4" />
-                  Successfully saved to Downloads!
+                  {t('student:offlinePack.savedDownloads')}
                 </span>
               )}
             </div>
@@ -478,24 +477,24 @@ export const OfflineStudyPackModal: React.FC<OfflineStudyPackModalProps> = ({
           {/* Included Features List */}
           <div>
             <h5 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-white mb-2">
-              What is saved in your offline pack:
+              {t('student:offlinePack.whatsSavedHeading')}
             </h5>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
               <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 flex items-center gap-2 text-slate-800 dark:text-white">
                 <BookOpen className="w-4 h-4 text-[#00A896]" />
-                <span>Agile Study Roadmap & 31-Day Sprints</span>
+                <span>{t('student:offlinePack.featRoadmap')}</span>
               </div>
               <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 flex items-center gap-2 text-slate-800 dark:text-white">
                 <Sparkles className="w-4 h-4 text-amber-500" />
-                <span>AI Quick Summaries (4 STEM Subjects)</span>
+                <span>{t('student:offlinePack.featSummaries')}</span>
               </div>
               <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 flex items-center gap-2 text-slate-800 dark:text-white">
                 <FileText className="w-4 h-4 text-indigo-500" />
-                <span>Master Formula Sheets & Key Constants</span>
+                <span>{t('student:offlinePack.featFormulas')}</span>
               </div>
               <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 flex items-center gap-2 text-slate-800 dark:text-white">
                 <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                <span>State Board Emergency Exam Checklist</span>
+                <span>{t('student:offlinePack.featChecklist')}</span>
               </div>
             </div>
           </div>
@@ -505,13 +504,13 @@ export const OfflineStudyPackModal: React.FC<OfflineStudyPackModalProps> = ({
         <div className="p-4 bg-slate-50 dark:bg-slate-900/80 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
           <span className="text-[11px] text-slate-500 dark:text-white flex items-center gap-1.5">
             <ShieldAlert className="w-3.5 h-3.5 text-slate-400 dark:text-white" />
-            Zero external CDN dependencies. Safe for offline USB/SD card transfers.
+            {t('student:offlinePack.footerDisclaimer')}
           </span>
           <button
             onClick={onClose}
             className="px-4 py-1.5 rounded-xl bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-white text-xs font-bold transition-colors cursor-pointer"
           >
-            Close
+            {t('common:actions.close')}
           </button>
         </div>
       </div>

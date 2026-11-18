@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useApp } from '../../context/AppContext';
 import { useTheme } from '../../context/ThemeContext';
 import {
@@ -18,9 +19,17 @@ import { ParentWeeklyDigestModal } from './ParentWeeklyDigestModal';
 import { CommunityDoubtForum } from './CommunityDoubtForum';
 import { SubscriptionPaymentPage } from './SubscriptionPaymentPage';
 import { PivotIQLogo } from '../common/PivotIQLogo';
+import { NotificationBell } from '../common/NotificationBell';
+import { LanguageSwitcher } from '../common/LanguageSwitcher';
 import { SubjectIcon } from '../common/SubjectIcon';
 import { LottieIcon } from '../common/LottieIcon';
 import { LiveChatbotLottie } from '../common/LiveChatbotLottie';
+import {
+  translateSubjectLabel,
+  translateBoardLabel,
+  translateCategoryLabel,
+  translateStatusLabel,
+} from '../../i18n/helpers';
 import type { NavLottieName } from '../../utils/studentLottieAnimations';
 import {
   GraduationCap,
@@ -127,6 +136,7 @@ const SUPPORTED_LANGUAGES: { value: LanguageMedium; label: string; native: strin
 ];
 
 export const StudentView: React.FC = () => {
+  const { t, i18n } = useTranslation(['student', 'common']);
   const { theme, toggleTheme } = useTheme();
   const {
     studentNav,
@@ -513,10 +523,10 @@ export const StudentView: React.FC = () => {
             <ShieldAlert className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
             <div className="space-y-0.5 min-w-0 flex-1">
               <p className="font-bold text-rose-800 dark:text-rose-200">
-                Conduct Guardrail Triggered — Guardian Immediately Notified
+                {t('student:quickDoubts.guardrailTitle')}
               </p>
               <p className="text-rose-700/90 dark:text-rose-300/90 leading-snug">
-                The AI Assistant did not reply to or accept abusive/foul language. An automated visual screenshot was captured and alerted to <strong>{receipt.guardianName}</strong>.
+                {t('student:quickDoubts.guardrailDesc', { guardian: receipt.guardianName })}
               </p>
             </div>
           </div>
@@ -525,7 +535,7 @@ export const StudentView: React.FC = () => {
             <div className="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg bg-white/80 dark:bg-slate-900/60 border border-rose-200/70 dark:border-rose-800/50">
               <span className="flex items-center gap-1 text-emerald-700 dark:text-emerald-300 font-semibold truncate">
                 <Phone className="w-3 h-3 shrink-0" />
-                WhatsApp Sent: {receipt.guardianPhone}
+                {t('student:quickDoubts.whatsappSent', { phone: receipt.guardianPhone })}
               </span>
               <a
                 href={receipt.whatsappUrl}
@@ -533,13 +543,13 @@ export const StudentView: React.FC = () => {
                 rel="noopener noreferrer"
                 className="text-emerald-600 dark:text-emerald-400 underline shrink-0"
               >
-                Open
+                {t('common:actions.open')}
               </a>
             </div>
             <div className="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg bg-white/80 dark:bg-slate-900/60 border border-rose-200/70 dark:border-rose-800/50">
               <span className="flex items-center gap-1 text-indigo-700 dark:text-indigo-300 font-semibold truncate">
                 <Mail className="w-3 h-3 shrink-0" />
-                Email Sent: {receipt.guardianEmail}
+                {t('student:quickDoubts.emailSent', { email: receipt.guardianEmail })}
               </span>
               <a
                 href={receipt.emailUrl}
@@ -547,7 +557,7 @@ export const StudentView: React.FC = () => {
                 rel="noopener noreferrer"
                 className="text-indigo-600 dark:text-indigo-400 underline shrink-0"
               >
-                Open
+                {t('common:actions.open')}
               </a>
             </div>
           </div>
@@ -555,14 +565,14 @@ export const StudentView: React.FC = () => {
           {imgSrc && (
             <div className="pt-1 space-y-1">
               <div className="flex items-center justify-between text-[10px] text-rose-700 dark:text-rose-300">
-                <span>Captured Screenshot Evidence ({receipt.id})</span>
+                <span>{t('student:quickDoubts.capturedEvidence', { id: receipt.id })}</span>
                 <a
                   href={imgSrc}
                   download={`safety-alert-${receipt.id}.png`}
                   className="inline-flex items-center gap-1 font-semibold underline hover:text-rose-900 dark:hover:text-white"
                 >
                   <Download className="w-3 h-3" />
-                  Download PNG
+                  {t('student:quickDoubts.downloadPng')}
                 </a>
               </div>
               <img
@@ -660,7 +670,7 @@ export const StudentView: React.FC = () => {
                 >
                   <div className="flex items-center gap-1.5 text-[11px] font-bold text-amber-800 dark:text-amber-300">
                     <HeartHandshake className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
-                    <span>Parent &amp; Medical Practitioner Guidance Only</span>
+                    <span>{t('student:quickDoubts.parentMedicalGuidance')}</span>
                   </div>
                   <div className="text-xs leading-relaxed text-amber-950 dark:text-amber-100">
                     {renderFormattedQuickAnswer(turn.text)}
@@ -681,7 +691,7 @@ export const StudentView: React.FC = () => {
                       <div className="flex items-center justify-between gap-2">
                         <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
                           <CheckCircle2 className="w-3 h-3" />
-                          Resolution
+                          {t('student:quickDoubts.resolutionBadge')}
                         </span>
                         <span className="text-[9px] text-slate-400 dark:text-slate-300">{turn.timestamp}</span>
                       </div>
@@ -698,7 +708,7 @@ export const StudentView: React.FC = () => {
                       <div className="pt-2.5 border-t border-slate-100 dark:border-slate-800 space-y-2">
                         <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
                           <Lightbulb className="w-3 h-3 text-slate-600 dark:text-slate-300" />
-                          Further Learning
+                          {t('student:quickDoubts.furtherLearningBadge')}
                         </span>
                         <div className="bg-slate-50/80 dark:bg-slate-800/40 rounded-xl p-2.5 border border-slate-200/60 dark:border-slate-700/50">
                           {renderFormattedQuickAnswer(parsed.furtherLearning)}
@@ -719,7 +729,7 @@ export const StudentView: React.FC = () => {
                                   e.stopPropagation();
                                   handleSendThreadFollowUp(
                                     item.id,
-                                    `Let's explore further: ${sug}`,
+                                    t('student:quickDoubts.exploreFurtherPrefix', { suggestion: sug }),
                                     surfaceLabel
                                   );
                                 }}
@@ -737,7 +747,7 @@ export const StudentView: React.FC = () => {
                 ) : isStreamingThis && isLastTurn ? (
                   <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-white py-2 px-1">
                     <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-500 dark:text-slate-300" />
-                    <span>Preparing interactive resolution &amp; further learning for {item.subject}...</span>
+                    <span>{t('student:quickDoubts.preparingResolution', { subject: translateSubjectLabel(item.subject, t) })}</span>
                   </div>
                 ) : null}
               </div>
@@ -760,7 +770,7 @@ export const StudentView: React.FC = () => {
                 setThreadReplyInputs((prev) => ({ ...prev, [item.id]: e.target.value }))
               }
               disabled={isStreamingThis || replyingThreadId === item.id}
-              placeholder="Reply to AI Agent for follow-up or deeper explanation..."
+              placeholder={t('student:quickDoubts.replyInputPlaceholder')}
               className="flex-1 bg-white dark:bg-[#0E1A2D] border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-slate-400"
             />
             <button
@@ -777,7 +787,7 @@ export const StudentView: React.FC = () => {
               ) : (
                 <Send className="w-3.5 h-3.5" />
               )}
-              <span>Reply</span>
+              <span>{t('common:actions.reply')}</span>
             </button>
           </form>
         </div>
@@ -791,7 +801,9 @@ export const StudentView: React.FC = () => {
       sidebarDoubtTopic === '__custom__' ? sidebarCustomTopic.trim() : sidebarDoubtTopic.trim();
     const qText =
       sidebarDoubtText.trim() ||
-      `Please explain and solve the attached ${sidebarDoubtSubject}${resolvedTopic ? ` (${resolvedTopic})` : ''} diagram/problem.`;
+      (resolvedTopic
+        ? t('student:quickDoubts.defaultAttachedTopicPrompt', { subject: sidebarDoubtSubject, topic: resolvedTopic })
+        : t('student:quickDoubts.defaultAttachedPrompt', { subject: sidebarDoubtSubject }));
 
     setIsSidebarSubmitting(true);
     setSidebarDoubtText('');
@@ -807,7 +819,7 @@ export const StudentView: React.FC = () => {
         imageBase64: imgPayload?.base64,
         imageMimeType: imgPayload?.mimeType,
         imagePreview: imgPayload?.preview,
-        surfaceLabel: 'Student Dashboard Quick Doubts Chat',
+        surfaceLabel: t('student:quickDoubts.surfaceDashboard'),
       });
       if (createdId) setExpandedQuickDoubtId(createdId);
     } finally {
@@ -820,7 +832,7 @@ export const StudentView: React.FC = () => {
     if ((!inputMessage.trim() && !attachedImagePreview) || isAiTyping) return;
     let fullPrompt = inputMessage;
     if (attachedImagePreview) {
-      fullPrompt = `[Uploaded Homework Photo Problem]: ${fullPrompt || 'Please guide me through solving this homework problem step-by-step using the Socratic method.'}`;
+      fullPrompt = `[Uploaded Homework Photo Problem]: ${fullPrompt || t('student:aiTutor.homeworkDefaultPrompt')}`;
     }
     setInputMessage('');
     setAttachedImagePreview(null);
@@ -830,7 +842,8 @@ export const StudentView: React.FC = () => {
   const toggleVoiceRecording = () => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      setInputMessage((prev) => (prev ? `${prev} [Voice: What is Newton's 2nd Law?]` : "What is Newton's 2nd Law?"));
+      const fallbackText = t('student:aiTutor.voiceFallback');
+      setInputMessage((prev) => (prev ? `${prev} [Voice: ${fallbackText}]` : fallbackText));
       return;
     }
 
@@ -842,7 +855,7 @@ export const StudentView: React.FC = () => {
         const recognition = new SpeechRecognition();
         recognition.continuous = false;
         recognition.interimResults = false;
-        recognition.lang = 'en-US';
+        recognition.lang = i18n.language || 'en';
 
         recognition.onstart = () => {
           setIsVoiceRecording(true);
@@ -886,7 +899,9 @@ export const StudentView: React.FC = () => {
       quickDoubtTopic === '__custom__' ? quickCustomTopic.trim() : quickDoubtTopic.trim();
     const qText =
       quickDoubtText.trim() ||
-      `Please solve and explain the attached ${quickDoubtSubject}${resolvedTopic ? ` (${resolvedTopic})` : ''} diagram.`;
+      (resolvedTopic
+        ? t('student:quickDoubts.defaultAttachedTopicPrompt', { subject: quickDoubtSubject, topic: resolvedTopic })
+        : t('student:quickDoubts.defaultAttachedPrompt', { subject: quickDoubtSubject }));
 
     setIsSubmittingDoubt(true);
     setQuickDoubtText('');
@@ -902,7 +917,7 @@ export const StudentView: React.FC = () => {
         imageBase64: imgPayload?.base64,
         imageMimeType: imgPayload?.mimeType,
         imagePreview: imgPayload?.preview,
-        surfaceLabel: 'Floating Quick Doubts AI Pop-up',
+        surfaceLabel: t('student:quickDoubts.surfaceFloating'),
       });
       if (createdId) setExpandedQuickDoubtId(createdId);
     } finally {
@@ -918,18 +933,18 @@ export const StudentView: React.FC = () => {
     icon: React.ReactNode;
     badge?: string;
   }[] = [
-    { id: 'dashboard', label: 'Dashboard', lottieName: 'dashboard', icon: <LayoutDashboard className="w-4 h-4" /> },
-    { id: 'pomodoro', label: 'Pomodoro Study Timer', lottieName: 'timer', icon: <Clock className="w-4 h-4" /> },
-    { id: 'formulas-graphs', label: 'Formulas & Graphs', lottieName: 'formulas', icon: <Binary className="w-4 h-4" />, badge: 'New' },
-    { id: 'my-courses', label: 'Skills Passport', lottieName: 'passport', icon: <BookOpen className="w-4 h-4" /> },
-    { id: 'grades', label: 'Grades & Mastery', lottieName: 'grades', icon: <BarChart3 className="w-4 h-4" /> },
-    { id: 'practice', label: 'Practice Quizzes', lottieName: 'quiz', icon: <FileQuestion className="w-4 h-4" /> },
-    { id: 'ai-tutor', label: 'Ask Doubts AI', lottieName: 'sparkles', icon: <Sparkles className="w-4 h-4" /> },
-    { id: 'certificates', label: 'Certificates', lottieName: 'award', icon: <Award className="w-4 h-4" /> },
-    { id: 'community', label: 'Community Q&A', lottieName: 'community', icon: <Users className="w-4 h-4" /> },
+    { id: 'dashboard', label: t('student:nav.dashboard'), lottieName: 'dashboard', icon: <LayoutDashboard className="w-4 h-4" /> },
+    { id: 'pomodoro', label: t('student:nav.pomodoro'), lottieName: 'timer', icon: <Clock className="w-4 h-4" /> },
+    { id: 'formulas-graphs', label: t('student:nav.formulasGraphs'), lottieName: 'formulas', icon: <Binary className="w-4 h-4" />, badge: t('student:nav.newBadge') },
+    { id: 'my-courses', label: t('student:nav.myCourses'), lottieName: 'passport', icon: <BookOpen className="w-4 h-4" /> },
+    { id: 'grades', label: t('student:nav.grades'), lottieName: 'grades', icon: <BarChart3 className="w-4 h-4" /> },
+    { id: 'practice', label: t('student:nav.practice'), lottieName: 'quiz', icon: <FileQuestion className="w-4 h-4" /> },
+    { id: 'ai-tutor', label: t('student:nav.askDoubtsAi'), lottieName: 'sparkles', icon: <Sparkles className="w-4 h-4" /> },
+    { id: 'certificates', label: t('student:nav.certificatesShort'), lottieName: 'award', icon: <Award className="w-4 h-4" /> },
+    { id: 'community', label: t('student:nav.communityQa'), lottieName: 'community', icon: <Users className="w-4 h-4" /> },
   ];
 
-  const currentDateStr = new Date().toLocaleDateString('en-US', {
+  const currentDateStr = new Date().toLocaleDateString(i18n.language || 'en-US', {
     weekday: 'short',
     month: 'short',
     day: 'numeric',
@@ -964,11 +979,11 @@ export const StudentView: React.FC = () => {
               <PivotIQLogo size={40} />
               <div>
                 <h1 className="font-light text-white text-base tracking-wide leading-tight">
-                  PivotIQ
+                  {t('common:appName')}
                 </h1>
                 <div className="flex items-center gap-1.5 text-[10px] text-[#00A896] font-normal uppercase tracking-wider">
                   <span className="w-2 h-2 rounded-full bg-[#00A896] animate-pulse" />
-                  <span>Student Hub</span>
+                  <span>{t('student:portal.studentHub')}</span>
                 </div>
               </div>
             </div>
@@ -986,7 +1001,7 @@ export const StudentView: React.FC = () => {
           <div
             onClick={() => setIsProfileOpen(true)}
             className="group relative p-3 rounded-2xl bg-[#132A4C]/90 hover:bg-[#16335C] border border-[#1E3E6B]/80 transition-all cursor-pointer shadow-sm flex items-center gap-3"
-            title="Manage Student Profile"
+            title={t('student:portal.manageProfileTooltip')}
           >
             <div className="relative w-11 h-11 rounded-xl overflow-hidden shrink-0 bg-[#0D1B3E] border-2 border-[#00A896] flex items-center justify-center text-white font-normal text-sm shadow-inner">
               {currentUser?.avatar ? (
@@ -1009,7 +1024,7 @@ export const StudentView: React.FC = () => {
                 <Edit3 className="w-3.5 h-3.5 text-slate-300 group-hover:text-white opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
               </div>
               <p className="text-[11px] text-white/90 font-light truncate mt-0.5">
-                Grade {studentGradeLevel} &bull; {currentBoard}
+                {t('student:portal.gradeBoardMeta', { grade: studentGradeLevel, board: translateBoardLabel(currentBoard, t, currentBoard) })}
               </p>
             </div>
           </div>
@@ -1017,7 +1032,7 @@ export const StudentView: React.FC = () => {
           {/* Navigation Links Menu */}
           <div className="space-y-1 pt-1">
             <span className="px-3 text-[10px] font-normal uppercase tracking-wider text-white/80">
-              Platform Menu
+              {t('common:nav.platformMenu')}
             </span>
             <nav className="space-y-1 mt-2">
               {navTabs.map((tab) => {
@@ -1078,8 +1093,8 @@ export const StudentView: React.FC = () => {
               </span>
               <span className="text-[10px] font-normal px-2 py-0.5 rounded-md bg-[#00A896] text-white shrink-0">
                 {subscriptionState.tier === '7-Day Free Trial'
-                  ? `${subscriptionState.trialDaysLeft} days left`
-                  : 'Active'}
+                  ? t('student:subscription.daysLeft', { days: subscriptionState.trialDaysLeft })
+                  : t('student:subscription.activeStatus')}
               </span>
             </div>
             {/* Progress bar */}
@@ -1103,7 +1118,9 @@ export const StudentView: React.FC = () => {
               }}
               className="w-full py-1.5 px-3 rounded-lg bg-[#00A896] hover:bg-[#009282] text-white text-[11px] font-normal transition-colors cursor-pointer text-center shadow-2xs"
             >
-              {subscriptionState.tier === '7-Day Free Trial' ? 'Subscribe now' : 'Manage subscription'}
+              {subscriptionState.tier === '7-Day Free Trial'
+                ? t('student:portal.subscribeNow')
+                : t('student:portal.manageSubscription')}
             </button>
           </div>
 
@@ -1114,13 +1131,15 @@ export const StudentView: React.FC = () => {
               className="flex items-center gap-1.5 text-white/90 hover:text-white transition-colors cursor-pointer font-normal"
             >
               <UserIcon className="w-3.5 h-3.5 text-[#00A896]" />
-              <span>My Account</span>
+              <span>{t('student:portal.myAccount')}</span>
             </button>
 
             <button
               onClick={toggleTheme}
               className="p-1.5 rounded-lg bg-[#132A4C] hover:bg-[#1C3A66] text-white/90 hover:text-white transition-colors cursor-pointer"
-              title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} mode`}
+              title={t('student:nav.switchToMode', {
+                mode: theme === 'dark' ? t('common:header.lightShort') : t('common:header.darkShort'),
+              })}
             >
               {theme === 'dark' ? <Sun className="w-3.5 h-3.5 text-amber-400" /> : <Moon className="w-3.5 h-3.5 text-white" />}
             </button>
@@ -1129,15 +1148,15 @@ export const StudentView: React.FC = () => {
               <button
                 onClick={() => setCurrentRole('admin')}
                 className="flex items-center gap-1 text-[11px] font-normal text-[#00A896] hover:text-teal-300 transition-colors cursor-pointer"
-                title="Return to Admin Panel"
+                title={t('student:portal.returnAdminTooltip')}
               >
-                <span>Admin &rarr;</span>
+                <span>{t('student:nav.returnAdmin')}</span>
               </button>
             ) : (
               <button
                 onClick={logout}
                 className="flex items-center gap-1 text-white/80 hover:text-rose-400 transition-colors cursor-pointer"
-                title="Sign Out"
+                title={t('common:nav.signOut')}
               >
                 <LogOut className="w-3.5 h-3.5" />
               </button>
@@ -1158,7 +1177,7 @@ export const StudentView: React.FC = () => {
               <button
                 onClick={() => setMobileSidebarOpen(true)}
                 className="lg:hidden p-2 rounded-xl text-slate-600 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                aria-label="Open Navigation"
+                aria-label={t('student:portal.openNav')}
               >
                 <Menu className="w-5 h-5 stroke-[2.2]" />
               </button>
@@ -1166,21 +1185,21 @@ export const StudentView: React.FC = () => {
               <div>
                 <h2 className="text-base sm:text-lg font-light text-slate-900 dark:text-white tracking-wide flex items-center gap-2">
                   <span>
-                    {studentNav === 'dashboard' && 'Agile Study Roadmap & Daily Planner'}
-                    {studentNav === 'pomodoro' && 'Pomodoro Study Timer'}
-                    {studentNav === 'formulas-graphs' && 'Master Formulas & Board Diagrams'}
-                    {studentNav === 'my-courses' && 'Skills Passport & Enrolled Curriculum'}
-                    {studentNav === 'grades' && 'Academic Performance & Mastery KPIs'}
-                    {studentNav === 'practice' && 'Interactive Practice Quizzes'}
-                    {studentNav === 'ai-tutor' && 'Socratic 24/7 AI Tutor'}
-                    {studentNav === 'certificates' && 'Verified Digital Credentials'}
-                    {studentNav === 'community' && 'Community Doubt & Q&A Forum'}
-                    {studentNav === 'settings' && 'Student Account Preferences'}
-                    {studentNav === 'subscription' && 'Subscription Plans & Checkout'}
+                    {studentNav === 'dashboard' && t('student:headers.agileRoadmap')}
+                    {studentNav === 'pomodoro' && t('student:headers.pomodoro')}
+                    {studentNav === 'formulas-graphs' && t('student:headers.formulasGraphs')}
+                    {studentNav === 'my-courses' && t('student:headers.myCourses')}
+                    {studentNav === 'grades' && t('student:headers.grades')}
+                    {studentNav === 'practice' && t('student:headers.practice')}
+                    {studentNav === 'ai-tutor' && t('student:headers.aiTutor')}
+                    {studentNav === 'certificates' && t('student:headers.certificates')}
+                    {studentNav === 'community' && t('student:headers.community')}
+                    {studentNav === 'settings' && t('student:headers.settings')}
+                    {studentNav === 'subscription' && t('student:headers.subscription')}
                   </span>
                 </h2>
                 <p className="text-[11px] text-slate-500 dark:text-white hidden sm:block">
-                  CBSE/ICSE/State Board Compliant &bull; Grade {studentGradeLevel} &bull; Socratic Mastery
+                  {t('student:headers.boardCompliance', { grade: studentGradeLevel })}
                 </p>
               </div>
             </div>
@@ -1194,31 +1213,31 @@ export const StudentView: React.FC = () => {
               <button
                 onClick={() => setIsOfflineModalOpen(true)}
                 className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-normal text-slate-700 dark:text-white border border-slate-200 dark:border-slate-700/80 shadow-2xs transition-all cursor-pointer"
-                title="Save Agile Study Plan & AI Summaries for Offline Viewing / Low-Bandwidth Mode"
+                title={t('student:banners.offlinePackTooltip')}
               >
                 <Download className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
-                <span className="hidden lg:inline">Offline Pack</span>
+                <span className="hidden lg:inline">{t('student:banners.offlinePackShort')}</span>
               </button>
 
               {/* Parental Weekly Digest (Completed vs Planned Hours Sunday Email) */}
               <button
                 onClick={() => setIsParentDigestOpen(true)}
                 className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-normal text-slate-700 dark:text-white border border-slate-200 dark:border-slate-700/80 shadow-2xs transition-all cursor-pointer"
-                title="Parental Weekly Digest: Completed sprint hours vs planned hours summary"
+                title={t('student:banners.parentDigestTooltip')}
               >
                 <Mail className="w-3.5 h-3.5 text-amber-500" />
-                <span className="hidden lg:inline">Parent Digest</span>
+                <span className="hidden lg:inline">{t('student:banners.parentDigestShort')}</span>
               </button>
 
               {/* Quick Board Selector Badge */}
               <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 text-xs font-normal text-slate-800 dark:text-white shadow-2xs">
                 <Globe className="w-3.5 h-3.5 text-[#00A896]" />
-                <span>{currentBoard}</span>
+                <span>{translateBoardLabel(currentBoard, t, currentBoard)}</span>
               </div>
 
               {/* Quick Grade Badge */}
               <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#00A896]/15 dark:bg-[#00A896]/20 border border-[#00A896]/30 text-xs font-normal text-[#00A896] dark:text-[#00A896] shadow-2xs">
-                <span>Grade {studentGradeLevel}</span>
+                <span>{t('common:curriculumExplorer.gradeOption', { grade: studentGradeLevel })}</span>
               </div>
 
               {/* Date pill */}
@@ -1231,17 +1250,21 @@ export const StudentView: React.FC = () => {
               <button
                 onClick={() => setEcosystemOverviewMode(true)}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-normal text-slate-700 dark:text-white border border-slate-200 dark:border-slate-700/80 shadow-2xs transition-all cursor-pointer"
-                title="View 3-Panel Connected Workflow & Data Flow"
+                title={t('student:portal.viewWorkflowTooltip')}
               >
                 <Layers className="w-3.5 h-3.5 text-[#00A896]" />
-                <span className="hidden sm:inline">Workflow Map</span>
+                <span className="hidden sm:inline">{t('student:banners.workflowMap')}</span>
               </button>
+
+              {/* Global Notifications & Top-Right Platform Language Switcher */}
+              <NotificationBell />
+              <LanguageSwitcher variant="portal" />
 
               {/* Direct Profile trigger avatar */}
               <button
                 onClick={() => setIsProfileOpen(true)}
                 className="w-9 h-9 rounded-xl overflow-hidden ring-2 ring-[#00A896]/60 bg-[#0D1B3E] flex items-center justify-center text-white text-xs font-normal shadow-xs hover:scale-105 transition-all cursor-pointer"
-                title="Account Settings"
+                title={t('student:portal.accountSettingsTooltip')}
               >
                 {currentUser?.avatar ? (
                   <img src={currentUser.avatar} alt="Profile" className="w-full h-full object-cover" />
@@ -1263,12 +1286,16 @@ export const StudentView: React.FC = () => {
               <div>
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] font-normal uppercase tracking-wider bg-[#00A896] text-white px-2 py-0.5 rounded-full animate-pulse">
-                    LIVE QUIZ BROADCAST
+                    {t('student:banners.liveQuizBroadcast')}
                   </span>
                   <span className="font-normal text-sm">{activeBroadcastQuiz.quiz.title}</span>
                 </div>
                 <p className="text-xs text-white/80 font-light">
-                  Target: {activeBroadcastQuiz.targetClass} &bull; Broadcast at {activeBroadcastQuiz.broadcastAt} &bull; {activeBroadcastQuiz.quiz.questions.length} Questions
+                  {t('student:banners.liveBroadcastMeta', {
+                    targetClass: activeBroadcastQuiz.targetClass,
+                    time: activeBroadcastQuiz.broadcastAt,
+                    count: activeBroadcastQuiz.quiz.questions.length,
+                  })}
                 </p>
               </div>
             </div>
@@ -1280,13 +1307,13 @@ export const StudentView: React.FC = () => {
                 }}
                 className="px-3.5 py-1.5 rounded-xl bg-[#00A896] hover:bg-[#009282] text-white font-normal text-xs shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
               >
-                <span>Start Assessment</span>
+                <span>{t('student:banners.joinLiveAssessment')}</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
               <button
                 onClick={() => setActiveBroadcastQuiz(null)}
                 className="p-1 hover:bg-white/10 rounded-lg text-white/80 hover:text-white cursor-pointer"
-                title="Dismiss"
+                title={t('common:actions.dismiss')}
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1304,12 +1331,12 @@ export const StudentView: React.FC = () => {
               <div>
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] font-normal uppercase tracking-wider bg-rose-500 text-white px-2 py-0.5 rounded-full animate-pulse">
-                    LIVE SESSION
+                    {t('student:banners.liveSession')}
                   </span>
                   <span className="font-normal text-sm">{activeStudentMeeting.title}</span>
                 </div>
                 <p className="text-xs text-white/90 font-light">
-                  Hosted by {activeStudentMeeting.host_name} &bull; Google Meet Room is ready
+                  {t('student:banners.meetReadyMeta', { host: activeStudentMeeting.host_name })}
                 </p>
               </div>
             </div>
@@ -1320,13 +1347,13 @@ export const StudentView: React.FC = () => {
                 rel="noopener noreferrer"
                 className="px-4 py-1.5 rounded-xl bg-white text-[#0D1B3E] font-normal text-xs hover:bg-white/90 shadow-sm flex items-center gap-1.5 transition-all"
               >
-                <span>Join Meeting</span>
+                <span>{t('student:banners.joinMeeting')}</span>
                 <ExternalLink className="w-3.5 h-3.5" />
               </a>
               <button
                 onClick={dismissStudentMeetingAlert}
                 className="p-1 hover:bg-white/10 rounded-lg text-white/80 hover:text-white cursor-pointer"
-                title="Dismiss"
+                title={t('common:actions.dismiss')}
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1351,18 +1378,18 @@ export const StudentView: React.FC = () => {
                     <div className="space-y-0.5">
                       <div className="font-normal text-amber-900 dark:text-amber-200">
                         {currentUser?.status === 'Inactive'
-                          ? 'Account Deactivated by Administrator'
+                          ? t('student:banners.accountDeactivated')
                           : currentUser?.isFlagged
-                          ? 'Account Flagged by Administrator'
-                          : 'Credential Reset Requested by Administrator'}
+                          ? t('student:banners.accountFlagged')
+                          : t('student:banners.credentialResetReq')}
                       </div>
                       <p className="text-[11px] text-amber-800/90 dark:text-amber-300/90">
                         {currentUser?.flagReason
-                          ? `Reason: ${currentUser.flagReason}. `
+                          ? `${t('student:banners.reasonPrefix', { reason: currentUser.flagReason })} `
                           : ''}
                         {currentUser?.credentialResetRequestedAt
-                          ? 'Please update your account password inside Profile & Security.'
-                          : 'Review your profile details or contact institutional support.'}
+                          ? t('student:banners.updatePasswordHint')
+                          : t('student:banners.reviewProfileHint')}
                       </p>
                     </div>
                   </div>
@@ -1371,7 +1398,7 @@ export const StudentView: React.FC = () => {
                     onClick={() => setIsProfileOpen(true)}
                     className="px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-normal cursor-pointer shrink-0 transition-colors"
                   >
-                    Open Profile &amp; Security
+                    {t('student:banners.openProfileSecurity')}
                   </button>
                 </div>
               )}
@@ -1382,10 +1409,10 @@ export const StudentView: React.FC = () => {
                     <Lock className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
                     <div className="space-y-0.5">
                       <div className="font-normal text-rose-900 dark:text-rose-200">
-                        Learning Module Access Temporarily Suspended ({subscriptionState.billingStatus || 'Past Due'})
+                        {t('student:banners.suspendedTitle', { status: subscriptionState.billingStatus || 'Past Due' })}
                       </div>
                       <p className="text-[11px] text-rose-800/90 dark:text-rose-300/90">
-                        Your subscription payment lapsed or access was paused in Billing Provisioning. Complete renewal to unlock quizzes, courses, AI tutor, and certificates.
+                        {t('student:banners.suspendedDesc')}
                       </p>
                     </div>
                   </div>
@@ -1394,7 +1421,7 @@ export const StudentView: React.FC = () => {
                     onClick={() => setStudentNav('subscription')}
                     className="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-normal cursor-pointer shrink-0 transition-colors"
                   >
-                    Renew Subscription Now
+                    {t('student:banners.renewSubscriptionNow')}
                   </button>
                 </div>
               )}
@@ -1407,10 +1434,10 @@ export const StudentView: React.FC = () => {
                 <Lock className="w-6 h-6" />
               </div>
               <h2 className="text-xl font-light text-slate-900 dark:text-white">
-                Module Access Paused Pending Billing Renewal
+                {t('student:banners.gatedTitle')}
               </h2>
               <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                This learning module is locked because your account&apos;s billing provisioning is currently suspended. Renewing your plan immediately restores access across all tabs.
+                {t('student:banners.gatedDesc')}
               </p>
               <div className="flex items-center justify-center gap-3 pt-2">
                 <button
@@ -1418,14 +1445,14 @@ export const StudentView: React.FC = () => {
                   onClick={() => setStudentNav('subscription')}
                   className="px-5 py-2.5 rounded-xl bg-[#00A896] hover:bg-[#009282] text-white text-xs font-normal cursor-pointer transition-colors"
                 >
-                  Go to Subscription &amp; Payment
+                  {t('student:banners.goToSubscription')}
                 </button>
                 <button
                   type="button"
                   onClick={() => setStudentNav('dashboard')}
                   className="px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-normal cursor-pointer"
                 >
-                  Return to Dashboard
+                  {t('student:banners.returnToDashboard')}
                 </button>
               </div>
             </div>
@@ -1438,18 +1465,18 @@ export const StudentView: React.FC = () => {
               <div className="font-lollipop-regular w-full bg-white dark:bg-[#0E1A2D] rounded-2xl p-5 border border-slate-200/90 dark:border-slate-800/80 shadow-xs space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <h3 className="text-xs font-normal uppercase tracking-wider text-slate-500 dark:text-white">
-                    Grade & Board Filters
+                    {t('student:banners.gradeAndBoardFilters')}
                   </h3>
                   <div className="flex items-center gap-4 text-[11px] text-slate-500 dark:text-white">
                     <span className="flex items-center gap-1.5">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                      <span>Curriculum Live Synced</span>
+                      <span>{t('student:banners.curriculumLiveSynced')}</span>
                     </span>
                     <button
                       onClick={() => setIsCurriculumModalOpen(true)}
                       className="font-normal text-slate-600 dark:text-slate-300 hover:underline cursor-pointer"
                     >
-                      View Syllabus &rarr;
+                      {t('student:banners.viewSyllabus')}
                     </button>
                   </div>
                 </div>
@@ -1458,7 +1485,7 @@ export const StudentView: React.FC = () => {
                   {/* Grade Selector Dropdown */}
                   <div className="space-y-1.5">
                     <label className="text-xs font-normal text-slate-700 dark:text-white block">
-                      Grade Level
+                      {t('common:profileModal.gradeLevel')}
                     </label>
                     <div className="relative">
                       <select
@@ -1475,8 +1502,11 @@ export const StudentView: React.FC = () => {
                       >
                         {gradeOptions.map((g) => (
                           <option key={g} value={g}>
-                            Grade {g}
-                            {g === 11 ? ' (Science)' : g === 12 ? ' (Advanced)' : ''}
+                            {g === 11
+                              ? t('student:filters.gradeScience', { grade: g })
+                              : g === 12
+                              ? t('student:filters.gradeAdvanced', { grade: g })
+                              : t('common:curriculumExplorer.gradeOption', { grade: g })}
                           </option>
                         ))}
                       </select>
@@ -1487,7 +1517,7 @@ export const StudentView: React.FC = () => {
                   {/* Education Board Selector Dropdown */}
                   <div className="space-y-1.5">
                     <label className="text-xs font-normal text-slate-700 dark:text-white block">
-                      Governing Board
+                      {t('student:filters.board')}
                     </label>
                     <div className="relative">
                       <select
@@ -1501,7 +1531,7 @@ export const StudentView: React.FC = () => {
                       >
                         {SUPPORTED_BOARDS.map((b) => (
                           <option key={b.value} value={b.value}>
-                            {b.label}
+                            {translateBoardLabel(b.value, t, b.label)}
                           </option>
                         ))}
                       </select>
@@ -1513,7 +1543,7 @@ export const StudentView: React.FC = () => {
                   <div className="space-y-1.5">
                     <label className="text-xs font-normal text-slate-700 dark:text-white flex items-center gap-1.5">
                       <Languages className="w-3.5 h-3.5 text-slate-600 dark:text-slate-300" />
-                      <span>Language Medium</span>
+                      <span>{t('student:dashboard.languageMediumLabel')}</span>
                     </label>
                     <div className="relative">
                       <select
@@ -1539,18 +1569,22 @@ export const StudentView: React.FC = () => {
                   <div className="px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200/70 dark:border-slate-700/60 space-y-0.5 text-[11px]">
                     <div className="flex items-center justify-between gap-2">
                       <span className="font-normal text-slate-700 dark:text-white truncate">
-                        Selected Subjects ({currentUser?.enrolledCourses?.length || 0})
+                        {t('student:filters.selectedSubjectsCount', { count: currentUser?.enrolledCourses?.length || 0 })}
                       </span>
                       <button
                         type="button"
                         onClick={() => setIsProfileOpen(true)}
                         className="text-[#00A896] hover:underline font-normal cursor-pointer shrink-0"
                       >
-                        Select in Profile &rarr;
+                        {t('student:banners.selectInProfile')}
                       </button>
                     </div>
                     <p className="text-[10px] font-normal text-slate-500 dark:text-white/80 truncate">
-                      {displaySubjects.length} live Admin subjects for Grade {activeGradeFilter} ({currentBoard}).
+                      {t('student:banners.liveAdminSubjects', {
+                        count: displaySubjects.length,
+                        grade: activeGradeFilter,
+                        board: translateBoardLabel(currentBoard, t, currentBoard),
+                      })}
                     </p>
                   </div>
                 </div>
@@ -1566,17 +1600,19 @@ export const StudentView: React.FC = () => {
                 <div className="flex items-center gap-3 shrink-0">
                   <h3 className="text-xs font-normal uppercase tracking-wider text-slate-500 dark:text-white flex items-center gap-1.5">
                     <Flame className="w-4 h-4 text-slate-600 dark:text-slate-300" />
-                    <span>Study Momentum</span>
+                    <span>{t('student:dashboard.studyMomentumTitle')}</span>
                   </h3>
                   <span className="text-[11px] font-normal text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-full border border-slate-200 dark:border-slate-700">
-                    5-Day Streak 🔥
+                    {t('student:dashboard.streakBadge', { days: 5 })}
                   </span>
                 </div>
 
                 <div className="flex-1 max-w-xl space-y-1.5 text-xs">
                   <div className="flex items-center justify-between text-slate-600 dark:text-white">
-                    <span>Weekly Core Math:</span>
-                    <span className="font-normal text-slate-900 dark:text-white">10.5 / 10.5 hrs</span>
+                    <span>{t('student:dashboard.weeklyCoreMath')}</span>
+                    <span className="font-normal text-slate-900 dark:text-white">
+                      {t('student:dashboard.hrsRatio', { done: '10.5', total: '10.5' })}
+                    </span>
                   </div>
                   <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
                     <div className="bg-slate-400 dark:bg-slate-500 h-full rounded-full w-4/5" />
@@ -1585,7 +1621,7 @@ export const StudentView: React.FC = () => {
 
                 <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-white shrink-0">
                   <Target className="w-3.5 h-3.5 text-slate-500 dark:text-slate-300" />
-                  <span>Next Milestone: Quadratic Formula Drills</span>
+                  <span>{t('student:dashboard.nextMilestoneSample')}</span>
                 </div>
               </div>
 
@@ -1614,14 +1650,14 @@ export const StudentView: React.FC = () => {
                         <div>
                           <div className="flex items-center gap-2">
                             <h3 className="text-sm font-semibold text-slate-900 dark:text-white leading-tight">
-                              Quick Doubts AI Assistant
+                              {t('student:quickDoubts.assistantTitle')}
                             </h3>
                             <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
-                              Real-Time LLM
+                              {t('student:quickDoubts.realTimeLlm')}
                             </span>
                           </div>
                           <p className="text-xs text-slate-500 dark:text-white/80 mt-0.5">
-                            Feeling stuck? Don’t hesitate to ask
+                            {t('student:quickDoubts.stuckPrompt')}
                           </p>
                         </div>
                       </div>
@@ -1640,14 +1676,16 @@ export const StudentView: React.FC = () => {
                       <div className="flex items-center justify-between gap-2 mb-1.5">
                         <span className="inline-flex items-center gap-1.5 font-semibold text-slate-700 dark:text-slate-200">
                           <Cpu className="w-3.5 h-3.5 text-[#00A896]" />
-                          AI Token Balance: {formatCompactTokens(totalAvailableTokens)} left
+                          {t('student:quickDoubts.aiTokenBalanceLeft', { tokens: formatCompactTokens(totalAvailableTokens) })}
                         </span>
                         <button
                           type="button"
                           onClick={() => setStudentNav('subscription')}
                           className="text-[11px] font-bold text-[#00A896] hover:underline cursor-pointer shrink-0"
                         >
-                          {isExhaustedAiQuota || isLowAiQuota ? 'Top Up / Upgrade' : 'Add Credits'}
+                          {isExhaustedAiQuota || isLowAiQuota
+                            ? t('student:quickDoubts.topUpUpgrade')
+                            : t('student:quickDoubts.addCredits')}
                         </button>
                       </div>
                       <div className="w-full h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
@@ -1664,11 +1702,16 @@ export const StudentView: React.FC = () => {
                       </div>
                       <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400 mt-1">
                         <span>
-                          Plan: {formatCompactTokens(currentStudentAiQuota.monthlyTokensUsed)} / {formatCompactTokens(currentStudentAiQuota.monthlyQuota)} used
+                          {t('student:quickDoubts.planUsage', {
+                            used: formatCompactTokens(currentStudentAiQuota.monthlyTokensUsed),
+                            total: formatCompactTokens(currentStudentAiQuota.monthlyQuota),
+                          })}
                         </span>
                         {currentStudentAiQuota.addonCreditsRemaining > 0 && (
                           <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-                            +{formatCompactTokens(currentStudentAiQuota.addonCreditsRemaining)} Add-On Wallet
+                            {t('student:quickDoubts.addonWalletPlus', {
+                              tokens: formatCompactTokens(currentStudentAiQuota.addonCreditsRemaining),
+                            })}
                           </span>
                         )}
                       </div>
@@ -1677,9 +1720,9 @@ export const StudentView: React.FC = () => {
                     <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/60 text-xs leading-relaxed text-slate-700 dark:text-white">
                       <div className="flex items-center gap-2 mb-1 text-[11px] font-bold text-slate-700 dark:text-slate-200">
                         <Sparkles className="w-3.5 h-3.5" />
-                        <span>Interactive Resolution &amp; Further Learning</span>
+                        <span>{t('student:quickDoubts.interactiveResHeading')}</span>
                       </div>
-                      Select your <strong>Subject</strong> and <strong>Topic</strong> below, ask your question (or attach a diagram), and chat interactively with the AI Agent for step-by-step <strong>Resolution</strong> and <strong>Further Learning</strong>.
+                      {t('student:quickDoubts.interactiveResDesc')}
                     </div>
 
                     <form onSubmit={handleSidebarDoubtSubmit} className="space-y-3">
@@ -1687,19 +1730,22 @@ export const StudentView: React.FC = () => {
                         {/* Subject Dropdown */}
                         <div className="space-y-1">
                           <label className="text-[11px] font-bold text-slate-600 dark:text-white">
-                            Subject
+                            {t('student:quickDoubts.topicTag')}
                           </label>
                           <select
                             value={sidebarDoubtSubject}
                             onChange={(e) => setSidebarDoubtSubject(e.target.value)}
-                            aria-label="Select subject for Quick Doubts AI"
+                            aria-label={t('student:quickDoubts.selectSubjectAria')}
                             className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-white px-3 py-2.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-400 cursor-pointer"
                           >
                             {displaySubjects.map((s) => {
                               const localized = getLocalizedSubjectName(s.name, currentBoard);
                               return (
                                 <option key={`sb-doubt-${s.id}`} value={localized}>
-                                  {localized} (Grade {s.grade_level})
+                                  {t('student:quickDoubts.subjectGradeOption', {
+                                    subject: translateSubjectLabel(localized, t),
+                                    grade: s.grade_level,
+                                  })}
                                 </option>
                               );
                             })}
@@ -1709,21 +1755,21 @@ export const StudentView: React.FC = () => {
                         {/* Topic Dropdown */}
                         <div className="space-y-1">
                           <label className="text-[11px] font-bold text-slate-600 dark:text-white">
-                            Topic
+                            {t('student:roadmap.topic')}
                           </label>
                           <select
                             value={sidebarDoubtTopic}
                             onChange={(e) => setSidebarDoubtTopic(e.target.value)}
-                            aria-label="Select topic for Quick Doubts AI"
+                            aria-label={t('student:quickDoubts.selectTopicAria')}
                             className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-white px-3 py-2.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-400 cursor-pointer"
                           >
-                            {sidebarTopicsForSubject.map((t) => (
-                              <option key={`sb-topic-${t.id}`} value={t.title}>
-                                {t.title}
+                            {sidebarTopicsForSubject.map((tItem) => (
+                              <option key={`sb-topic-${tItem.id}`} value={tItem.title}>
+                                {tItem.title}
                               </option>
                             ))}
-                            <option value="">General {sidebarDoubtSubject}</option>
-                            <option value="__custom__">+ Enter Custom Topic...</option>
+                            <option value="">{t('student:quickDoubts.generalSubject', { subject: translateSubjectLabel(sidebarDoubtSubject, t) })}</option>
+                            <option value="__custom__">{t('student:quickDoubts.enterCustomTopic')}</option>
                           </select>
                         </div>
                       </div>
@@ -1733,7 +1779,7 @@ export const StudentView: React.FC = () => {
                           type="text"
                           value={sidebarCustomTopic}
                           onChange={(e) => setSidebarCustomTopic(e.target.value)}
-                          placeholder={`Enter specific ${sidebarDoubtSubject} topic (e.g., Quadratic Equations)...`}
+                          placeholder={t('student:quickDoubts.customTopicPlaceholder', { subject: translateSubjectLabel(sidebarDoubtSubject, t) })}
                           className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white px-3.5 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-400"
                         />
                       )}
@@ -1743,11 +1789,11 @@ export const StudentView: React.FC = () => {
                           <div className="flex items-center gap-2 min-w-0">
                             <img
                               src={sidebarImageData.preview}
-                              alt="Attached diagram"
+                              alt={t('student:quickDoubts.diagramLabel')}
                               className="w-9 h-9 rounded-lg object-cover border border-slate-300 dark:border-slate-600"
                             />
                             <span className="text-[11px] font-semibold text-slate-700 dark:text-white truncate">
-                              Diagram attached for AI vision
+                              {t('student:quickDoubts.diagramAttachedVision')}
                             </span>
                           </div>
                           <button
@@ -1771,18 +1817,23 @@ export const StudentView: React.FC = () => {
                               handleSidebarDoubtSubmit(e as unknown as React.FormEvent);
                             }
                           }}
-                          placeholder={`Ask your ${sidebarDoubtSubject}${
+                          placeholder={
                             sidebarDoubtTopic && sidebarDoubtTopic !== '__custom__'
-                              ? ` • ${sidebarDoubtTopic}`
-                              : ''
-                          } question...`}
+                              ? t('student:quickDoubts.askSubjectTopicPlaceholder', {
+                                  subject: translateSubjectLabel(sidebarDoubtSubject, t),
+                                  topic: sidebarDoubtTopic,
+                                })
+                              : t('student:quickDoubts.askSubjectPlaceholder', {
+                                  subject: translateSubjectLabel(sidebarDoubtSubject, t),
+                                })
+                          }
                           className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-400 resize-none transition-all"
                         />
 
                         <div className="flex items-center justify-between gap-2">
                           <label className="flex items-center gap-1.5 py-1.5 px-3 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 text-xs text-slate-600 dark:text-white cursor-pointer hover:border-slate-400 transition-colors">
                             <UploadCloud className="w-3.5 h-3.5 text-slate-600 dark:text-slate-300" />
-                            <span>Attach Diagram</span>
+                            <span>{t('student:quickDoubts.attachDiagram')}</span>
                             <input
                               type="file"
                               accept="image/*"
@@ -1799,12 +1850,12 @@ export const StudentView: React.FC = () => {
                             {isSidebarSubmitting ? (
                               <>
                                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                <span>Resolving Live...</span>
+                                <span>{t('student:quickDoubts.resolvingLive')}</span>
                               </>
                             ) : (
                               <>
                                 <Send className="w-3.5 h-3.5" />
-                                <span>Ask AI Assistant</span>
+                                <span>{t('student:quickDoubts.askAiAssistant')}</span>
                               </>
                             )}
                           </button>
@@ -1818,10 +1869,10 @@ export const StudentView: React.FC = () => {
                     <div className="flex items-center justify-between text-[11px]">
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-slate-500 dark:text-white uppercase tracking-wider">
-                          Real-Time AI Answers
+                          {t('student:quickDoubts.realTimeAiAnswers')}
                         </span>
                         <span className="text-[10px] px-2 py-0.5 rounded-full bg-teal-50 dark:bg-teal-950/50 text-[#00A896] font-semibold border border-teal-200 dark:border-teal-800">
-                          {quickDoubts.length} Resolved Privately
+                          {t('student:quickDoubts.resolvedPrivately', { count: quickDoubts.length })}
                         </span>
                       </div>
                       {quickDoubts.length > 0 && (
@@ -1830,7 +1881,7 @@ export const StudentView: React.FC = () => {
                           onClick={clearQuickDoubts}
                           className="text-[11px] font-semibold text-slate-400 hover:text-rose-500 transition-colors cursor-pointer"
                         >
-                          Clear History
+                          {t('common:actions.clearHistory')}
                         </button>
                       )}
                     </div>
@@ -1839,10 +1890,10 @@ export const StudentView: React.FC = () => {
                       <div className="p-8 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-dashed border-slate-200 dark:border-slate-700 text-center space-y-1.5">
                         <Sparkles className="w-5 h-5 text-slate-500 dark:text-slate-300 mx-auto" />
                         <p className="text-xs font-semibold text-slate-700 dark:text-white">
-                          Ask any Subject &amp; Topic question on the left
+                          {t('student:quickDoubts.emptyTitle')}
                         </p>
                         <p className="text-[11px] text-slate-500 dark:text-white/75">
-                          Answers stream immediately from the AI Assistant — nothing is sent to teachers.
+                          {t('student:quickDoubts.emptyDesc')}
                         </p>
                       </div>
                     ) : (
@@ -1873,7 +1924,7 @@ export const StudentView: React.FC = () => {
                                 <div className="space-y-1 min-w-0 flex-1">
                                   <div className="flex flex-wrap items-center gap-1.5">
                                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
-                                      {item.subject}
+                                      {translateSubjectLabel(item.subject, t)}
                                     </span>
                                     {item.topic && (
                                       <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-teal-50 dark:bg-teal-950/60 text-[#00A896] border border-teal-200 dark:border-teal-800">
@@ -1893,20 +1944,20 @@ export const StudentView: React.FC = () => {
                                   {item.status === 'streaming' ? (
                                     <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 flex items-center gap-1">
                                       <Loader2 className="w-3 h-3 animate-spin" />
-                                      Streaming
+                                      {translateStatusLabel('Streaming', t)}
                                     </span>
                                   ) : item.status === 'blocked' ? (
                                     <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 flex items-center gap-1">
                                       <ShieldAlert className="w-3 h-3" />
-                                      Guardian Notified
+                                      {translateStatusLabel('Guardian Notified', t)}
                                     </span>
                                   ) : item.status === 'error' ? (
                                     <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300">
-                                      Error
+                                      {translateStatusLabel('Error', t)}
                                     </span>
                                   ) : (
                                     <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400">
-                                      Interactive Chat
+                                      {translateStatusLabel('Interactive Chat', t)}
                                     </span>
                                   )}
                                   {isExpanded ? (
@@ -1928,14 +1979,14 @@ export const StudentView: React.FC = () => {
 
                                   {renderInteractiveThreadMessages(
                                     item,
-                                    'Dashboard Quick Doubts AI Assistant',
+                                    t('student:quickDoubts.surfaceDashboard'),
                                     false
                                   )}
 
                                   <div className="flex items-center justify-between pt-1">
                                     <span className="text-[10px] text-slate-400 dark:text-slate-300 flex items-center gap-1">
                                       <Lock className="w-2.5 h-2.5 text-[#00A896]" />
-                                      <span>Private Student &harr; AI session (not sent to teachers)</span>
+                                      <span>{t('student:quickDoubts.privateSessionNote')}</span>
                                     </span>
                                     <div className="flex items-center gap-1.5">
                                       {item.answer && (
@@ -1948,7 +1999,7 @@ export const StudentView: React.FC = () => {
                                           className="px-2 py-1 rounded-lg bg-slate-200/70 dark:bg-slate-700 hover:bg-slate-300/70 dark:hover:bg-slate-600 text-[10px] font-semibold text-slate-700 dark:text-white flex items-center gap-1 cursor-pointer"
                                         >
                                           <Copy className="w-3 h-3" />
-                                          <span>{copiedDoubtId === item.id ? 'Copied!' : 'Copy'}</span>
+                                          <span>{copiedDoubtId === item.id ? t('common:actions.copied') : t('common:actions.copy')}</span>
                                         </button>
                                       )}
                                       <button
@@ -1958,7 +2009,7 @@ export const StudentView: React.FC = () => {
                                           deleteQuickDoubt(item.id);
                                         }}
                                         className="p-1 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/50 cursor-pointer"
-                                        title="Remove entry"
+                                        title={t('student:quickDoubts.removeEntryTooltip')}
                                       >
                                         <Trash2 className="w-3.5 h-3.5" />
                                       </button>
@@ -2003,14 +2054,19 @@ export const StudentView: React.FC = () => {
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                   <div>
                     <div className="flex items-center gap-2">
-                      <h2 className="text-2xl font-light text-slate-900 dark:text-white tracking-wide">Skills Passport & Subject Units</h2>
+                      <h2 className="text-2xl font-light text-slate-900 dark:text-white tracking-wide">
+                        {t('student:skillsPassport.title')}
+                      </h2>
                       <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 flex items-center gap-1">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
-                        <span>Live Synced</span>
+                        <span>{t('student:skillsPassport.liveSynced')}</span>
                       </span>
                     </div>
                     <p className="text-xs sm:text-sm text-slate-500 dark:text-white mt-1">
-                      Auto-aligned to Grade {activeGradeFilter} &bull; {BOARD_LABELS[currentBoard as EducationBoard] || currentBoard} &bull; Real-time sync with Student Profile, Teacher & Admin panels
+                      {t('student:skillsPassport.subtitle', {
+                        grade: activeGradeFilter,
+                        board: translateBoardLabel(currentBoard, t, BOARD_LABELS[currentBoard as EducationBoard] || currentBoard),
+                      })}
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
@@ -2019,14 +2075,14 @@ export const StudentView: React.FC = () => {
                       className="px-3.5 py-2 rounded-xl bg-[#00A896] text-white text-xs font-bold hover:bg-[#009282] transition-colors cursor-pointer shadow-sm flex items-center gap-1.5"
                     >
                       <UserIcon className="w-3.5 h-3.5" />
-                      <span>Manage Profile Subjects ({currentUser?.enrolledCourses?.length || 0})</span>
+                      <span>{t('student:skillsPassport.manageProfileSubjects', { count: currentUser?.enrolledCourses?.length || 0 })}</span>
                     </button>
                     <button
                       onClick={() => setIsCurriculumModalOpen(true)}
                       className="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white border border-slate-300 dark:border-slate-600 text-xs font-lollipop-regular transition-colors cursor-pointer shadow-xs flex items-center gap-1.5"
                     >
                       <Compass className="w-4 h-4" />
-                      <span>Browse Full Grades 6-12 Curriculum</span>
+                      <span>{t('student:skillsPassport.browseFullCurriculum')}</span>
                     </button>
                   </div>
                 </div>
@@ -2043,7 +2099,10 @@ export const StudentView: React.FC = () => {
                           : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-white hover:bg-slate-200 dark:hover:bg-slate-700'
                       }`}
                     >
-                      All Grade {activeGradeFilter} Subjects ({displaySubjects.length})
+                      {t('student:skillsPassport.allGradeSubjects', {
+                        grade: activeGradeFilter,
+                        count: displaySubjects.length,
+                      })}
                     </button>
                     <button
                       type="button"
@@ -2054,7 +2113,9 @@ export const StudentView: React.FC = () => {
                           : 'bg-teal-50 dark:bg-teal-950/40 text-[#00A896] hover:bg-teal-100 dark:hover:bg-teal-900/50 border border-teal-200 dark:border-teal-800'
                       }`}
                     >
-                      My Selected Subjects ({displaySubjects.filter((s) => isSubjectEnrolled(s, currentUser?.enrolledCourses, currentBoard)).length})
+                      {t('student:skillsPassport.mySelectedSubjects', {
+                        count: displaySubjects.filter((s) => isSubjectEnrolled(s, currentUser?.enrolledCourses, currentBoard)).length,
+                      })}
                     </button>
                   </div>
 
@@ -2070,7 +2131,7 @@ export const StudentView: React.FC = () => {
                             : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-white hover:bg-slate-200 dark:hover:bg-slate-700'
                         }`}
                       >
-                        {cat === 'ALL' ? 'All Domains' : cat}
+                        {cat === 'ALL' ? t('student:skillsPassport.allDomains') : translateCategoryLabel(cat, t)}
                       </button>
                     ))}
                   </div>
@@ -2081,9 +2142,9 @@ export const StudentView: React.FC = () => {
               <div className="p-3.5 rounded-xl bg-teal-50 dark:bg-[#0B2528] border border-teal-200/80 dark:border-teal-800/60 flex items-center justify-between gap-3 text-xs">
                 <div className="flex items-center gap-2 text-teal-800 dark:text-teal-200">
                   <Zap className="w-4 h-4 text-[#00A896] shrink-0" />
-                  <span>Select or enroll in any subject below to add it to your Profile &amp; Agile Study Roadmap. Completing units immediately updates your progress bars and broadcasts to your Teacher's roster.</span>
+                  <span>{t('student:skillsPassport.infoBanner')}</span>
                 </div>
-                <span className="font-bold text-[#00A896] shrink-0">Live Active</span>
+                <span className="font-bold text-[#00A896] shrink-0">{t('student:skillsPassport.liveActive')}</span>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -2095,8 +2156,9 @@ export const StudentView: React.FC = () => {
                   })
                   .map((sub) => {
                   const localizedSubName = getLocalizedSubjectName(sub.name, currentBoard);
+                  const displaySubTitle = translateSubjectLabel(localizedSubName, t);
                   const isEnrolled = isSubjectEnrolled(sub, currentUser?.enrolledCourses, currentBoard);
-                  const topicsForSub = topicsDB.filter((t) => t.subject_id === sub.id && t.status === 'ACTIVE');
+                  const topicsForSub = topicsDB.filter((tItem) => tItem.subject_id === sub.id && tItem.status === 'ACTIVE');
                   
                   // Compute live mastery percentage for this subject
                   const normSubName = sub.name.toLowerCase();
@@ -2115,12 +2177,12 @@ export const StudentView: React.FC = () => {
                     subProgress = 85;
                   }
 
-                  const matchingTasks = dailyTasks.filter((t) =>
-                    (t.subject || '').toLowerCase().includes(normSubName) ||
-                    normSubName.includes((t.subject || '').toLowerCase()) ||
-                    (t.subject || '').toLowerCase() === localizedSubName.toLowerCase()
+                  const matchingTasks = dailyTasks.filter((tItem) =>
+                    (tItem.subject || '').toLowerCase().includes(normSubName) ||
+                    normSubName.includes((tItem.subject || '').toLowerCase()) ||
+                    (tItem.subject || '').toLowerCase() === localizedSubName.toLowerCase()
                   );
-                  const completedTasksCount = matchingTasks.filter((t) => t.status === 'Completed').length;
+                  const completedTasksCount = matchingTasks.filter((tItem) => tItem.status === 'Completed').length;
 
                   return (
                     <div
@@ -2141,7 +2203,7 @@ export const StudentView: React.FC = () => {
                               {sub.code || `GR-${sub.grade_level}`}
                             </span>
                             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-300">
-                              {sub.board && sub.board !== 'ALL' ? sub.board : currentBoard}
+                              {translateBoardLabel(sub.board && sub.board !== 'ALL' ? sub.board : currentBoard, t)}
                             </span>
                             <button
                               type="button"
@@ -2155,12 +2217,12 @@ export const StudentView: React.FC = () => {
                               {isEnrolled ? (
                                 <>
                                   <Check className="w-2.5 h-2.5 stroke-[3]" />
-                                  <span>Selected</span>
+                                  <span>{t('student:skillsPassport.selected')}</span>
                                 </>
                               ) : (
                                 <>
                                   <Plus className="w-2.5 h-2.5" />
-                                  <span>Select Subject</span>
+                                  <span>{t('student:skillsPassport.selectSubject')}</span>
                                 </>
                               )}
                             </button>
@@ -2169,7 +2231,7 @@ export const StudentView: React.FC = () => {
 
                         <div className="mt-2">
                           <div className="flex items-center justify-between gap-2">
-                            <h3 className="font-light text-base text-slate-900 dark:text-white">{localizedSubName}</h3>
+                            <h3 className="font-light text-base text-slate-900 dark:text-white">{displaySubTitle}</h3>
                             <span className="text-[10px] font-bold text-[#00A896] shrink-0">{subProgress}%</span>
                           </div>
                           <p className="text-xs text-slate-500 dark:text-white mt-0.5 line-clamp-2">{sub.description}</p>
@@ -2178,7 +2240,7 @@ export const StudentView: React.FC = () => {
                         {/* Progress Bar */}
                         <div className="mt-3 space-y-1">
                           <div className="flex items-center justify-between text-[11px]">
-                            <span className="text-slate-500 dark:text-white">Syllabus Mastery:</span>
+                            <span className="text-slate-500 dark:text-white">{t('student:skillsPassport.syllabusMastery')}</span>
                             <span className="font-bold text-[#00A896]">{subProgress}%</span>
                           </div>
                           <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden">
@@ -2188,18 +2250,18 @@ export const StudentView: React.FC = () => {
                             />
                           </div>
                           <div className="text-[10px] text-slate-400 dark:text-white text-right">
-                            {completedTasksCount} Agile Tasks Completed
+                            {t('student:skillsPassport.agileTasksCompleted', { count: completedTasksCount })}
                           </div>
                         </div>
 
                         {/* Interactive Units List */}
                         <div className="space-y-2 pt-3 border-t border-slate-100 dark:border-slate-800 mt-3">
                           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-white">
-                            Active Curriculum Units ({topicsForSub.length}):
+                            {t('student:skillsPassport.activeCurriculumUnits', { count: topicsForSub.length })}
                           </span>
                           <div className="space-y-1.5 max-h-36 overflow-y-auto pr-0.5">
                             {topicsForSub.length === 0 ? (
-                              <p className="text-[11px] text-slate-400 italic">No active topics added yet.</p>
+                              <p className="text-[11px] text-slate-400 italic">{t('student:skillsPassport.noActiveTopics')}</p>
                             ) : (
                               topicsForSub.map((top) => (
                                 <div
@@ -2213,9 +2275,9 @@ export const StudentView: React.FC = () => {
                                   <button
                                     onClick={() => completeCurriculumUnit(localizedSubName, top.title)}
                                     className="px-2 py-0.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 text-[10px] font-bold border border-emerald-200 dark:border-emerald-800 shrink-0 cursor-pointer transition-colors"
-                                    title="Mark unit completed and sync to Teacher/Admin in real time"
+                                    title={t('student:skillsPassport.markCompleteTooltip')}
                                   >
-                                    ✓ Complete
+                                    {t('student:skillsPassport.markCompleteBtn')}
                                   </button>
                                 </div>
                               ))
@@ -2237,17 +2299,22 @@ export const StudentView: React.FC = () => {
                           className="py-2 rounded-xl bg-teal-50 hover:bg-teal-100 dark:bg-teal-950/60 dark:hover:bg-teal-900/60 text-[#00A896] text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer"
                         >
                           <FileQuestion className="w-3.5 h-3.5" />
-                          <span>Practice Quiz</span>
+                          <span>{t('student:skillsPassport.practiceQuizBtn')}</span>
                         </button>
                         <button
                           onClick={() => {
                             setStudentNav('ai-tutor');
-                            sendTutorMessage(`Let's start tutoring on ${localizedSubName} - ${topicsForSub[0]?.title || 'Core Syllabus'}.`);
+                            sendTutorMessage(
+                              t('student:skillsPassport.tutorStartPrompt', {
+                                subject: displaySubTitle,
+                                topic: topicsForSub[0]?.title || t('student:skillsPassport.coreSyllabus'),
+                              })
+                            );
                           }}
                           className="py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-white border border-slate-200 dark:border-slate-700 text-xs font-lollipop-regular transition-all flex items-center justify-center gap-1 cursor-pointer"
                         >
                           <Sparkles className="w-3.5 h-3.5" />
-                          <span>Launch AI Drill</span>
+                          <span>{t('student:skillsPassport.launchAiDrillBtn')}</span>
                         </button>
                       </div>
                     </div>
@@ -2263,31 +2330,36 @@ export const StudentView: React.FC = () => {
               <div className="bg-white dark:bg-[#0E1A2D] rounded-2xl p-6 border border-slate-200/90 dark:border-slate-800/80 shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                   <div className="flex items-center gap-2">
-                    <h2 className="text-2xl font-light text-slate-900 dark:text-white tracking-wide">Academic Performance & Mastery KPIs</h2>
+                    <h2 className="text-2xl font-light text-slate-900 dark:text-white tracking-wide">
+                      {t('student:gradesTab.title')}
+                    </h2>
                     <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
-                      Real-Time Computed
+                      {t('student:gradesTab.realTimeComputed')}
                     </span>
                   </div>
                   <p className="text-xs sm:text-sm text-slate-500 dark:text-white mt-1">
-                    Cumulative GPA: {currentUser?.gpa ?? 3.85} / 4.0 &bull; Board Compliance: 98% &bull; Grade {studentGradeLevel}
+                    {t('student:gradesTab.metaLine', {
+                      gpa: currentUser?.gpa ?? 3.85,
+                      grade: studentGradeLevel,
+                    })}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => {
                       addNotification(
-                        'Faculty Grade Review Requested 📋',
-                        `${currentUser?.name || 'Sarah Connor'} requested faculty grade review on Core STEM modules. Teacher notified in real time!`,
+                        t('student:gradesTab.reviewNotifTitle'),
+                        t('student:gradesTab.reviewNotifBody', { name: currentUser?.name || 'Sarah Connor' }),
                         'info',
                         'student'
                       );
-                      setGradeReviewMessage('Faculty review requested! Your instructor has received this in their Educator Portal.');
+                      setGradeReviewMessage(t('student:gradesTab.reviewSuccessMsg'));
                       setTimeout(() => setGradeReviewMessage(null), 4000);
                     }}
                     className="px-4 py-2 rounded-xl bg-[#00A896] hover:bg-[#009282] text-white text-xs font-bold shadow-sm transition-all cursor-pointer flex items-center gap-1.5"
                   >
                     <CheckCheck className="w-4 h-4" />
-                    <span>Request Faculty Review</span>
+                    <span>{t('student:gradesTab.requestFacultyReview')}</span>
                   </button>
                 </div>
               </div>
@@ -2303,23 +2375,23 @@ export const StudentView: React.FC = () => {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <div className="bg-white dark:bg-[#0E1A2D] p-5 rounded-2xl border border-slate-200/90 dark:border-slate-800/80 text-center shadow-xs">
                   <div className="text-3xl font-black text-slate-700 dark:text-slate-200">{currentUser?.overallProgress ?? 88}%</div>
-                  <div className="text-xs font-bold text-slate-500 dark:text-white mt-1">Overall Mastery</div>
-                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold block mt-0.5">Top 5% Cohort</span>
+                  <div className="text-xs font-bold text-slate-500 dark:text-white mt-1">{t('student:gradesTab.overallMastery')}</div>
+                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold block mt-0.5">{t('student:gradesTab.top5Cohort')}</span>
                 </div>
                 <div className="bg-white dark:bg-[#0E1A2D] p-5 rounded-2xl border border-slate-200/90 dark:border-slate-800/80 text-center shadow-xs">
                   <div className="text-3xl font-black text-[#00A896]">{currentUser?.physicsProgress ?? 75}%</div>
-                  <div className="text-xs font-bold text-slate-500 dark:text-white mt-1">Physics Progress</div>
-                  <span className="text-[10px] text-teal-600 dark:text-teal-400 font-bold block mt-0.5">Kinematics & Dynamics</span>
+                  <div className="text-xs font-bold text-slate-500 dark:text-white mt-1">{t('student:gradesTab.physicsProgress')}</div>
+                  <span className="text-[10px] text-teal-600 dark:text-teal-400 font-bold block mt-0.5">{t('student:gradesTab.kinematicsDynamics')}</span>
                 </div>
                 <div className="bg-white dark:bg-[#0E1A2D] p-5 rounded-2xl border border-slate-200/90 dark:border-slate-800/80 text-center shadow-xs">
                   <div className="text-3xl font-black text-indigo-600 dark:text-indigo-400">{currentUser?.mathProgress ?? 92}%</div>
-                  <div className="text-xs font-bold text-slate-500 dark:text-white mt-1">Algebra I (Core)</div>
-                  <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-bold block mt-0.5">Quadratic Equations</span>
+                  <div className="text-xs font-bold text-slate-500 dark:text-white mt-1">{t('student:gradesTab.algebraCore')}</div>
+                  <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-bold block mt-0.5">{t('student:gradesTab.quadraticEquations')}</span>
                 </div>
                 <div className="bg-white dark:bg-[#0E1A2D] p-5 rounded-2xl border border-slate-200/90 dark:border-slate-800/80 text-center shadow-xs">
                   <div className="text-3xl font-black text-amber-500">{currentUser?.attendance ?? 98}%</div>
-                  <div className="text-xs font-bold text-slate-500 dark:text-white mt-1">Attendance</div>
-                  <span className="text-[10px] text-amber-600 dark:text-amber-400 font-bold block mt-0.5">Exam Eligible</span>
+                  <div className="text-xs font-bold text-slate-500 dark:text-white mt-1">{t('student:gradesTab.attendanceLabel')}</div>
+                  <span className="text-[10px] text-amber-600 dark:text-amber-400 font-bold block mt-0.5">{t('student:gradesTab.examEligible')}</span>
                 </div>
               </div>
 
@@ -2327,23 +2399,23 @@ export const StudentView: React.FC = () => {
               <div className="bg-white dark:bg-[#0E1A2D] rounded-2xl p-6 border border-slate-200/90 dark:border-slate-800/80 shadow-xs space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="font-light text-base text-slate-900 dark:text-white">Subject Mastery & Continuous Evaluation Ledger</h3>
-                    <p className="text-xs text-slate-500 dark:text-white">Dynamically updated through Agile Sprint story points, daily tasks, and quiz assessments</p>
+                    <h3 className="font-light text-base text-slate-900 dark:text-white">{t('student:gradesTab.ledgerTitle')}</h3>
+                    <p className="text-xs text-slate-500 dark:text-white">{t('student:gradesTab.ledgerSubtitle')}</p>
                   </div>
-                  <span className="text-xs font-bold text-[#00A896]">Term 1 (2026–2027)</span>
+                  <span className="text-xs font-bold text-[#00A896]">{t('student:gradesTab.termLabel')}</span>
                 </div>
 
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs font-normal">
                     <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-600 dark:text-white uppercase font-bold border-b border-slate-200 dark:border-slate-700">
                       <tr>
-                        <th className="p-3">Course / Discipline</th>
-                        <th className="p-3">Curriculum Units</th>
-                        <th className="p-3">Agile Sprints</th>
-                        <th className="p-3">Mastery Level</th>
-                        <th className="p-3">Letter Grade</th>
-                        <th className="p-3">Status</th>
-                        <th className="p-3">Action</th>
+                        <th className="p-3">{t('student:gradesTab.colCourse')}</th>
+                        <th className="p-3">{t('student:gradesTab.colUnits')}</th>
+                        <th className="p-3">{t('student:gradesTab.colSprints')}</th>
+                        <th className="p-3">{t('student:gradesTab.colMasteryLevel')}</th>
+                        <th className="p-3">{t('student:gradesTab.colLetterGrade')}</th>
+                        <th className="p-3">{t('student:gradesTab.colStatus')}</th>
+                        <th className="p-3">{t('student:gradesTab.colAction')}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -2352,15 +2424,16 @@ export const StudentView: React.FC = () => {
                         : displaySubjects.slice(0, 6)
                       ).map((sub) => {
                         const localized = getLocalizedSubjectName(sub.name, currentBoard);
+                        const translatedSub = translateSubjectLabel(localized, t);
                         const normSub = sub.name.toLowerCase();
-                        const subTopics = topicsDB.filter((t) => t.subject_id === sub.id && t.status === 'ACTIVE');
+                        const subTopics = topicsDB.filter((tItem) => tItem.subject_id === sub.id && tItem.status === 'ACTIVE');
                         const subTasks = dailyTasks.filter(
-                          (t) =>
-                            (t.subject || '').toLowerCase().includes(normSub) ||
-                            normSub.includes((t.subject || '').toLowerCase()) ||
-                            (t.subject || '').toLowerCase() === localized.toLowerCase()
+                          (tItem) =>
+                            (tItem.subject || '').toLowerCase().includes(normSub) ||
+                            normSub.includes((tItem.subject || '').toLowerCase()) ||
+                            (tItem.subject || '').toLowerCase() === localized.toLowerCase()
                         );
-                        const doneCount = subTasks.filter((t) => t.status === 'Completed').length;
+                        const doneCount = subTasks.filter((tItem) => tItem.status === 'Completed').length;
                         let progress = currentUser?.overallProgress ?? 80;
                         if (normSub.includes('math') || normSub.includes('algeb')) progress = currentUser?.mathProgress ?? 92;
                         else if (normSub.includes('phys')) progress = currentUser?.physicsProgress ?? 75;
@@ -2378,18 +2451,20 @@ export const StudentView: React.FC = () => {
                               <div className="flex items-center gap-2.5">
                                 <SubjectIcon subject={localized} size="sm" />
                                 <div>
-                                  <div className="font-lollipop-regular">{localized}</div>
+                                  <div className="font-lollipop-regular">{translatedSub}</div>
                                   <span className="text-[10px] font-normal text-slate-400 dark:text-white/80">
-                                    {code} &bull; {sub.board && sub.board !== 'ALL' ? sub.board : currentBoard}
+                                    {code} &bull; {translateBoardLabel(sub.board && sub.board !== 'ALL' ? sub.board : currentBoard, t)}
                                   </span>
                                 </div>
                               </div>
                             </td>
                             <td className="p-3 text-slate-600 dark:text-white">
-                              {subTopics.length} {subTopics.length === 1 ? 'Unit' : 'Units'}
+                              {subTopics.length === 1
+                                ? t('student:gradesTab.unitSingular', { count: subTopics.length })
+                                : t('student:gradesTab.unitPlural', { count: subTopics.length })}
                             </td>
                             <td className="p-3 text-slate-600 dark:text-white">
-                              {doneCount} / {Math.max(1, subTasks.length)} Tasks
+                              {t('student:gradesTab.tasksRatio', { done: doneCount, total: Math.max(1, subTasks.length) })}
                             </td>
                             <td className="p-3">
                               <div className="w-28 bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden">
@@ -2411,18 +2486,24 @@ export const StudentView: React.FC = () => {
                                     : 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800'
                                 }`}
                               >
-                                {status}
+                                {translateStatusLabel(status, t)}
                               </span>
                             </td>
                             <td className="p-3">
                               <button
                                 onClick={() => {
                                   setStudentNav('ai-tutor');
-                                  sendTutorMessage(`Let's launch a practice drill on ${localized} (Grade ${activeGradeFilter}, ${currentBoard}).`);
+                                  sendTutorMessage(
+                                    t('student:gradesTab.drillPrompt', {
+                                      subject: translatedSub,
+                                      grade: activeGradeFilter,
+                                      board: translateBoardLabel(currentBoard, t, currentBoard),
+                                    })
+                                  );
                                 }}
                                 className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-white border border-slate-200 dark:border-slate-700 text-[10px] font-lollipop-regular transition-colors cursor-pointer"
                               >
-                                Launch Drill
+                                {t('student:gradesTab.launchDrill')}
                               </button>
                             </td>
                           </tr>
@@ -2437,19 +2518,19 @@ export const StudentView: React.FC = () => {
               <div className="p-5 rounded-2xl bg-slate-100 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 space-y-2">
                 <div className="flex items-center gap-2 text-slate-700 dark:text-slate-200 font-extrabold text-sm">
                   <Sparkles className="w-4 h-4" />
-                  <span>AI Targeted Remedial Opportunity</span>
+                  <span>{t('student:gradesTab.remedialHeading')}</span>
                 </div>
                 <p className="text-xs text-slate-700 dark:text-white leading-relaxed">
-                  Review flagged doubt: <strong>Action-Reaction pairs on isolated systems (Newton's 3rd Law)</strong>. Recommend completing 3 rapid practice assessments.
+                  {t('student:gradesTab.remedialDesc')}
                 </p>
                 <button
                   onClick={() => {
                     setStudentNav('ai-tutor');
-                    sendTutorMessage("Can we practice Newton's 3rd Law action-reaction pairs?");
+                    sendTutorMessage(t('student:gradesTab.remedialPrompt'));
                   }}
                   className="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white border border-slate-300 dark:border-slate-600 text-xs font-lollipop-regular transition-colors cursor-pointer shadow-xs"
                 >
-                  Start Targeted Practice
+                  {t('student:gradesTab.startTargetedPractice')}
                 </button>
               </div>
             </div>
@@ -2462,18 +2543,18 @@ export const StudentView: React.FC = () => {
                 <div>
                   <div className="flex flex-wrap items-center gap-3">
                     <h2 className="text-2xl font-lollipop-regular text-slate-900 dark:text-white tracking-wide">
-                      Interactive Practice Quizzes
+                      {t('student:practiceTab.title')}
                     </h2>
                     <span className="text-xs font-lollipop-regular text-emerald-700 dark:text-emerald-400">
-                      · Real-Time Sync Active
+                      {t('student:practiceTab.liveSyncActive')}
                     </span>
                   </div>
                   <p className="text-sm font-lollipop-regular text-slate-600 dark:text-slate-300 mt-1">
-                    30-question board-compliant assessments, one question at a time · Score ≥ 80% earns verified credentials
+                    {t('student:practiceTab.subtitle')}
                   </p>
                 </div>
                 <div className="text-sm font-lollipop-regular text-slate-600 dark:text-slate-300 whitespace-nowrap shrink-0 tabular-nums">
-                  {quizzes.length} Quizzes · 30 Questions Each
+                  {t('student:practiceTab.quizzesCountMeta', { count: quizzes.length })}
                 </div>
               </div>
 
@@ -2502,10 +2583,10 @@ export const StudentView: React.FC = () => {
                       <div className="flex items-center justify-between gap-2 mb-2 text-xs font-lollipop-regular">
                         <span className="flex items-center gap-2 text-slate-500 dark:text-slate-300">
                           <SubjectIcon subject={quiz.topic || quiz.title} size="sm" />
-                          <span>{quiz.grade || `Grade ${studentGradeLevel}`}</span>
+                          <span>{quiz.grade || t('student:practiceTab.gradeMeta', { grade: studentGradeLevel })}</span>
                         </span>
                         <span className="text-slate-600 dark:text-slate-300 tabular-nums">
-                          {quiz.questions?.length || 30} Questions
+                          {t('student:practiceTab.questionsCount', { count: quiz.questions?.length || 30 })}
                         </span>
                       </div>
                       <h3 className="font-lollipop-regular text-slate-900 dark:text-white text-base leading-snug">
@@ -2515,8 +2596,12 @@ export const StudentView: React.FC = () => {
                         {quiz.topic}
                       </p>
                       <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs font-lollipop-regular text-slate-500 dark:text-slate-300 tabular-nums">
-                        <span>Attempts: {quiz.attempts || 0}</span>
-                        <span>Avg: {quiz.avgScore ? `${quiz.avgScore}%` : 'Pending'}</span>
+                        <span>{t('student:practiceTab.attemptsCount', { count: quiz.attempts || 0 })}</span>
+                        <span>
+                          {t('student:practiceTab.avgScoreLabel', {
+                            avg: quiz.avgScore ? `${quiz.avgScore}%` : t('student:practiceTab.pendingLabel'),
+                          })}
+                        </span>
                       </div>
                     </button>
                   );
@@ -2562,11 +2647,11 @@ export const StudentView: React.FC = () => {
                       </div>
                       <div className="flex items-center gap-4 text-sm font-lollipop-regular text-slate-700 dark:text-slate-200 tabular-nums shrink-0">
                         <span>
-                          Question {safeIndex + 1} of {totalQuestions}
+                          {t('student:practiceTab.questionProgress', { current: safeIndex + 1, total: totalQuestions })}
                         </span>
                         <span className="text-slate-300 dark:text-slate-600">|</span>
                         <span>
-                          Answered: {answeredCount} / {totalQuestions}
+                          {t('student:practiceTab.answeredMeta', { answered: answeredCount, total: totalQuestions })}
                         </span>
                       </div>
                     </div>
@@ -2587,15 +2672,19 @@ export const StudentView: React.FC = () => {
                                 <CheckCircle2 className="w-5 h-5 shrink-0" />
                                 <span>
                                   {quizResult.score >= 80
-                                    ? 'Assessment Passed · Verified Certificate Earned'
-                                    : 'Assessment Submitted · Review & Retake to Reach 80%'}
+                                    ? t('student:practiceTab.passedEarnedBadge')
+                                    : t('student:practiceTab.submittedRetakeBadge')}
                                 </span>
                               </div>
                               <h4 className="text-2xl sm:text-3xl font-lollipop-regular text-slate-900 dark:text-white tabular-nums">
-                                Final Score: {quizResult.score}% ({quizResult.correctCount} / {quizResult.totalQuestions} Correct)
+                                {t('student:practiceTab.finalScoreLine', {
+                                  score: quizResult.score,
+                                  correct: quizResult.correctCount,
+                                  total: quizResult.totalQuestions,
+                                })}
                               </h4>
                               <p className="text-xs sm:text-sm font-lollipop-regular text-slate-600 dark:text-slate-300">
-                                Your score is synchronized with Grades &amp; Mastery and your instructor&apos;s class roster.
+                                {t('student:practiceTab.syncRosterNote')}
                               </p>
                             </div>
 
@@ -2609,7 +2698,7 @@ export const StudentView: React.FC = () => {
                                 className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-lollipop-regular text-sm shadow-xs flex items-center gap-2 cursor-pointer whitespace-nowrap shrink-0"
                               >
                                 <Award className="w-4 h-4" />
-                                <span>View Issued Certificate</span>
+                                <span>{t('student:practiceTab.viewIssuedCert')}</span>
                               </button>
                             )}
                           </div>
@@ -2617,25 +2706,25 @@ export const StudentView: React.FC = () => {
                           {/* Breakdown Stats */}
                           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
                             <div className="p-4 rounded-xl bg-white dark:bg-[#0B1526] border border-slate-200/80 dark:border-slate-700/70">
-                              <div className="text-xs font-lollipop-regular text-slate-500 dark:text-slate-400">Percentage</div>
+                              <div className="text-xs font-lollipop-regular text-slate-500 dark:text-slate-400">{t('student:practiceTab.statPercentage')}</div>
                               <div className="text-xl font-lollipop-regular text-slate-900 dark:text-white mt-1 tabular-nums">
                                 {quizResult.score}%
                               </div>
                             </div>
                             <div className="p-4 rounded-xl bg-white dark:bg-[#0B1526] border border-slate-200/80 dark:border-slate-700/70">
-                              <div className="text-xs font-lollipop-regular text-slate-500 dark:text-slate-400">Correct Answers</div>
+                              <div className="text-xs font-lollipop-regular text-slate-500 dark:text-slate-400">{t('student:practiceTab.statCorrect')}</div>
                               <div className="text-xl font-lollipop-regular text-emerald-600 dark:text-emerald-400 mt-1 tabular-nums">
                                 {quizResult.correctCount}
                               </div>
                             </div>
                             <div className="p-4 rounded-xl bg-white dark:bg-[#0B1526] border border-slate-200/80 dark:border-slate-700/70">
-                              <div className="text-xs font-lollipop-regular text-slate-500 dark:text-slate-400">Incorrect / Skipped</div>
+                              <div className="text-xs font-lollipop-regular text-slate-500 dark:text-slate-400">{t('student:practiceTab.statIncorrect')}</div>
                               <div className="text-xl font-lollipop-regular text-rose-600 dark:text-rose-400 mt-1 tabular-nums">
                                 {quizResult.totalQuestions - quizResult.correctCount}
                               </div>
                             </div>
                             <div className="p-4 rounded-xl bg-white dark:bg-[#0B1526] border border-slate-200/80 dark:border-slate-700/70">
-                              <div className="text-xs font-lollipop-regular text-slate-500 dark:text-slate-400">Total Questions</div>
+                              <div className="text-xs font-lollipop-regular text-slate-500 dark:text-slate-400">{t('student:practiceTab.statTotal')}</div>
                               <div className="text-xl font-lollipop-regular text-slate-900 dark:text-white mt-1 tabular-nums">
                                 {quizResult.totalQuestions}
                               </div>
@@ -2652,7 +2741,7 @@ export const StudentView: React.FC = () => {
                               }}
                               className="px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-800 dark:text-white text-sm font-lollipop-regular transition-colors cursor-pointer whitespace-nowrap"
                             >
-                              Review Questions &amp; Explanations (1–{totalQuestions})
+                              {t('student:practiceTab.reviewRangeBtn', { total: totalQuestions })}
                             </button>
 
                             <button
@@ -2661,7 +2750,7 @@ export const StudentView: React.FC = () => {
                               className="px-5 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white border border-slate-300 dark:border-slate-600 text-sm font-lollipop-regular shadow-xs flex items-center gap-2 cursor-pointer whitespace-nowrap"
                             >
                               <RefreshCw className="w-4 h-4" />
-                              <span>Retake Quiz</span>
+                              <span>{t('student:quizzes.retakeQuiz')}</span>
                             </button>
                           </div>
                         </div>
@@ -2673,7 +2762,11 @@ export const StudentView: React.FC = () => {
                         {quizSubmitted && quizResult && isReviewingAnswers && (
                           <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex flex-wrap items-center justify-between gap-3">
                             <div className="text-sm font-lollipop-regular text-slate-700 dark:text-slate-200 tabular-nums">
-                              Review Mode · Final Score: {quizResult.score}% ({quizResult.correctCount} / {quizResult.totalQuestions} Correct)
+                              {t('student:practiceTab.reviewModeLine', {
+                                score: quizResult.score,
+                                correct: quizResult.correctCount,
+                                total: quizResult.totalQuestions,
+                              })}
                             </div>
                             <div className="flex items-center gap-2">
                               <button
@@ -2681,7 +2774,7 @@ export const StudentView: React.FC = () => {
                                 onClick={() => setIsReviewingAnswers(false)}
                                 className="px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-white text-xs font-lollipop-regular hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer whitespace-nowrap"
                               >
-                                Back to Result Summary
+                                {t('student:practiceTab.backToSummary')}
                               </button>
                               <button
                                 type="button"
@@ -2689,7 +2782,7 @@ export const StudentView: React.FC = () => {
                                 className="px-3.5 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white border border-slate-300 dark:border-slate-600 text-xs font-lollipop-regular flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
                               >
                                 <RefreshCw className="w-3.5 h-3.5" />
-                                <span>Retake Quiz</span>
+                                <span>{t('student:quizzes.retakeQuiz')}</span>
                               </button>
                             </div>
                           </div>
@@ -2733,7 +2826,7 @@ export const StudentView: React.FC = () => {
                                   key={qItem.id || idx}
                                   onClick={() => setCurrentQuestionIndex(idx)}
                                   className={`w-8 h-8 rounded-lg border text-xs font-lollipop-regular tabular-nums transition-colors cursor-pointer flex items-center justify-center ${stepClass}`}
-                                  title={`Go to Question ${idx + 1}`}
+                                  title={t('student:practiceTab.goToQuestionTitle', { num: idx + 1 })}
                                 >
                                   {idx + 1}
                                 </button>
@@ -2746,7 +2839,9 @@ export const StudentView: React.FC = () => {
                         <div className="p-5 sm:p-6 rounded-2xl bg-slate-50/90 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/70 space-y-5">
                           <div className="flex items-start justify-between gap-4">
                             <p className="text-base sm:text-lg font-lollipop-regular text-slate-900 dark:text-white leading-relaxed">
-                              <span className="text-slate-600 dark:text-slate-300 mr-2 tabular-nums">Q{safeIndex + 1}.</span>
+                              <span className="text-slate-600 dark:text-slate-300 mr-2 tabular-nums">
+                                {t('student:practiceTab.questionPrefix', { num: safeIndex + 1 })}
+                              </span>
                               {currentQuestion.question}
                             </p>
                           </div>
@@ -2808,10 +2903,10 @@ export const StudentView: React.FC = () => {
                             >
                               <span className="mr-1.5">
                                 {isCurrentCorrect
-                                  ? '✓ Correct Answer:'
+                                  ? t('student:practiceTab.correctLabel')
                                   : userSelection === undefined
-                                  ? '✗ Question Skipped:'
-                                  : '✗ Incorrect Answer:'}
+                                  ? t('student:practiceTab.skippedLabel')
+                                  : t('student:practiceTab.incorrectLabel')}
                               </span>
                               {currentQuestion.explanation}
                             </div>
@@ -2828,7 +2923,7 @@ export const StudentView: React.FC = () => {
                               className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed text-slate-700 dark:text-white text-sm font-lollipop-regular flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
                             >
                               <ChevronLeft className="w-4 h-4" />
-                              <span>Back</span>
+                              <span>{t('common:actions.back')}</span>
                             </button>
 
                             <button
@@ -2837,7 +2932,7 @@ export const StudentView: React.FC = () => {
                               className="px-4 py-2.5 rounded-xl text-sm font-lollipop-regular text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
                             >
                               <RefreshCw className="w-4 h-4" />
-                              <span>Retake</span>
+                              <span>{t('student:practiceTab.retake')}</span>
                             </button>
                           </div>
 
@@ -2850,7 +2945,7 @@ export const StudentView: React.FC = () => {
                               disabled={safeIndex === totalQuestions - 1}
                               className="px-5 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed text-slate-800 dark:text-white border border-slate-300 dark:border-slate-600 text-sm font-lollipop-regular shadow-xs flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
                             >
-                              <span>Next</span>
+                              <span>{t('common:actions.next')}</span>
                               <ChevronRight className="w-4 h-4" />
                             </button>
 
@@ -2862,7 +2957,7 @@ export const StudentView: React.FC = () => {
                                 className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-lollipop-regular shadow-xs flex items-center gap-2 cursor-pointer whitespace-nowrap"
                               >
                                 <CheckCircle2 className="w-4 h-4" />
-                                <span>Submit Quiz</span>
+                                <span>{t('student:practiceTab.submitQuiz')}</span>
                               </button>
                             )}
                           </div>
@@ -2893,15 +2988,20 @@ export const StudentView: React.FC = () => {
                   </div>
                   <div>
                     <h2 className="font-light text-slate-900 dark:text-white text-base">
-                      Socratic AI Tutor
+                      {t('student:aiTutor.title')}
                     </h2>
                     <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-white">
                       <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                        Active
+                        {t('common:actions.active')}
                       </span>
                       <span>&bull;</span>
-                      <span>{currentBoard} Grade {studentGradeLevel} Alignment</span>
+                      <span>
+                        {t('student:aiTutor.boardGradeAlignment', {
+                          board: translateBoardLabel(currentBoard, t, currentBoard),
+                          grade: studentGradeLevel,
+                        })}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -2917,17 +3017,16 @@ export const StudentView: React.FC = () => {
                         ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'
                         : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:border-[#00A896]'
                     }`}
-                    title="View AI token balance or buy add-on credits"
                   >
                     <Cpu className="w-3.5 h-3.5 text-[#00A896]" />
-                    <span>{formatCompactTokens(totalAvailableTokens)} tokens left</span>
-                    <span className="text-[#00A896] font-bold">• Top Up</span>
+                    <span>{t('student:aiTutor.tokensLeftTopUp', { tokens: formatCompactTokens(totalAvailableTokens) })}</span>
+                    <span className="text-[#00A896] font-bold">{t('student:aiTutor.topUpTag')}</span>
                   </button>
                   <button
-                    onClick={() => sendTutorMessage('Can you summarize our key physics takeaways today?')}
+                    onClick={() => sendTutorMessage(t('student:aiTutor.summaryPrompt'))}
                     className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-white hover:bg-slate-200 transition-colors cursor-pointer"
                   >
-                    Summary
+                    {t('student:aiTutor.summaryBtn')}
                   </button>
                 </div>
               </div>
@@ -2972,7 +3071,7 @@ export const StudentView: React.FC = () => {
                     {msg.sender === 'student' && (
                       <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 ring-2 ring-slate-300 dark:ring-slate-600 bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-800 dark:text-white font-bold text-xs">
                         {currentUser?.avatar ? (
-                          <img src={currentUser.avatar} alt="Student" className="w-full h-full object-cover" />
+                          <img src={currentUser.avatar} alt={t('student:portal.badge')} className="w-full h-full object-cover" />
                         ) : (
                           'S'
                         )}
@@ -2987,7 +3086,7 @@ export const StudentView: React.FC = () => {
                       <Sparkles className="w-4 h-4 animate-spin text-slate-300" />
                     </div>
                     <div className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-3 rounded-2xl text-xs text-slate-500 dark:text-white">
-                      Thinking Socratically...
+                      {t('student:aiTutor.thinkingSocratically')}
                     </div>
                   </div>
                 )}
@@ -2998,8 +3097,8 @@ export const StudentView: React.FC = () => {
               {attachedImagePreview && (
                 <div className="px-6 py-2 bg-slate-100 dark:bg-slate-800/70 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2">
-                    <img src={attachedImagePreview} alt="Problem" className="w-10 h-10 object-cover rounded-lg border" />
-                    <span className="font-bold text-slate-700 dark:text-slate-200">Homework photo ready for step-by-step breakdown</span>
+                    <img src={attachedImagePreview} alt={t('student:quickDoubts.diagramLabel')} className="w-10 h-10 object-cover rounded-lg border" />
+                    <span className="font-bold text-slate-700 dark:text-slate-200">{t('student:aiTutor.homeworkReady')}</span>
                   </div>
                   <button onClick={() => setAttachedImagePreview(null)} className="p-1 text-slate-400 dark:text-white hover:text-slate-600">
                     <X className="w-4 h-4" />
@@ -3010,7 +3109,7 @@ export const StudentView: React.FC = () => {
               {/* Input Form */}
               <form onSubmit={handleSendMessage} className="p-4 border-t border-slate-200 dark:border-slate-800 flex items-center gap-2">
                 <label
-                  title="Attach photo of homework problem"
+                  title={t('student:aiTutor.attachPhotoTooltip')}
                   className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-600 dark:text-white flex items-center justify-center cursor-pointer transition-colors shrink-0"
                 >
                   <ImageIcon className="w-4 h-4" />
@@ -3020,7 +3119,7 @@ export const StudentView: React.FC = () => {
                 <button
                   type="button"
                   onClick={toggleVoiceRecording}
-                  title={isVoiceRecording ? 'Stop voice recording' : 'Speak to AI Tutor'}
+                  title={isVoiceRecording ? t('student:aiTutor.stopVoiceTooltip') : t('student:aiTutor.speakTutorTooltip')}
                   className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all cursor-pointer shrink-0 ${
                     isVoiceRecording ? 'bg-rose-500 text-white animate-pulse' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-white'
                   }`}
@@ -3032,7 +3131,7 @@ export const StudentView: React.FC = () => {
                   type="text"
                   value={inputMessage}
                   onChange={(e) => setInputMessage(e.target.value)}
-                  placeholder="Ask any concept, formula, or problem..."
+                  placeholder={t('student:aiTutor.placeholder')}
                   className="flex-1 bg-slate-50 dark:bg-slate-800 text-xs sm:text-sm px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-slate-400"
                 />
 
@@ -3052,13 +3151,15 @@ export const StudentView: React.FC = () => {
             <div className="space-y-6">
               <div className="bg-white dark:bg-[#0E1A2D] rounded-2xl p-6 border border-slate-200/90 dark:border-slate-800/80 shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                  <h2 className="text-2xl font-light text-slate-900 dark:text-white tracking-wide">Digital Certificates &amp; Badges</h2>
+                  <h2 className="text-2xl font-light text-slate-900 dark:text-white tracking-wide">
+                    {t('student:certificates.title')}
+                  </h2>
                   <p className="text-xs sm:text-sm text-slate-500 dark:text-white mt-1">
-                    Cryptographically verified credentials synced live with Admin Credential Vault &amp; Download Logs
+                    {t('student:certificates.subtitle')}
                   </p>
                 </div>
                 <div className="text-xs text-slate-500 dark:text-slate-300">
-                  Total Issued: {certificates.length}
+                  {t('student:certificates.totalIssued', { count: certificates.length })}
                 </div>
               </div>
 
@@ -3085,7 +3186,7 @@ export const StudentView: React.FC = () => {
                               : 'bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800'
                           }`}
                         >
-                          {cert.status}
+                          {translateStatusLabel(cert.status, t)}
                         </span>
                       </div>
                     </div>
@@ -3093,17 +3194,26 @@ export const StudentView: React.FC = () => {
                     <div>
                       <h3 className="font-light text-lg text-slate-900 dark:text-white">{cert.courseTitle}</h3>
                       <p className="text-xs text-slate-500 dark:text-white mt-0.5">
-                        Recipient: {cert.studentName} &bull; Score: {cert.score}% &bull; {cert.triggerSource || 'Manual'} Trigger
+                        {t('student:certificates.recipientLine', {
+                          name: cert.studentName,
+                          score: cert.score,
+                          trigger: cert.triggerSource || t('student:certificates.manualTrigger'),
+                        })}
                       </p>
                     </div>
 
                     <div className="pt-2 border-t border-slate-100 dark:border-slate-800 text-[11px] text-slate-500 dark:text-white space-y-1">
-                      <div>Issued by: {cert.instructorName} on {cert.issueDate}</div>
+                      <div>
+                        {t('student:certificates.issuedByLine', {
+                          instructor: cert.instructorName,
+                          date: cert.issueDate,
+                        })}
+                      </div>
                       <div className="font-mono text-[10px] text-slate-400 dark:text-slate-300 truncate">
-                        Hash: {cert.verificationHash}
+                        {t('student:certificates.hashLine', { hash: cert.verificationHash })}
                       </div>
                       <div className="text-[10px] text-slate-500 dark:text-slate-400">
-                        Downloads logged: {cert.downloadCount || 0}
+                        {t('student:certificates.downloadsLogged', { count: cert.downloadCount || 0 })}
                       </div>
                     </div>
 
@@ -3117,10 +3227,10 @@ export const StudentView: React.FC = () => {
                         <Download className="w-3.5 h-3.5" />
                         <span>
                           {cert.status === 'Verified'
-                            ? 'Download Certificate'
+                            ? t('student:certificates.downloadPdf')
                             : cert.status === 'Pending Approval'
-                            ? 'Awaiting Admin Approval'
-                            : 'Credential Revoked'}
+                            ? t('student:certificates.awaitingAdmin')
+                            : t('student:certificates.credentialRevoked')}
                         </span>
                       </button>
 
@@ -3130,7 +3240,11 @@ export const StudentView: React.FC = () => {
                         className="px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-normal flex items-center gap-1.5 cursor-pointer transition-colors"
                       >
                         <Copy className="w-3.5 h-3.5" />
-                        <span>{copiedCertHashId === cert.id ? 'Verification Link Copied' : 'Copy Verify Link'}</span>
+                        <span>
+                          {copiedCertHashId === cert.id
+                            ? t('student:certificates.verifyLinkCopied')
+                            : t('student:certificates.copyVerifyLink')}
+                        </span>
                       </button>
                     </div>
                   </div>
@@ -3149,46 +3263,55 @@ export const StudentView: React.FC = () => {
             <div className="space-y-6">
               <div className="bg-white dark:bg-[#0E1A2D] rounded-2xl p-6 border border-slate-200/90 dark:border-slate-800/80 shadow-xs flex items-center justify-between">
                 <div>
-                  <h2 className="text-2xl font-light text-slate-900 dark:text-white tracking-wide">Student Account & Preferences</h2>
+                  <h2 className="text-2xl font-light text-slate-900 dark:text-white tracking-wide">
+                    {t('student:settings.title')}
+                  </h2>
                   <p className="text-xs sm:text-sm text-slate-500 dark:text-white mt-1">
-                    Manage profile, governing boards, language medium, and active subscription
+                    {t('student:settings.subtitle')}
                   </p>
                 </div>
                 <button
                   onClick={() => setIsProfileOpen(true)}
                   className="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white border border-slate-300 dark:border-slate-600 text-xs font-lollipop-regular transition-colors cursor-pointer shadow-xs"
                 >
-                  Edit Personal Info
+                  {t('student:settings.editPersonalInfo')}
                 </button>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="bg-white dark:bg-[#0E1A2D] rounded-2xl p-5 border border-slate-200/90 dark:border-slate-800/80 shadow-xs space-y-3">
                   <div className="flex items-center justify-between gap-2">
-                    <h3 className="font-light text-base text-slate-900 dark:text-white">Active Plan &amp; Free Trial</h3>
+                    <h3 className="font-light text-base text-slate-900 dark:text-white">{t('student:settings.activePlanTrial')}</h3>
                     <button
                       type="button"
                       onClick={() => setStudentNav('subscription')}
                       className="px-3 py-1 rounded-lg bg-[#00A896] hover:bg-[#009282] text-white text-xs font-normal cursor-pointer transition-colors"
                     >
-                      {subscriptionState.tier === '7-Day Free Trial' ? 'Subscribe now' : 'Manage Plan'}
+                      {subscriptionState.tier === '7-Day Free Trial'
+                        ? t('student:portal.subscribeNow')
+                        : t('student:settings.managePlan')}
                     </button>
                   </div>
                   <div className="p-4 rounded-xl bg-slate-100 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="font-normal text-sm text-slate-800 dark:text-white">{subscriptionState.tier}</span>
-                      <span className="text-xs font-normal text-emerald-600">Active</span>
+                      <span className="text-xs font-normal text-emerald-600">{t('student:subscription.activeStatus')}</span>
                     </div>
                     <p className="text-xs text-slate-600 dark:text-white">
                       {subscriptionState.tier === '7-Day Free Trial'
-                        ? `Full access trial expires on ${subscriptionState.trialEndDate} (${subscriptionState.trialDaysLeft} days remaining).`
-                        : `Active subscription (${subscriptionState.recurringMonthly ? 'Monthly recurring auto-pay enabled' : 'Standard cycle'}).`}
+                        ? t('student:settings.trialExpiresNote', {
+                            date: subscriptionState.trialEndDate,
+                            days: subscriptionState.trialDaysLeft,
+                          })
+                        : subscriptionState.recurringMonthly
+                        ? t('student:settings.activeRecurringNote')
+                        : t('student:settings.activeStandardNote')}
                     </p>
                   </div>
                 </div>
 
                 <div className="bg-white dark:bg-[#0E1A2D] rounded-2xl p-5 border border-slate-200/90 dark:border-slate-800/80 shadow-xs space-y-3">
-                  <h3 className="font-light text-base text-slate-900 dark:text-white">Institutional Mapping</h3>
+                  <h3 className="font-light text-base text-slate-900 dark:text-white">{t('student:settings.institutionalMapping')}</h3>
                   <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800 space-y-1.5 text-xs">
                     <div className="font-bold text-slate-900 dark:text-white">
                       {currentUser?.school_name || 'D.A.V. Public School, Sector 8'}
@@ -3205,10 +3328,10 @@ export const StudentView: React.FC = () => {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div>
                     <h3 className="font-light text-base text-slate-900 dark:text-white">
-                      Curriculum, Board & Selected Subjects
+                      {t('student:settings.curriculumBoardSelected')}
                     </h3>
                     <p className="text-xs text-slate-500 dark:text-white/80">
-                      Synced live with Student Profile and Admin Curriculum Catalog
+                      {t('student:settings.syncedLiveNote')}
                     </p>
                   </div>
                   <button
@@ -3216,30 +3339,32 @@ export const StudentView: React.FC = () => {
                     onClick={() => setIsProfileOpen(true)}
                     className="px-3.5 py-1.5 rounded-xl bg-[#00A896] hover:bg-[#009282] text-white text-xs font-bold transition-colors cursor-pointer self-start sm:self-auto"
                   >
-                    Select / Edit Subjects in Profile
+                    {t('student:settings.selectEditProfileBtn')}
                   </button>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
                   <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
-                    <span className="text-[10px] text-slate-500 dark:text-white/70 block">Grade Level</span>
-                    <span className="font-bold text-slate-900 dark:text-white">Grade {activeGradeFilter}</span>
+                    <span className="text-[10px] text-slate-500 dark:text-white/70 block">{t('common:profileModal.gradeLevel')}</span>
+                    <span className="font-bold text-slate-900 dark:text-white">{t('common:curriculumExplorer.gradeOption', { grade: activeGradeFilter })}</span>
                   </div>
                   <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
-                    <span className="text-[10px] text-slate-500 dark:text-white/70 block">Governing Board</span>
-                    <span className="font-bold text-slate-900 dark:text-white">{BOARD_LABELS[currentBoard as EducationBoard] || currentBoard}</span>
-                  </div>
-                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
-                    <span className="text-[10px] text-slate-500 dark:text-white/70 block">Language Medium</span>
+                    <span className="text-[10px] text-slate-500 dark:text-white/70 block">{t('student:filters.board')}</span>
                     <span className="font-bold text-slate-900 dark:text-white">
-                      {SUPPORTED_LANGUAGES.find((l) => l.value === globalLanguage)?.label || globalLanguage}
+                      {translateBoardLabel(currentBoard, t, BOARD_LABELS[currentBoard as EducationBoard] || currentBoard)}
+                    </span>
+                  </div>
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
+                    <span className="text-[10px] text-slate-500 dark:text-white/70 block">{t('student:dashboard.languageMediumLabel')}</span>
+                    <span className="font-bold text-slate-900 dark:text-white">
+                      {SUPPORTED_LANGUAGES.find((l) => l.value === globalLanguage)?.native || globalLanguage}
                     </span>
                   </div>
                 </div>
 
                 <div className="space-y-2">
                   <span className="text-xs font-bold text-slate-700 dark:text-white block">
-                    Selected Subjects ({currentUser?.enrolledCourses?.length || 0}):
+                    {t('student:filters.selectedSubjectsCount', { count: currentUser?.enrolledCourses?.length || 0 })}:
                   </span>
                   {currentUser?.enrolledCourses && currentUser.enrolledCourses.length > 0 ? (
                     <div className="flex flex-wrap gap-2">
@@ -3254,7 +3379,7 @@ export const StudentView: React.FC = () => {
                     </div>
                   ) : (
                     <p className="text-xs text-slate-500 dark:text-white/80 italic">
-                      No subjects explicitly selected yet. Click "Select / Edit Subjects in Profile" above or select subjects inside Skills Passport.
+                      {t('student:settings.noExplicitSubjects')}
                     </p>
                   )}
                 </div>
@@ -3290,7 +3415,7 @@ export const StudentView: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-sm">Quick Doubts AI</h3>
+                  <h3 className="font-semibold text-sm">{t('student:quickDoubts.floatingBtn')}</h3>
                 </div>
               </div>
               <button
@@ -3304,7 +3429,7 @@ export const StudentView: React.FC = () => {
             <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-700 text-[11px] shrink-0">
               <span className="inline-flex items-center gap-1.5 font-semibold text-slate-700 dark:text-slate-200">
                 <Cpu className="w-3.5 h-3.5 text-[#00A896]" />
-                {formatCompactTokens(totalAvailableTokens)} AI tokens left
+                {t('student:quickDoubts.floatingTokensLeft', { tokens: formatCompactTokens(totalAvailableTokens) })}
               </span>
               <button
                 type="button"
@@ -3314,14 +3439,14 @@ export const StudentView: React.FC = () => {
                 }}
                 className="font-bold text-[#00A896] hover:underline cursor-pointer"
               >
-                Upgrade / Add Credits
+                {t('student:quickDoubts.upgradeOrAddCredits')}
               </button>
             </div>
 
             <form onSubmit={handleQuickDoubtSubmit} className="space-y-2.5 shrink-0">
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
-                  <label className="text-[11px] font-bold text-slate-600 dark:text-white">Subject</label>
+                  <label className="text-[11px] font-bold text-slate-600 dark:text-white">{t('student:quickDoubts.topicTag')}</label>
                   <select
                     value={quickDoubtSubject}
                     onChange={(e) => setQuickDoubtSubject(e.target.value)}
@@ -3331,7 +3456,10 @@ export const StudentView: React.FC = () => {
                       const localized = getLocalizedSubjectName(s.name, currentBoard);
                       return (
                         <option key={s.id} value={localized}>
-                          {localized} (Grade {s.grade_level})
+                          {t('student:quickDoubts.subjectGradeOption', {
+                            subject: translateSubjectLabel(localized, t),
+                            grade: s.grade_level,
+                          })}
                         </option>
                       );
                     })}
@@ -3339,19 +3467,19 @@ export const StudentView: React.FC = () => {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[11px] font-bold text-slate-600 dark:text-white">Topic</label>
+                  <label className="text-[11px] font-bold text-slate-600 dark:text-white">{t('student:roadmap.topic')}</label>
                   <select
                     value={quickDoubtTopic}
                     onChange={(e) => setQuickDoubtTopic(e.target.value)}
                     className="w-full bg-slate-50 dark:bg-slate-800 text-xs font-bold rounded-xl px-2.5 py-2 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white cursor-pointer"
                   >
-                    {floatingTopicsForSubject.map((t) => (
-                      <option key={`flt-top-${t.id}`} value={t.title}>
-                        {t.title}
+                    {floatingTopicsForSubject.map((tItem) => (
+                      <option key={`flt-top-${tItem.id}`} value={tItem.title}>
+                        {tItem.title}
                       </option>
                     ))}
-                    <option value="">General {quickDoubtSubject}</option>
-                    <option value="__custom__">+ Custom Topic...</option>
+                    <option value="">{t('student:quickDoubts.generalSubject', { subject: translateSubjectLabel(quickDoubtSubject, t) })}</option>
+                    <option value="__custom__">{t('student:quickDoubts.customTopicShort')}</option>
                   </select>
                 </div>
               </div>
@@ -3361,7 +3489,7 @@ export const StudentView: React.FC = () => {
                   type="text"
                   value={quickCustomTopic}
                   onChange={(e) => setQuickCustomTopic(e.target.value)}
-                  placeholder={`Specify ${quickDoubtSubject} topic...`}
+                  placeholder={t('student:quickDoubts.specifyTopicPlaceholder', { subject: translateSubjectLabel(quickDoubtSubject, t) })}
                   className="w-full bg-slate-50 dark:bg-slate-800 text-xs px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-slate-400"
                 />
               )}
@@ -3371,10 +3499,10 @@ export const StudentView: React.FC = () => {
                   <div className="flex items-center gap-2 min-w-0">
                     <img
                       src={quickImageData.preview}
-                      alt="Diagram preview"
+                      alt={t('student:quickDoubts.diagramLabel')}
                       className="w-8 h-8 rounded-lg object-cover border border-slate-300 dark:border-slate-600"
                     />
-                    <span className="text-[10px] font-semibold truncate">Diagram ready for AI</span>
+                    <span className="text-[10px] font-semibold truncate">{t('student:quickDoubts.diagramReadyAi')}</span>
                   </div>
                   <button
                     type="button"
@@ -3396,14 +3524,14 @@ export const StudentView: React.FC = () => {
                     handleQuickDoubtSubmit(e as unknown as React.FormEvent);
                   }
                 }}
-                placeholder="Ask a question on this subject & topic..."
+                placeholder={t('student:quickDoubts.askSubjectTopicShort')}
                 className="w-full bg-slate-50 dark:bg-slate-800 text-xs p-3 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-slate-400 resize-none"
               />
 
               <div className="flex items-center justify-between gap-2">
                 <label className="flex items-center gap-1.5 py-1.5 px-3 rounded-xl border border-dashed text-xs text-slate-500 dark:text-white cursor-pointer hover:border-slate-400">
                   <UploadCloud className="w-3.5 h-3.5 text-slate-600 dark:text-slate-300" />
-                  <span>Diagram</span>
+                  <span>{t('student:quickDoubts.diagramLabel')}</span>
                   <input
                     type="file"
                     accept="image/*"
@@ -3420,12 +3548,12 @@ export const StudentView: React.FC = () => {
                   {isSubmittingDoubt ? (
                     <>
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      <span>Resolving...</span>
+                      <span>{t('student:quickDoubts.resolvingShort')}</span>
                     </>
                   ) : (
                     <>
                       <Send className="w-3.5 h-3.5" />
-                      <span>Ask AI Now</span>
+                      <span>{t('student:quickDoubts.askAiNow')}</span>
                     </>
                   )}
                 </button>
@@ -3442,7 +3570,7 @@ export const StudentView: React.FC = () => {
                   >
                     <div className="flex items-center justify-between gap-2 text-[10px]">
                       <span className="font-bold text-[#00A896] truncate">
-                        {qd.subject}{qd.topic ? ` • ${qd.topic}` : ''}
+                        {translateSubjectLabel(qd.subject, t)}{qd.topic ? ` • ${qd.topic}` : ''}
                       </span>
                       <span
                         className={`px-1.5 py-0.5 rounded-full font-bold shrink-0 ${
@@ -3456,18 +3584,18 @@ export const StudentView: React.FC = () => {
                         }`}
                       >
                         {qd.status === 'streaming'
-                          ? 'Live...'
+                          ? t('student:quickDoubts.liveEllipsis')
                           : qd.status === 'blocked'
-                          ? 'Guardian Alerted'
+                          ? translateStatusLabel('Guardian Alerted', t)
                           : qd.status === 'error'
-                          ? 'Error'
-                          : 'Interactive Chat'}
+                          ? translateStatusLabel('Error', t)
+                          : translateStatusLabel('Interactive Chat', t)}
                       </span>
                     </div>
                     {qd.errorMessage && (
                       <p className="text-[11px] text-rose-600 dark:text-rose-300">{qd.errorMessage}</p>
                     )}
-                    {renderInteractiveThreadMessages(qd, 'Floating Quick Doubts AI Pop-up', true)}
+                    {renderInteractiveThreadMessages(qd, t('student:quickDoubts.surfaceFloating'), true)}
                   </div>
                 ))}
               </div>
@@ -3482,8 +3610,8 @@ export const StudentView: React.FC = () => {
               ? 'w-12 h-12 rounded-full bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white border border-slate-300 dark:border-slate-600 flex items-center justify-center shadow-xl hover:scale-105 active:scale-95 transition-all cursor-pointer relative'
               : 'group relative w-40 h-[132px] sm:w-48 sm:h-[158px] flex items-center justify-center bg-transparent hover:scale-105 active:scale-95 transition-transform duration-200 cursor-pointer focus:outline-none'
           }
-          title={isQuickDoubtsOpen ? 'Close Quick Doubts AI' : 'Open Quick Doubts AI'}
-          aria-label={isQuickDoubtsOpen ? 'Close Quick Doubts AI' : 'Open Quick Doubts AI'}
+          title={isQuickDoubtsOpen ? t('student:quickDoubts.closeQuickDoubtsAria') : t('student:quickDoubts.openQuickDoubtsAria')}
+          aria-label={isQuickDoubtsOpen ? t('student:quickDoubts.closeQuickDoubtsAria') : t('student:quickDoubts.openQuickDoubtsAria')}
         >
           {isQuickDoubtsOpen ? (
             <X className="w-5 h-5" />
@@ -3523,12 +3651,14 @@ export const StudentView: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-                    Monthly AI Token Quota Reached
+                    {t('student:quotaModal.title')}
                   </h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                    You have used {formatCompactTokens(currentStudentAiQuota.monthlyTokensUsed)} of your{' '}
-                    {formatCompactTokens(currentStudentAiQuota.monthlyQuota)} monthly AI tokens with{' '}
-                    {formatCompactTokens(currentStudentAiQuota.addonCreditsRemaining)} add-on credits remaining.
+                    {t('student:quotaModal.usedDesc', {
+                      used: formatCompactTokens(currentStudentAiQuota.monthlyTokensUsed),
+                      total: formatCompactTokens(currentStudentAiQuota.monthlyQuota),
+                      addon: formatCompactTokens(currentStudentAiQuota.addonCreditsRemaining),
+                    })}
                   </p>
                 </div>
               </div>
@@ -3536,7 +3666,7 @@ export const StudentView: React.FC = () => {
                 type="button"
                 onClick={() => setAiQuotaExhaustedModalOpen(false)}
                 className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
-                aria-label="Close quota alert"
+                aria-label={t('student:quotaModal.closeAlertAria')}
               >
                 <X className="w-4 h-4" />
               </button>
@@ -3544,7 +3674,7 @@ export const StudentView: React.FC = () => {
 
             <div className="rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 p-4 space-y-2.5">
               <p className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                Quick Add-On Credit Packs (+18% GST)
+                {t('student:quotaModal.quickPacksHeading')}
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                 {AI_ADDON_PACKS.map((pack) => (
@@ -3577,7 +3707,7 @@ export const StudentView: React.FC = () => {
                 onClick={() => setAiQuotaExhaustedModalOpen(false)}
                 className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
               >
-                Maybe Later
+                {t('student:quotaModal.laterBtn')}
               </button>
               <button
                 type="button"
@@ -3588,7 +3718,7 @@ export const StudentView: React.FC = () => {
                 }}
                 className="px-5 py-2.5 rounded-xl bg-[#00A896] hover:bg-[#009382] text-white text-xs font-bold inline-flex items-center justify-center gap-2 shadow-sm cursor-pointer"
               >
-                <span>Upgrade Plan or Buy Add-On Credits</span>
+                <span>{t('student:quotaModal.upgradeOrBuyBtn')}</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>

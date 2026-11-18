@@ -19,9 +19,9 @@
 }
 
 @theme {
-  --font-sans: 'Lollipop', 'Lolipop', 'Fredoka', 'Quicksand', sans-serif;
-  --font-poppins: 'Lollipop', 'Lolipop', 'Fredoka', 'Quicksand', sans-serif;
-  --font-mono: 'Lollipop', 'Lolipop', 'Fredoka', 'Quicksand', sans-serif;
+  --font-sans: 'Lollipop', 'Lolipop', 'Fredoka', 'Quicksand', 'Noto Sans Devanagari', 'Noto Sans Gurmukhi', 'Noto Sans Tamil', 'Noto Sans Bengali', 'Noto Sans Telugu', 'Noto Sans Gujarati', 'Noto Sans Kannada', 'Noto Sans Malayalam', sans-serif;
+  --font-poppins: 'Lollipop', 'Lolipop', 'Fredoka', 'Quicksand', 'Noto Sans Devanagari', 'Noto Sans Gurmukhi', 'Noto Sans Tamil', 'Noto Sans Bengali', 'Noto Sans Telugu', 'Noto Sans Gujarati', 'Noto Sans Kannada', 'Noto Sans Malayalam', sans-serif;
+  --font-mono: 'Lollipop', 'Lolipop', 'Fredoka', 'Quicksand', 'Noto Sans Devanagari', 'Noto Sans Gurmukhi', 'Noto Sans Tamil', 'Noto Sans Bengali', 'Noto Sans Telugu', 'Noto Sans Gujarati', 'Noto Sans Kannada', 'Noto Sans Malayalam', sans-serif;
   --color-primary-indigo: #4B49AC;
   --color-secondary-periwinkle: #98BDFF;
   --color-sky-blue: #7DA0FA;
@@ -34,7 +34,7 @@
 }
 
 :root {
-  font-family: 'Lollipop', 'Lolipop', 'Fredoka', 'Quicksand', sans-serif;
+  font-family: 'Lollipop', 'Lolipop', 'Fredoka', 'Quicksand', 'Noto Sans Devanagari', 'Noto Sans Gurmukhi', 'Noto Sans Tamil', 'Noto Sans Bengali', 'Noto Sans Telugu', 'Noto Sans Gujarati', 'Noto Sans Kannada', 'Noto Sans Malayalam', sans-serif;
   --canvas-bg: #F5F7FF;
   --card-bg: #FFFFFF;
   --text-main: #1F1F24;
@@ -56,14 +56,18 @@ html.dark, [data-theme="dark"] {
 html,
 body,
 #root {
-  font-family: 'Lollipop', 'Lolipop', 'Fredoka', 'Quicksand', sans-serif;
+  font-family: 'Lollipop', 'Lolipop', 'Fredoka', 'Quicksand', 'Noto Sans Devanagari', 'Noto Sans Gurmukhi', 'Noto Sans Tamil', 'Noto Sans Bengali', 'Noto Sans Telugu', 'Noto Sans Gujarati', 'Noto Sans Kannada', 'Noto Sans Malayalam', sans-serif;
 }
 
 body {
-  font-family: 'Lollipop', 'Lolipop', 'Fredoka', 'Quicksand', sans-serif;
+  font-family: 'Lollipop', 'Lolipop', 'Fredoka', 'Quicksand', 'Noto Sans Devanagari', 'Noto Sans Gurmukhi', 'Noto Sans Tamil', 'Noto Sans Bengali', 'Noto Sans Telugu', 'Noto Sans Gujarati', 'Noto Sans Kannada', 'Noto Sans Malayalam', sans-serif;
   background-color: var(--canvas-bg);
   color: var(--text-main);
   transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+html:not([lang="en"]) body {
+  line-height: 1.55;
 }
 
 button,
@@ -71,7 +75,7 @@ input,
 select,
 textarea,
 optgroup {
-  font-family: 'Lollipop', 'Lolipop', 'Fredoka', 'Quicksand', sans-serif;
+  font-family: 'Lollipop', 'Lolipop', 'Fredoka', 'Quicksand', 'Noto Sans Devanagari', 'Noto Sans Gurmukhi', 'Noto Sans Tamil', 'Noto Sans Bengali', 'Noto Sans Telugu', 'Noto Sans Gujarati', 'Noto Sans Kannada', 'Noto Sans Malayalam', sans-serif;
 }
 
 code,
@@ -85,7 +89,7 @@ samp {
 .admin-panel-lolipop *:not(svg):not(path):not(circle):not(rect):not(line):not(polyline):not(polygon),
 .admin-panel-lolipop .font-mono,
 .admin-panel-lolipop [class*="font-mono"] {
-  font-family: 'Lollipop', 'Lolipop', 'Fredoka', 'Quicksand', sans-serif !important;
+  font-family: 'Lollipop', 'Lolipop', 'Fredoka', 'Quicksand', 'Noto Sans Devanagari', 'Noto Sans Gurmukhi', 'Noto Sans Tamil', 'Noto Sans Bengali', 'Noto Sans Telugu', 'Noto Sans Gujarati', 'Noto Sans Kannada', 'Noto Sans Malayalam', sans-serif !important;
   font-weight: 400 !important;
 }
 
@@ -97,7 +101,7 @@ samp {
 .quick-doubts-lollipop [class*="font-mono"],
 .font-lollipop-regular,
 .font-lollipop-regular *:not(svg):not(path):not(circle):not(rect):not(line):not(polyline):not(polygon) {
-  font-family: 'Lollipop', 'Lolipop', 'Fredoka', 'Quicksand', sans-serif !important;
+  font-family: 'Lollipop', 'Lolipop', 'Fredoka', 'Quicksand', 'Noto Sans Devanagari', 'Noto Sans Gurmukhi', 'Noto Sans Tamil', 'Noto Sans Bengali', 'Noto Sans Telugu', 'Noto Sans Gujarati', 'Noto Sans Kannada', 'Noto Sans Malayalam', sans-serif !important;
   font-weight: 400 !important;
 }
 

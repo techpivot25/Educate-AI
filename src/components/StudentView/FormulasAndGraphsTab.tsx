@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { ChemistryAtomicChart } from './ChemistryAtomicChart';
 import { SubjectIcon } from '../common/SubjectIcon';
+import { useTranslation } from 'react-i18next';
+import { translateSubjectLabel, translateBoardLabel } from '../../i18n/helpers';
 import {
   Binary,
   Atom,
@@ -807,6 +809,7 @@ export const FormulasAndGraphsTab: React.FC<{
   currentGrade: number;
   currentBoard: string;
 }> = ({ currentGrade, currentBoard }) => {
+  const { t } = useTranslation(['student', 'common']);
   const [selectedSubject, setSelectedSubject] = useState<SubjectCategory>('Mathematics');
   const [searchTerm, setSearchTerm] = useState('');
   const [activeViewMode, setActiveViewMode] = useState<'all' | 'formulas' | 'diagrams'>('all');
@@ -858,13 +861,13 @@ export const FormulasAndGraphsTab: React.FC<{
           <div className="space-y-2 max-w-2xl">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-400/30 text-indigo-300 text-xs font-bold uppercase tracking-wider">
               <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-              <span>Dedicated Resource Hub &bull; Grades 6–12</span>
+              <span>{t('student:formulas.badgeHub')}</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-light tracking-wide text-white">
-              Formulas, Graphs & Schematic Models
+              {t('student:formulas.heroTitle')}
             </h1>
             <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-              Access board-compliant formula cheat-sheets, interactive Cartesian graphs, circuit diagrams, atomic structures, and timeline flowcharts on demand.
+              {t('student:formulas.heroDesc')}
             </p>
           </div>
 
@@ -872,17 +875,17 @@ export const FormulasAndGraphsTab: React.FC<{
           <div className="flex items-center gap-3 shrink-0 bg-white/5 backdrop-blur-md px-4 py-3 rounded-2xl border border-white/10">
             <div className="text-center px-2">
               <div className="text-xl font-black text-indigo-400">{FORMULA_DATABASE.length}</div>
-              <div className="text-[10px] text-slate-300 dark:text-white uppercase font-bold">Master Formulas</div>
+              <div className="text-[10px] text-slate-300 dark:text-white uppercase font-bold">{t('student:formulas.masterFormulasStat')}</div>
             </div>
             <div className="h-8 w-px bg-white/10" />
             <div className="text-center px-2">
               <div className="text-xl font-black text-emerald-400">{DIAGRAM_DATABASE.length}</div>
-              <div className="text-[10px] text-slate-300 dark:text-white uppercase font-bold">SVG Diagrams</div>
+              <div className="text-[10px] text-slate-300 dark:text-white uppercase font-bold">{t('student:formulas.svgDiagramsStat')}</div>
             </div>
             <div className="h-8 w-px bg-white/10" />
             <div className="text-center px-2">
-              <div className="text-xl font-black text-amber-400">{currentBoard}</div>
-              <div className="text-[10px] text-slate-300 dark:text-white uppercase font-bold">Governing Board</div>
+              <div className="text-xl font-black text-amber-400">{translateBoardLabel(currentBoard, t)}</div>
+              <div className="text-[10px] text-slate-300 dark:text-white uppercase font-bold">{t('student:formulas.governingBoardStat')}</div>
             </div>
           </div>
         </div>
@@ -906,7 +909,7 @@ export const FormulasAndGraphsTab: React.FC<{
                   }`}
                 >
                   <SubjectIcon subject={sub.id} size="sm" />
-                  <span>{sub.label}</span>
+                  <span>{translateSubjectLabel(sub.label, t)}</span>
                 </button>
               );
             })}
@@ -922,7 +925,7 @@ export const FormulasAndGraphsTab: React.FC<{
                   : 'text-slate-600 dark:text-white/80 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
-              All Assets
+              {t('student:formulas.allAssets')}
             </button>
             <button
               onClick={() => setActiveViewMode('formulas')}
@@ -932,7 +935,7 @@ export const FormulasAndGraphsTab: React.FC<{
                   : 'text-slate-600 dark:text-white/80 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
-              Formulas ({filteredFormulas.length})
+              {t('student:formulas.formulasCount', { count: filteredFormulas.length })}
             </button>
             <button
               onClick={() => setActiveViewMode('diagrams')}
@@ -942,7 +945,7 @@ export const FormulasAndGraphsTab: React.FC<{
                   : 'text-slate-600 dark:text-white/80 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
-              Diagrams ({filteredDiagrams.length})
+              {t('student:formulas.diagramsCount', { count: filteredDiagrams.length })}
             </button>
           </div>
         </div>
@@ -955,7 +958,7 @@ export const FormulasAndGraphsTab: React.FC<{
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder={`Search ${selectedSubject} formulas, models, or topics...`}
+              placeholder={t('student:formulas.searchSubjectPlaceholder', { subject: translateSubjectLabel(selectedSubject, t) })}
               className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white pl-10 pr-4 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4F46E5]"
             />
             {searchTerm && (
@@ -971,7 +974,7 @@ export const FormulasAndGraphsTab: React.FC<{
           <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-white">
             <span className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-emerald-500" />
-              <span>Aligned to Grade {currentGrade} &bull; {currentBoard} Syllabus</span>
+              <span>{t('student:formulas.alignedSyllabus', { grade: currentGrade, board: translateBoardLabel(currentBoard, t) })}</span>
             </span>
           </div>
         </div>
@@ -983,10 +986,10 @@ export const FormulasAndGraphsTab: React.FC<{
           <div className="flex items-center justify-between pb-1">
             <h2 className="text-lg font-light text-slate-900 dark:text-white flex items-center gap-2 tracking-wide">
               <Atom className="w-5 h-5 text-emerald-500" />
-              <span>Interactive Chemistry Atomic Chart & Bohr Orbital Simulator</span>
+              <span>{t('student:formulas.atomicSimHeading')}</span>
             </h2>
             <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-1 rounded-full border border-emerald-200 dark:border-emerald-800">
-              Board-Aligned Periodic System
+              {t('student:formulas.atomicSimBadge')}
             </span>
           </div>
           <ChemistryAtomicChart />
@@ -999,9 +1002,9 @@ export const FormulasAndGraphsTab: React.FC<{
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-light text-slate-900 dark:text-white flex items-center gap-2 tracking-wide">
               <Compass className="w-5 h-5 text-[#4F46E5]" />
-              <span>Board-Compliant Diagrams & Visual Models ({filteredDiagrams.length})</span>
+              <span>{t('student:formulas.diagramsSectionTitle', { count: filteredDiagrams.length })}</span>
             </h2>
-            <span className="text-xs text-slate-500 dark:text-white">Interactive SVG graphics with labeled parts</span>
+            <span className="text-xs text-slate-500 dark:text-white">{t('student:formulas.diagramsSectionHint')}</span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1025,7 +1028,7 @@ export const FormulasAndGraphsTab: React.FC<{
                   </div>
                   <button
                     onClick={() => setSelectedDiagramModal(diag)}
-                    title="Expand Fullscreen View"
+                    title={t('student:formulas.expandFullscreen')}
                     className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-600 dark:text-white cursor-pointer transition-colors"
                   >
                     <Maximize2 className="w-4 h-4" />
@@ -1045,7 +1048,7 @@ export const FormulasAndGraphsTab: React.FC<{
 
                   <div className="space-y-2.5 pt-3 border-t border-slate-200/60 dark:border-slate-800">
                     <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-600 dark:text-white block">
-                      Component Breakdown & Annotations:
+                      {t('student:formulas.componentBreakdown')}
                     </span>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                       {diag.labels.map((lbl, idx) => (
@@ -1072,19 +1075,19 @@ export const FormulasAndGraphsTab: React.FC<{
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-light text-slate-900 dark:text-white flex items-center gap-2 tracking-wide">
               <Binary className="w-5 h-5 text-[#4F46E5]" />
-              <span>{selectedSubject} Formulas & Equations ({filteredFormulas.length})</span>
+              <span>{t('student:formulas.formulasSectionTitle', { subject: translateSubjectLabel(selectedSubject, t), count: filteredFormulas.length })}</span>
             </h2>
-            <span className="text-xs sm:text-sm text-slate-500 dark:text-white">Board-compliant derivation variables & worked examples</span>
+            <span className="text-xs sm:text-sm text-slate-500 dark:text-white">{t('student:formulas.formulasSectionHint')}</span>
           </div>
 
           {filteredFormulas.length === 0 ? (
             <div className="bg-white dark:bg-[#111827] rounded-2xl p-12 text-center border border-slate-200/80 dark:border-slate-800">
               <Binary className="w-12 h-12 text-slate-300 mx-auto mb-3" />
               <h3 className="text-base font-light text-slate-800 dark:text-white">
-                No formulas match "{searchTerm}"
+                {t('student:formulas.noFormulasMatch', { term: searchTerm })}
               </h3>
               <p className="text-sm text-slate-500 dark:text-white mt-1">
-                Try searching for another keyword or switch subjects above.
+                {t('student:formulas.noFormulasHint')}
               </p>
             </div>
           ) : (
@@ -1103,7 +1106,7 @@ export const FormulasAndGraphsTab: React.FC<{
                             {f.topic}
                           </span>
                           <span className="text-xs text-slate-500 dark:text-white font-medium">
-                            Grades {f.gradeLevels.join(', ')}
+                            {t('student:formulas.gradesRange', { grades: f.gradeLevels.join(', ') })}
                           </span>
                         </div>
                         <h3 className="font-normal text-lg text-slate-900 dark:text-white mt-1.5">
@@ -1118,17 +1121,17 @@ export const FormulasAndGraphsTab: React.FC<{
                             ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-600 border border-emerald-300'
                             : 'bg-slate-50 dark:bg-slate-800 hover:bg-indigo-50 text-slate-600 dark:text-white hover:text-[#4F46E5]'
                         }`}
-                        title="Copy formula text"
+                        title={t('student:formulas.copyFormula')}
                       >
                         {copiedFormulaId === f.id ? (
                           <>
                             <CheckCircle className="w-3.5 h-3.5" />
-                            <span className="text-xs">Copied</span>
+                            <span className="text-xs">{t('student:formulas.copiedBtn')}</span>
                           </>
                         ) : (
                           <>
                             <Copy className="w-3.5 h-3.5" />
-                            <span className="text-xs hidden sm:inline">Copy</span>
+                            <span className="text-xs hidden sm:inline">{t('student:formulas.copyBtn')}</span>
                           </>
                         )}
                       </button>
@@ -1139,7 +1142,7 @@ export const FormulasAndGraphsTab: React.FC<{
                       <div className="text-lg sm:text-xl font-bold text-indigo-300 tracking-wide select-all">
                         {f.expression}
                       </div>
-                      <div className="text-xs text-slate-300 dark:text-white">Standard Formula Expression</div>
+                      <div className="text-xs text-slate-300 dark:text-white">{t('student:formulas.stdFormulaExpr')}</div>
                     </div>
 
                     {/* Description */}
@@ -1152,7 +1155,7 @@ export const FormulasAndGraphsTab: React.FC<{
                   <div className="space-y-3 pt-3 border-t border-slate-100 dark:border-slate-800 text-sm">
                     <div>
                       <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-white block mb-2">
-                        Variables & Units:
+                        {t('student:formulas.variablesLabel')}
                       </span>
                       <div className="space-y-1.5">
                         {f.variables.map((v, i) => (
@@ -1177,7 +1180,7 @@ export const FormulasAndGraphsTab: React.FC<{
                     {f.exampleProblem && (
                       <div className="p-3 rounded-xl bg-indigo-50/60 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/40 text-xs sm:text-sm">
                         <span className="font-bold text-[#4F46E5] dark:text-[#818CF8] block">
-                          Worked Example:
+                          {t('student:formulas.workedExample')}
                         </span>
                         <p className="text-slate-700 dark:text-white mt-0.5 leading-relaxed">
                           {f.exampleProblem}
@@ -1205,7 +1208,7 @@ export const FormulasAndGraphsTab: React.FC<{
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
               <div>
                 <span className="text-sm font-bold text-[#4F46E5] uppercase tracking-wider">
-                  {selectedDiagramModal.category} &bull; {selectedDiagramModal.diagramType}
+                  {translateSubjectLabel(selectedDiagramModal.category, t)} &bull; {selectedDiagramModal.diagramType}
                 </span>
                 <h3 className="text-2xl font-normal text-slate-900 dark:text-white tracking-wide mt-0.5">
                   {selectedDiagramModal.title}

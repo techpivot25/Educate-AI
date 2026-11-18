@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 import {
   Flame,
   Zap,
@@ -41,25 +42,26 @@ const DEFAULT_STATE: GamificationState = {
 };
 
 const WEEK_DAYS = [
-  { day: 'Mon', completed: true, xp: 60 },
-  { day: 'Tue', completed: true, xp: 55 },
-  { day: 'Wed', completed: true, xp: 70 },
-  { day: 'Thu', completed: true, xp: 50 },
-  { day: 'Fri', completed: true, xp: 45, isToday: true },
-  { day: 'Sat', completed: false, xp: 0 },
-  { day: 'Sun', completed: false, xp: 0 },
+  { dayKey: 'mon', completed: true, xp: 60 },
+  { dayKey: 'tue', completed: true, xp: 55 },
+  { dayKey: 'wed', completed: true, xp: 70 },
+  { dayKey: 'thu', completed: true, xp: 50 },
+  { dayKey: 'fri', completed: true, xp: 45, isToday: true },
+  { dayKey: 'sat', completed: false, xp: 0 },
+  { dayKey: 'sun', completed: false, xp: 0 },
 ];
 
 const BADGES = [
-  { id: 'b1', name: '3-Day Spark', desc: 'First study momentum', icon: '🔥', unlocked: true },
-  { id: 'b2', name: '7-Day Scholar', desc: 'Full week consistency', icon: '⚡', unlocked: true },
-  { id: 'b3', name: '14-Day Sprint Master', desc: 'Two weeks uninterrupted', icon: '🏆', unlocked: true },
-  { id: 'b4', name: '30-Day Legend', desc: 'Monthly study discipline', icon: '👑', unlocked: false, progress: '14/30' },
-  { id: 'b5', name: 'Formula Alchemist', desc: '10 master formulas solved', icon: '🧪', unlocked: true },
-  { id: 'b6', name: 'Socratic Thinker', desc: '5 AI tutor deep dives', icon: '🧠', unlocked: true },
+  { id: 'b1', icon: '🔥', unlocked: true },
+  { id: 'b2', icon: '⚡', unlocked: true },
+  { id: 'b3', icon: '🏆', unlocked: true },
+  { id: 'b4', icon: '👑', unlocked: false, progress: '14/30' },
+  { id: 'b5', icon: '🧪', unlocked: true },
+  { id: 'b6', icon: '🧠', unlocked: true },
 ];
 
 export const StudentGamificationHub: React.FC = () => {
+  const { t, i18n } = useTranslation(['student', 'common']);
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'streak' | 'xp' | 'badges'>('streak');
   const [confettiActive, setConfettiActive] = useState(false);
@@ -114,7 +116,7 @@ export const StudentGamificationHub: React.FC = () => {
             setIsOpen(true);
           }}
           className="group relative flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 shadow-2xs hover:shadow-xs hover:scale-102 transition-all cursor-pointer"
-          title="Daily Learning Streak - Click to view Streak Calendar & Shields"
+          title={t('student:gamification.streakTooltip')}
         >
           <div className="relative flex items-center">
             <LottieIcon
@@ -131,7 +133,7 @@ export const StudentGamificationHub: React.FC = () => {
               {state.streakDays}
             </span>
             <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300 hidden md:inline">
-              Days
+              {t('student:gamification.daysUnit')}
             </span>
           </div>
         </button>
@@ -143,7 +145,7 @@ export const StudentGamificationHub: React.FC = () => {
             setIsOpen(true);
           }}
           className="group relative flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-gradient-to-r from-indigo-500/15 via-purple-500/15 to-teal-500/10 dark:from-indigo-500/20 dark:via-purple-500/20 dark:to-teal-500/15 border border-indigo-400/40 dark:border-indigo-500/40 text-indigo-700 dark:text-indigo-300 hover:border-indigo-500 shadow-2xs hover:shadow-xs hover:scale-102 transition-all cursor-pointer"
-          title="Total XP Points & Learning Level - Click for Quest Details"
+          title={t('student:gamification.xpTooltip')}
         >
           <LottieIcon
             kind="nav"
@@ -155,10 +157,10 @@ export const StudentGamificationHub: React.FC = () => {
           />
           <div className="flex items-baseline gap-1">
             <span className="text-xs font-black tracking-tight text-indigo-700 dark:text-indigo-200">
-              {state.xpPoints.toLocaleString()}
+              {state.xpPoints.toLocaleString(i18n.language || 'en-US')}
             </span>
             <span className="text-[10px] font-bold text-indigo-500 dark:text-indigo-400 hidden xl:inline">
-              XP
+              {t('student:gamification.xpUnit')}
             </span>
           </div>
 
@@ -200,14 +202,14 @@ export const StudentGamificationHub: React.FC = () => {
                   <div>
                     <div className="flex items-center gap-2">
                       <h3 className="text-xl font-normal tracking-tight">
-                        {state.streakDays}-Day Learning Streak!
+                        {t('student:gamification.streakHeaderTitle', { days: state.streakDays })}
                       </h3>
                       <span className="px-2 py-0.5 rounded-full text-[10px] font-normal uppercase tracking-wide bg-amber-400/20 text-amber-300 border border-amber-400/30">
-                        {state.league}
+                        {state.league === 'Emerald League (Top 3%)' ? t('student:gamification.emeraldLeague') : state.league}
                       </span>
                     </div>
                     <p className="text-xs font-normal text-slate-300 mt-0.5">
-                      You are studying consistently every day. Keep the fire burning!
+                      {t('student:gamification.streakHeaderSub')}
                     </p>
                   </div>
                 </div>
@@ -215,7 +217,7 @@ export const StudentGamificationHub: React.FC = () => {
                 <button
                   onClick={() => setIsOpen(false)}
                   className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors cursor-pointer"
-                  aria-label="Close"
+                  aria-label={t('common:actions.close')}
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -232,7 +234,7 @@ export const StudentGamificationHub: React.FC = () => {
                   }`}
                 >
                   <Flame className="w-3.5 h-3.5" />
-                  <span>Streak & Safeguards</span>
+                  <span>{t('student:gamification.tabStreak')}</span>
                 </button>
                 <button
                   onClick={() => setActiveTab('xp')}
@@ -243,7 +245,7 @@ export const StudentGamificationHub: React.FC = () => {
                   }`}
                 >
                   <Zap className="w-3.5 h-3.5" />
-                  <span>Daily XP Quests</span>
+                  <span>{t('student:gamification.tabXp')}</span>
                 </button>
                 <button
                   onClick={() => setActiveTab('badges')}
@@ -254,7 +256,7 @@ export const StudentGamificationHub: React.FC = () => {
                   }`}
                 >
                   <Award className="w-3.5 h-3.5" />
-                  <span>Milestones & Badges</span>
+                  <span>{t('student:gamification.tabBadges')}</span>
                 </button>
               </div>
             </div>
@@ -270,12 +272,12 @@ export const StudentGamificationHub: React.FC = () => {
                       <div className="flex items-center gap-2">
                         <Calendar className="w-4 h-4 text-amber-500" />
                         <span className="text-xs font-normal uppercase tracking-wider text-slate-700 dark:text-white">
-                          Current Week Streak Tracker
+                          {t('student:gamification.weekTrackerTitle')}
                         </span>
                       </div>
                       <span className="text-xs font-normal text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
                         <CheckCircle2 className="w-3.5 h-3.5" />
-                        5 of 7 Days Active
+                        {t('student:gamification.daysActiveCount', { done: 5, total: 7 })}
                       </span>
                     </div>
 
@@ -292,7 +294,7 @@ export const StudentGamificationHub: React.FC = () => {
                           }`}
                         >
                           <span className="text-[11px] font-normal text-slate-500 dark:text-white">
-                            {w.day}
+                            {t(`student:gamification.weekDays.${w.dayKey}`)}
                           </span>
                           <div className="my-1.5 flex items-center justify-center">
                             {w.completed ? (
@@ -306,7 +308,7 @@ export const StudentGamificationHub: React.FC = () => {
                             )}
                           </div>
                           <span className="text-[10px] font-normal text-slate-600 dark:text-white tabular-nums">
-                            {w.completed ? `+${w.xp} XP` : '0 XP'}
+                            {w.completed ? `+${w.xp} ${t('student:gamification.xpUnit')}` : `0 ${t('student:gamification.xpUnit')}`}
                           </span>
                         </div>
                       ))}
@@ -322,7 +324,7 @@ export const StudentGamificationHub: React.FC = () => {
                       <div>
                         <div className="flex items-center gap-2">
                           <h4 className="text-xs font-normal text-slate-900 dark:text-white">
-                            Streak Freeze Protection
+                            {t('student:gamification.streakFreezeTitle')}
                           </h4>
                           <span
                             className={`px-2 py-0.5 rounded-full text-[10px] font-normal ${
@@ -331,12 +333,11 @@ export const StudentGamificationHub: React.FC = () => {
                                 : 'bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-white'
                             }`}
                           >
-                            {state.streakFreezeEquipped ? 'Shield Active' : 'Standby'}
+                            {state.streakFreezeEquipped ? t('student:gamification.shieldActive') : t('student:gamification.standby')}
                           </span>
                         </div>
                         <p className="text-[11px] font-normal text-slate-500 dark:text-white mt-0.5">
-                          Protects your streak if you miss study time due to illness or holidays. (
-                          {state.streakFreezeCount} freezes remaining)
+                          {t('student:gamification.streakFreezeDesc', { count: state.streakFreezeCount })}
                         </p>
                       </div>
                     </div>
@@ -349,7 +350,7 @@ export const StudentGamificationHub: React.FC = () => {
                           : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-white hover:bg-slate-300'
                       }`}
                     >
-                      {state.streakFreezeEquipped ? 'Equipped' : 'Equip Shield'}
+                      {state.streakFreezeEquipped ? t('student:gamification.equipped') : t('student:gamification.equipShield')}
                     </button>
                   </div>
 
@@ -361,12 +362,12 @@ export const StudentGamificationHub: React.FC = () => {
                       </div>
                       <div>
                         <h4 className="text-xs font-normal text-slate-900 dark:text-white">
-                          Daily Study Streak Bonus (+25 XP)
+                          {t('student:gamification.dailyBonusTitle')}
                         </h4>
                         <p className="text-[11px] font-normal text-slate-500 dark:text-white mt-0.5">
                           {state.claimedBonusToday
-                            ? 'Bonus collected for today! Check back tomorrow.'
-                            : 'Solve 1 more practice question to claim bonus XP today.'}
+                            ? t('student:gamification.bonusCollectedDesc')
+                            : t('student:gamification.bonusPendingDesc')}
                         </p>
                       </div>
                     </div>
@@ -381,7 +382,7 @@ export const StudentGamificationHub: React.FC = () => {
                       }`}
                     >
                       <Sparkles className="w-3.5 h-3.5" />
-                      <span>{state.claimedBonusToday ? 'Claimed Today' : 'Claim +25 XP'}</span>
+                      <span>{state.claimedBonusToday ? t('student:gamification.claimedToday') : t('student:gamification.claimXpBtn')}</span>
                     </button>
                   </div>
                 </div>
@@ -394,10 +395,10 @@ export const StudentGamificationHub: React.FC = () => {
                   <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-xs font-normal text-slate-700 dark:text-white">
-                        Today's XP Target
+                        {t('student:gamification.todaysXpTarget')}
                       </span>
                       <span className="text-xs font-normal text-indigo-600 dark:text-indigo-400 tabular-nums">
-                        {state.dailyXpCurrent} / {state.dailyXpGoal} XP
+                        {state.dailyXpCurrent} / {state.dailyXpGoal} {t('student:gamification.xpUnit')}
                       </span>
                     </div>
 
@@ -408,14 +409,14 @@ export const StudentGamificationHub: React.FC = () => {
                       />
                     </div>
                     <p className="text-[11px] font-normal text-slate-500 dark:text-white mt-2">
-                      Reach 50 XP daily to unlock streak multipliers and rise up in the Emerald League.
+                      {t('student:gamification.xpTargetHint')}
                     </p>
                   </div>
 
                   {/* Active Daily Quests */}
                   <div className="space-y-2">
                     <h5 className="text-xs font-normal uppercase tracking-wider text-slate-500 dark:text-white">
-                      Today's Learning Quests
+                      {t('student:gamification.todaysQuestsHeading')}
                     </h5>
 
                     <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-between">
@@ -423,13 +424,13 @@ export const StudentGamificationHub: React.FC = () => {
                         <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                         <div>
                           <p className="text-xs font-normal text-slate-900 dark:text-white">
-                            Complete Core Algebra Task (1.5 hrs)
+                            {t('student:gamification.q1Title')}
                           </p>
-                          <p className="text-[10px] font-normal text-slate-500 dark:text-white">Earned +25 XP</p>
+                          <p className="text-[10px] font-normal text-slate-500 dark:text-white">{t('student:gamification.earned25Xp')}</p>
                         </div>
                       </div>
                       <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 text-[10px] font-normal">
-                        Completed
+                        {t('common:statuses.Completed')}
                       </span>
                     </div>
 
@@ -438,13 +439,13 @@ export const StudentGamificationHub: React.FC = () => {
                         <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                         <div>
                           <p className="text-xs font-normal text-slate-900 dark:text-white">
-                            Ask Socratic AI 1 Concept Clarification
+                            {t('student:gamification.q2Title')}
                           </p>
-                          <p className="text-[10px] font-normal text-slate-500 dark:text-white">Earned +20 XP</p>
+                          <p className="text-[10px] font-normal text-slate-500 dark:text-white">{t('student:gamification.earned20Xp')}</p>
                         </div>
                       </div>
                       <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 text-[10px] font-normal">
-                        Completed
+                        {t('common:statuses.Completed')}
                       </span>
                     </div>
 
@@ -453,13 +454,13 @@ export const StudentGamificationHub: React.FC = () => {
                         <div className="w-4 h-4 rounded-full border-2 border-slate-300 dark:border-slate-700" />
                         <div>
                           <p className="text-xs font-normal text-slate-900 dark:text-white">
-                            Score 85%+ on Rapid Practice Quiz
+                            {t('student:gamification.q3Title')}
                           </p>
-                          <p className="text-[10px] font-normal text-slate-500 dark:text-white">Reward: +30 XP</p>
+                          <p className="text-[10px] font-normal text-slate-500 dark:text-white">{t('student:gamification.reward30Xp')}</p>
                         </div>
                       </div>
                       <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-white text-[10px] font-normal">
-                        In Progress
+                        {t('common:statuses.In Progress')}
                       </span>
                     </div>
                   </div>
@@ -468,13 +469,13 @@ export const StudentGamificationHub: React.FC = () => {
                   <div className="p-4 rounded-2xl bg-gradient-to-r from-purple-500/10 via-indigo-500/10 to-[#00A896]/10 border border-indigo-200 dark:border-indigo-800 flex items-center justify-between">
                     <div>
                       <span className="text-[10px] font-normal uppercase tracking-wider text-indigo-500">
-                        Academic Standing
+                        {t('student:gamification.academicStanding')}
                       </span>
                       <h4 className="text-sm font-normal text-slate-900 dark:text-white">
-                        Level {state.level}: Master Scholar
+                        {t('student:gamification.levelMasterScholar', { level: state.level })}
                       </h4>
                       <p className="text-[11px] font-normal text-slate-500 dark:text-white">
-                        80 XP remaining to unlock Level 5: Senior Polymath.
+                        {t('student:gamification.nextLevelHint')}
                       </p>
                     </div>
                     <Trophy className="w-8 h-8 text-amber-500" />
@@ -486,7 +487,7 @@ export const StudentGamificationHub: React.FC = () => {
               {activeTab === 'badges' && (
                 <div className="space-y-3">
                   <p className="text-xs font-normal text-slate-500 dark:text-white">
-                    Earn achievement badges by keeping your daily learning streak alive, mastering formulas, and solving doubt questions.
+                    {t('student:gamification.badgesIntro')}
                   </p>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -511,11 +512,11 @@ export const StudentGamificationHub: React.FC = () => {
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center justify-between">
                             <h5 className="text-xs font-normal text-slate-900 dark:text-white truncate">
-                              {b.name}
+                              {t(`student:gamification.streakBadges.${b.id}Name`)}
                             </h5>
                             {b.unlocked ? (
                               <span className="text-[10px] font-normal text-emerald-600 dark:text-emerald-400">
-                                Unlocked
+                                {t('student:gamification.unlocked')}
                               </span>
                             ) : (
                               <span className="text-[10px] font-normal text-slate-400 dark:text-white">
@@ -524,7 +525,7 @@ export const StudentGamificationHub: React.FC = () => {
                             )}
                           </div>
                           <p className="text-[11px] font-normal text-slate-500 dark:text-white truncate">
-                            {b.desc}
+                            {t(`student:gamification.streakBadges.${b.id}Desc`)}
                           </p>
                         </div>
                       </div>
@@ -538,13 +539,13 @@ export const StudentGamificationHub: React.FC = () => {
             <div className="p-4 bg-slate-50 dark:bg-slate-900/80 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs font-normal text-slate-500 dark:text-white">
               <span className="flex items-center gap-1.5">
                 <Info className="w-3.5 h-3.5 text-amber-500" />
-                Streak updates automatically after completing daily sprint tasks.
+                {t('student:gamification.footerNote')}
               </span>
               <button
                 onClick={() => setIsOpen(false)}
                 className="px-4 py-1.5 rounded-xl bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-white font-normal transition-colors cursor-pointer"
               >
-                Close
+                {t('common:actions.close')}
               </button>
             </div>
           </div>
@@ -559,7 +560,7 @@ export const StudentGamificationHub: React.FC = () => {
           <div className="font-lollipop-regular fixed top-5 left-1/2 -translate-x-1/2 z-[110] bg-slate-200 dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white px-6 py-2.5 rounded-2xl shadow-2xl flex items-center gap-2 animate-bounce">
             <Sparkles className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
             <span className="text-sm font-normal tracking-wide">
-              +25 XP Streak Bonus Claimed! Momentum Unstoppable! 🔥
+              {t('student:gamification.confettiToast')}
             </span>
           </div>,
           document.body

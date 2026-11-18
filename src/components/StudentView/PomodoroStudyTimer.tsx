@@ -14,6 +14,8 @@ import {
   Trash2,
 } from 'lucide-react';
 import { SubjectIcon } from '../common/SubjectIcon';
+import { useTranslation } from 'react-i18next';
+import { translateSubjectLabel } from '../../i18n/helpers';
 
 type TimerMode = 'focus' | 'shortBreak' | 'longBreak';
 
@@ -146,10 +148,45 @@ const playCompletionChime = () => {
 };
 
 export const PomodoroStudyTimer: React.FC<PomodoroStudyTimerProps> = ({ subjects }) => {
+  const { t, i18n } = useTranslation(['student', 'common']);
   const uniqueSubjects = useMemo(() => {
     const cleaned = Array.from(new Set(subjects.filter(Boolean)));
     return cleaned.length > 0 ? cleaned : ['Mathematics', 'Physics', 'Chemistry', 'Biology'];
   }, [subjects]);
+
+  const localizedModeMeta = useMemo<
+    Record<
+      TimerMode,
+      {
+        label: string;
+        subtitle: string;
+        ringColor: string;
+        accentText: string;
+      }
+    >
+  >(
+    () => ({
+      focus: {
+        label: t('student:timer.deepFocusLabel'),
+        subtitle: t('student:timer.deepFocusSub'),
+        ringColor: MODE_META.focus.ringColor,
+        accentText: MODE_META.focus.accentText,
+      },
+      shortBreak: {
+        label: t('student:timer.shortBreakLabel'),
+        subtitle: t('student:timer.shortBreakSub'),
+        ringColor: MODE_META.shortBreak.ringColor,
+        accentText: MODE_META.shortBreak.accentText,
+      },
+      longBreak: {
+        label: t('student:timer.longBreakLabel'),
+        subtitle: t('student:timer.longBreakSub'),
+        ringColor: MODE_META.longBreak.ringColor,
+        accentText: MODE_META.longBreak.accentText,
+      },
+    }),
+    [t]
+  );
 
   const loadInitialState = (): PersistedTimerState => {
     const today = getTodayKey();
@@ -206,13 +243,13 @@ export const PomodoroStudyTimer: React.FC<PomodoroStudyTimerProps> = ({ subjects
             const goal =
               typeof parsed.focusGoal === 'string' && parsed.focusGoal.trim()
                 ? parsed.focusGoal.trim()
-                : `${subj} Study Block`;
+                : t('student:timer.studyBlockDefault', { subject: translateSubjectLabel(subj, t) });
             const entry: SessionLogEntry = {
               id: `pom-${Date.now()}`,
               subject: subj,
               goal,
               minutes: settings.focusMinutes,
-              completedAt: new Date(completedTimestamp).toLocaleTimeString([], {
+              completedAt: new Date(completedTimestamp).toLocaleTimeString(i18n.language || 'en-US', {
                 hour: '2-digit',
                 minute: '2-digit',
               }),
@@ -324,12 +361,13 @@ export const PomodoroStudyTimer: React.FC<PomodoroStudyTimerProps> = ({ subjects
         const nextDuration = getDurationMs(nextMode, settings);
 
         if (triggeredNaturally) {
+          const localizedSubject = translateSubjectLabel(selectedSubject, t);
           const entry: SessionLogEntry = {
             id: `pom-${Date.now()}`,
             subject: selectedSubject,
-            goal: focusGoal.trim() || `${selectedSubject} Study Block`,
+            goal: focusGoal.trim() || t('student:timer.studyBlockDefault', { subject: localizedSubject }),
             minutes: settings.focusMinutes,
-            completedAt: new Date().toLocaleTimeString([], {
+            completedAt: new Date().toLocaleTimeString(i18n.language || 'en-US', {
               hour: '2-digit',
               minute: '2-digit',
             }),
@@ -338,8 +376,16 @@ export const PomodoroStudyTimer: React.FC<PomodoroStudyTimerProps> = ({ subjects
           setTodayLogs((prev) => [entry, ...prev].slice(0, 12));
           setCompletionNotice(
             shouldLongBreak
-              ? `Completed ${settings.focusMinutes} min of ${selectedSubject}. Take a ${settings.longBreakMinutes} min long break.`
-              : `Completed ${settings.focusMinutes} min of ${selectedSubject}. Time for a ${settings.shortBreakMinutes} min break.`
+              ? t('student:timer.focusCompleteLong', {
+                  mins: settings.focusMinutes,
+                  subject: localizedSubject,
+                  long: settings.longBreakMinutes,
+                })
+              : t('student:timer.focusCompleteShort', {
+                  mins: settings.focusMinutes,
+                  subject: localizedSubject,
+                  short: settings.shortBreakMinutes,
+                })
           );
         }
 
@@ -356,7 +402,7 @@ export const PomodoroStudyTimer: React.FC<PomodoroStudyTimerProps> = ({ subjects
       } else {
         const nextDuration = getDurationMs('focus', settings);
         if (triggeredNaturally) {
-          setCompletionNotice('Break complete. Ready for your next focus session.');
+          setCompletionNotice(t('student:timer.breakComplete'));
         }
         setMode('focus');
         setRemainingMs(nextDuration);
@@ -369,7 +415,7 @@ export const PomodoroStudyTimer: React.FC<PomodoroStudyTimerProps> = ({ subjects
         }
       }
     },
-    [mode, completedInCycle, settings, selectedSubject, focusGoal]
+    [mode, completedInCycle, settings, selectedSubject, focusGoal, t, i18n.language]
   );
 
   // Accurate wall-clock tick
@@ -394,14 +440,14 @@ export const PomodoroStudyTimer: React.FC<PomodoroStudyTimerProps> = ({ subjects
   useEffect(() => {
     if (typeof document === 'undefined') return;
     if (isRunning) {
-      document.title = `${formatClock(remainingMs)} · ${MODE_META[mode].label} — PivotIQ`;
+      document.title = `${formatClock(remainingMs)} · ${localizedModeMeta[mode].label} — PivotIQ`;
     } else {
       document.title = baseTitleRef.current;
     }
     return () => {
       document.title = baseTitleRef.current;
     };
-  }, [isRunning, remainingMs, mode]);
+  }, [isRunning, remainingMs, mode, localizedModeMeta]);
 
   // Clear completion notice after 6 seconds
   useEffect(() => {
@@ -481,11 +527,11 @@ export const PomodoroStudyTimer: React.FC<PomodoroStudyTimerProps> = ({ subjects
   const strokeDashoffset = ringCircumference * (1 - progressRatio);
 
   const totalFocusMinutesToday = todayLogs.reduce((acc, item) => acc + item.minutes, 0);
-  const activeMeta = MODE_META[mode];
+  const activeMeta = localizedModeMeta[mode];
 
   return (
     <section
-      aria-label="Pomodoro Study Timer"
+      aria-label={t('student:headers.pomodoro')}
       className="font-lollipop-regular w-full bg-white dark:bg-[#0E1A2D] rounded-2xl p-5 sm:p-6 border border-slate-200/90 dark:border-slate-800/80 shadow-xs transition-colors space-y-5"
     >
       {/* Top Header */}
@@ -496,16 +542,19 @@ export const PomodoroStudyTimer: React.FC<PomodoroStudyTimerProps> = ({ subjects
           </div>
           <div className="min-w-0">
             <h3 className="text-base font-normal text-slate-900 dark:text-white tracking-wide truncate">
-              Pomodoro Study Timer
+              {t('student:headers.pomodoro')}
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-300 flex flex-wrap items-center gap-2">
               <span className="tabular-nums">
-                {todayLogs.length} {todayLogs.length === 1 ? 'session' : 'sessions'} today
+                {t('student:timer.sessionsToday', {
+                  count: todayLogs.length,
+                  word: todayLogs.length === 1 ? t('student:timer.sessionSingle') : t('student:timer.sessionPlural'),
+                })}
               </span>
               <span aria-hidden="true">&middot;</span>
-              <span className="tabular-nums">{totalFocusMinutesToday} min focused</span>
+              <span className="tabular-nums">{t('student:timer.minFocused', { mins: totalFocusMinutesToday })}</span>
               <span aria-hidden="true">&middot;</span>
-              <span className="tabular-nums">Cycle {completedInCycle}/4</span>
+              <span className="tabular-nums">{t('student:timer.cycleOf4', { count: completedInCycle })}</span>
             </p>
           </div>
         </div>
@@ -514,14 +563,14 @@ export const PomodoroStudyTimer: React.FC<PomodoroStudyTimerProps> = ({ subjects
         <div className="flex flex-wrap items-center gap-2">
           <div
             role="tablist"
-            aria-label="Timer session mode"
+            aria-label={t('student:headers.pomodoro')}
             className="inline-flex items-center gap-1 p-1 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80"
           >
             {(
               [
-                { id: 'focus', label: `Focus · ${settings.focusMinutes}m` },
-                { id: 'shortBreak', label: `Short Break · ${settings.shortBreakMinutes}m` },
-                { id: 'longBreak', label: `Long Break · ${settings.longBreakMinutes}m` },
+                { id: 'focus', label: t('student:timer.focusPill', { mins: settings.focusMinutes }) },
+                { id: 'shortBreak', label: t('student:timer.shortBreakPill', { mins: settings.shortBreakMinutes }) },
+                { id: 'longBreak', label: t('student:timer.longBreakPill', { mins: settings.longBreakMinutes }) },
               ] as const
             ).map((item) => {
               const active = mode === item.id;
@@ -547,8 +596,8 @@ export const PomodoroStudyTimer: React.FC<PomodoroStudyTimerProps> = ({ subjects
           <button
             type="button"
             onClick={() => setSettings((s) => ({ ...s, soundEnabled: !s.soundEnabled }))}
-            aria-label={settings.soundEnabled ? 'Mute timer chime' : 'Enable timer chime'}
-            title={settings.soundEnabled ? 'Sound On' : 'Sound Muted'}
+            aria-label={settings.soundEnabled ? t('student:timer.muteChime') : t('student:timer.enableChime')}
+            title={settings.soundEnabled ? t('student:timer.soundOn') : t('student:timer.soundMuted')}
             className="p-2 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white border border-slate-300 dark:border-slate-600 transition-colors cursor-pointer shrink-0"
           >
             {settings.soundEnabled ? (
@@ -562,11 +611,11 @@ export const PomodoroStudyTimer: React.FC<PomodoroStudyTimerProps> = ({ subjects
             type="button"
             onClick={() => setShowSettings((prev) => !prev)}
             aria-expanded={showSettings}
-            aria-label="Customize timer intervals"
+            aria-label={t('student:timer.intervalsBtn')}
             className="px-3 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white border border-slate-300 dark:border-slate-600 text-xs flex items-center gap-1.5 whitespace-nowrap shrink-0 transition-colors cursor-pointer"
           >
             <SlidersHorizontal className="w-3.5 h-3.5" />
-            <span>Intervals</span>
+            <span>{t('student:timer.intervalsBtn')}</span>
           </button>
         </div>
       </div>
@@ -576,7 +625,7 @@ export const PomodoroStudyTimer: React.FC<PomodoroStudyTimerProps> = ({ subjects
         <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <span className="text-xs text-slate-700 dark:text-white">
-              Customize session lengths (minutes)
+              {t('student:timer.customizeLengths')}
             </span>
             <div className="flex flex-wrap items-center gap-2">
               <button
@@ -584,28 +633,28 @@ export const PomodoroStudyTimer: React.FC<PomodoroStudyTimerProps> = ({ subjects
                 onClick={() => applyPreset(25, 5, 15)}
                 className="px-3 py-1.5 rounded-lg bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white border border-slate-300 dark:border-slate-600 text-xs whitespace-nowrap shrink-0 cursor-pointer"
               >
-                Classic 25 / 5
+                {t('student:timer.presetClassic')}
               </button>
               <button
                 type="button"
                 onClick={() => applyPreset(50, 10, 20)}
                 className="px-3 py-1.5 rounded-lg bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white border border-slate-300 dark:border-slate-600 text-xs whitespace-nowrap shrink-0 cursor-pointer"
               >
-                Deep Work 50 / 10
+                {t('student:timer.presetDeepWork')}
               </button>
               <button
                 type="button"
                 onClick={() => applyPreset(15, 3, 10)}
                 className="px-3 py-1.5 rounded-lg bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white border border-slate-300 dark:border-slate-600 text-xs whitespace-nowrap shrink-0 cursor-pointer"
               >
-                Quick Sprint 15 / 3
+                {t('student:timer.presetQuickSprint')}
               </button>
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
             <label className="space-y-1 text-xs text-slate-600 dark:text-slate-300">
-              <span>Focus (min)</span>
+              <span>{t('student:timer.focusMins')}</span>
               <input
                 type="number"
                 min={1}
@@ -617,7 +666,7 @@ export const PomodoroStudyTimer: React.FC<PomodoroStudyTimerProps> = ({ subjects
             </label>
 
             <label className="space-y-1 text-xs text-slate-600 dark:text-slate-300">
-              <span>Short Break (min)</span>
+              <span>{t('student:timer.shortBreakMins')}</span>
               <input
                 type="number"
                 min={1}
@@ -629,7 +678,7 @@ export const PomodoroStudyTimer: React.FC<PomodoroStudyTimerProps> = ({ subjects
             </label>
 
             <label className="space-y-1 text-xs text-slate-600 dark:text-slate-300">
-              <span>Long Break (min)</span>
+              <span>{t('student:timer.longBreakMins')}</span>
               <input
                 type="number"
                 min={1}
@@ -649,7 +698,7 @@ export const PomodoroStudyTimer: React.FC<PomodoroStudyTimerProps> = ({ subjects
                 }
                 className="rounded border-slate-300 text-[#00A896] focus:ring-[#00A896]"
               />
-              <span>Auto-start next phase</span>
+              <span>{t('student:timer.autoStartNextPhase')}</span>
             </label>
           </div>
         </div>
@@ -670,7 +719,7 @@ export const PomodoroStudyTimer: React.FC<PomodoroStudyTimerProps> = ({ subjects
             onClick={() => setCompletionNotice(null)}
             className="text-emerald-700 dark:text-emerald-300 hover:underline cursor-pointer shrink-0"
           >
-            Dismiss
+            {t('common:actions.dismiss')}
           </button>
         </div>
       )}
@@ -722,13 +771,13 @@ export const PomodoroStudyTimer: React.FC<PomodoroStudyTimerProps> = ({ subjects
               </div>
 
               <span className="text-[11px] text-slate-500 dark:text-slate-300 truncate max-w-[140px]">
-                {isRunning ? 'In progress' : activeMeta.subtitle}
+                {isRunning ? t('student:timer.phaseInProgress') : activeMeta.subtitle}
               </span>
             </div>
           </div>
 
           {/* 4-Pomodoro Cycle Indicators */}
-          <div className="flex items-center gap-2" aria-label={`Cycle ${completedInCycle} of 4 completed`}>
+          <div className="flex items-center gap-2" aria-label={t('student:timer.cycleOf4', { count: completedInCycle })}>
             {[0, 1, 2, 3].map((idx) => {
               const filled = idx < completedInCycle;
               const current = idx === completedInCycle && mode === 'focus';
@@ -757,17 +806,17 @@ export const PomodoroStudyTimer: React.FC<PomodoroStudyTimerProps> = ({ subjects
               {isRunning ? (
                 <>
                   <Pause className="w-4 h-4" />
-                  <span>Pause</span>
+                  <span>{t('student:timer.pause')}</span>
                 </>
               ) : (
                 <>
                   <Play className="w-4 h-4" />
                   <span>
                     {remainingMs < totalDurationMs
-                      ? 'Resume'
+                      ? t('student:timer.resume')
                       : mode === 'focus'
-                      ? 'Start Focus'
-                      : 'Start Break'}
+                      ? t('student:timer.start')
+                      : t('student:timer.startBreak')}
                   </span>
                 </>
               )}
@@ -776,23 +825,23 @@ export const PomodoroStudyTimer: React.FC<PomodoroStudyTimerProps> = ({ subjects
             <button
               type="button"
               onClick={handleReset}
-              aria-label="Reset timer"
-              title="Reset"
+              aria-label={t('student:timer.reset')}
+              title={t('student:timer.reset')}
               className="px-3.5 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white border border-slate-300 dark:border-slate-600 text-xs flex items-center gap-1.5 whitespace-nowrap shrink-0 transition-colors cursor-pointer"
             >
               <RotateCcw className="w-3.5 h-3.5" />
-              <span>Reset</span>
+              <span>{t('student:timer.reset')}</span>
             </button>
 
             <button
               type="button"
               onClick={handleSkip}
-              aria-label="Skip to next phase"
-              title="Skip phase"
+              aria-label={t('student:timer.skipBtn')}
+              title={t('student:timer.skipBtn')}
               className="px-3.5 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white border border-slate-300 dark:border-slate-600 text-xs flex items-center gap-1.5 whitespace-nowrap shrink-0 transition-colors cursor-pointer"
             >
               <SkipForward className="w-3.5 h-3.5" />
-              <span>Skip</span>
+              <span>{t('student:timer.skipBtn')}</span>
             </button>
           </div>
         </div>
@@ -805,7 +854,7 @@ export const PomodoroStudyTimer: React.FC<PomodoroStudyTimerProps> = ({ subjects
                 htmlFor="pomodoro-subject-select"
                 className="text-xs text-slate-600 dark:text-slate-300 block"
               >
-                Study Subject
+                {t('student:timer.studySubjectLabel')}
               </label>
               <select
                 id="pomodoro-subject-select"
@@ -815,7 +864,7 @@ export const PomodoroStudyTimer: React.FC<PomodoroStudyTimerProps> = ({ subjects
               >
                 {uniqueSubjects.map((subj) => (
                   <option key={subj} value={subj}>
-                    {subj}
+                    {translateSubjectLabel(subj, t)}
                   </option>
                 ))}
               </select>
@@ -826,14 +875,14 @@ export const PomodoroStudyTimer: React.FC<PomodoroStudyTimerProps> = ({ subjects
                 htmlFor="pomodoro-focus-goal"
                 className="text-xs text-slate-600 dark:text-slate-300 block"
               >
-                Session Goal (optional)
+                {t('student:timer.sessionGoalLabel')}
               </label>
               <input
                 id="pomodoro-focus-goal"
                 type="text"
                 value={focusGoal}
                 onChange={(e) => setFocusGoal(e.target.value)}
-                placeholder="e.g., Solve 10 Quadratic Equations"
+                placeholder={t('student:timer.sessionGoalPlaceholder')}
                 className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#00A896]"
               />
             </div>
@@ -844,7 +893,7 @@ export const PomodoroStudyTimer: React.FC<PomodoroStudyTimerProps> = ({ subjects
             <div className="flex items-center justify-between gap-2">
               <h4 className="text-xs text-slate-700 dark:text-white flex items-center gap-1.5">
                 <Clock className="w-3.5 h-3.5 text-[#00A896]" />
-                <span>Today&apos;s Completed Sessions</span>
+                <span>{t('student:timer.todaysCompletedSessions')}</span>
               </h4>
 
               {todayLogs.length > 0 && (
@@ -857,14 +906,14 @@ export const PomodoroStudyTimer: React.FC<PomodoroStudyTimerProps> = ({ subjects
                   className="text-[11px] text-slate-500 dark:text-slate-300 hover:text-slate-800 dark:hover:text-white flex items-center gap-1 cursor-pointer"
                 >
                   <Trash2 className="w-3 h-3" />
-                  <span>Clear Log</span>
+                  <span>{t('student:timer.clearLogBtn')}</span>
                 </button>
               )}
             </div>
 
             {todayLogs.length === 0 ? (
               <div className="py-5 px-4 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-dashed border-slate-200 dark:border-slate-700/70 text-center text-xs text-slate-500 dark:text-slate-300">
-                Complete a focus block to record your subject progress here. Every 4 sessions unlocks a long break.
+                {t('student:timer.emptyLogsHint')}
               </div>
             ) : (
               <div className="max-h-44 overflow-y-auto space-y-2 pr-1">
@@ -878,9 +927,9 @@ export const PomodoroStudyTimer: React.FC<PomodoroStudyTimerProps> = ({ subjects
                       <div className="min-w-0">
                         <p className="text-slate-900 dark:text-white truncate">{entry.goal}</p>
                         <p className="text-[11px] text-slate-500 dark:text-slate-300 flex items-center gap-1.5">
-                          <span>{entry.subject}</span>
+                          <span>{translateSubjectLabel(entry.subject, t)}</span>
                           <span aria-hidden="true">&middot;</span>
-                          <span className="tabular-nums">{entry.minutes} min</span>
+                          <span className="tabular-nums">{t('student:timer.minsShort', { mins: entry.minutes })}</span>
                           <span aria-hidden="true">&middot;</span>
                           <span className="tabular-nums">{entry.completedAt}</span>
                         </p>

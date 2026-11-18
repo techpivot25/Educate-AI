@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Award,
   BookOpen,
@@ -28,6 +29,7 @@ import {
 import { useApp } from '../../context/AppContext';
 import { CommunityPost, ForumSpace } from '../../types';
 import { SubjectIcon } from '../common/SubjectIcon';
+import { translateSubjectLabel } from '../../i18n/helpers';
 
 interface CommunityDoubtForumProps {
   isModeratorView?: boolean;
@@ -90,6 +92,7 @@ export const CommunityDoubtForum: React.FC<CommunityDoubtForumProps> = ({
     addForumResource,
     upvoteForumResource,
   } = useApp();
+  const { t } = useTranslation(['student', 'common']);
 
   const currentUserName = currentUser?.name || 'Praveen Bhatia';
   const currentUserId = currentUser?.id || 'user-stu-1';
@@ -287,11 +290,11 @@ export const CommunityDoubtForum: React.FC<CommunityDoubtForumProps> = ({
     e.preventDefault();
     setAskError(null);
     if (askTitle.trim().length < 8) {
-      setAskError('Please enter a clear, descriptive question title (at least 8 characters).');
+      setAskError(t('student:community.errTitleShort'));
       return;
     }
     if (askContent.trim().length < 15) {
-      setAskError('Please include the full question so peers and teachers can help effectively.');
+      setAskError(t('student:community.errContentShort'));
       return;
     }
     setIsSubmittingAsk(true);
@@ -314,7 +317,7 @@ export const CommunityDoubtForum: React.FC<CommunityDoubtForumProps> = ({
     setIsSubmittingAsk(false);
 
     if (!result.success) {
-      setAskError(result.error || 'Could not post question. Please check participation guidelines.');
+      setAskError(result.error || t('student:community.errPostGeneric'));
       return;
     }
 
@@ -335,7 +338,7 @@ export const CommunityDoubtForum: React.FC<CommunityDoubtForumProps> = ({
     const res = await addCommunityComment(postId, content);
     setSubmittingReplyId(null);
     if (!res.success) {
-      setReplyErrors((prev) => ({ ...prev, [postId]: res.error || 'Unable to post reply.' }));
+      setReplyErrors((prev) => ({ ...prev, [postId]: res.error || t('student:community.errReplyGeneric') }));
       return;
     }
     setReplyDrafts((prev) => ({ ...prev, [postId]: '' }));
@@ -403,14 +406,14 @@ export const CommunityDoubtForum: React.FC<CommunityDoubtForumProps> = ({
         <div className="space-y-1">
           <div className="flex flex-wrap items-center gap-3">
             <h2 className="text-2xl font-lollipop-regular text-slate-900 dark:text-white tracking-wide">
-              Community Doubt Forum
+              {t('student:community.heading')}
             </h2>
             <span className="text-xs font-lollipop-regular text-[#00A896]">
-              · Q&amp;A Peer &amp; Educator Collaboration
+              {t('student:community.headerBadge')}
             </span>
           </div>
           <p className="text-sm font-lollipop-regular text-slate-600 dark:text-slate-300">
-            Organized by subject, chapter, assignment help, study groups &amp; revision resources · Step-by-step explanations encouraged
+            {t('student:community.subtitle')}
           </p>
         </div>
 
@@ -421,7 +424,7 @@ export const CommunityDoubtForum: React.FC<CommunityDoubtForumProps> = ({
             className="px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-white text-xs sm:text-sm font-lollipop-regular flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
           >
             <Sparkles className="w-4 h-4 text-slate-600 dark:text-slate-300" />
-            <span>Weekly Digest</span>
+            <span>{t('student:community.weeklyDigest')}</span>
           </button>
 
           <button
@@ -430,7 +433,7 @@ export const CommunityDoubtForum: React.FC<CommunityDoubtForumProps> = ({
             className="px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-white text-xs sm:text-sm font-lollipop-regular flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
           >
             <ShieldCheck className="w-4 h-4 text-[#00A896]" />
-            <span>Participation Rules</span>
+            <span>{t('student:community.participationRules')}</span>
           </button>
 
           <button
@@ -439,7 +442,7 @@ export const CommunityDoubtForum: React.FC<CommunityDoubtForumProps> = ({
             className="px-4 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white border border-slate-300 dark:border-slate-600 text-xs sm:text-sm font-lollipop-regular shadow-xs flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
           >
             <Plus className="w-4 h-4" />
-            <span>Ask a Doubt</span>
+            <span>{t('student:community.askDoubt')}</span>
           </button>
         </div>
       </div>
@@ -452,25 +455,30 @@ export const CommunityDoubtForum: React.FC<CommunityDoubtForumProps> = ({
             <div className="flex items-center justify-between text-xs font-lollipop-regular text-slate-700 dark:text-slate-200">
               <span className="flex items-center gap-1.5">
                 <Flame className="w-4 h-4" />
-                <span>Doubt of the Day</span>
+                <span>{t('student:community.doubtOfDay')}</span>
               </span>
               {doubtOfTheDay && (
                 <span className="inline-flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
                   <SubjectIcon subject={doubtOfTheDay.subject} size="xs" />
                   <span>
-                    {doubtOfTheDay.subject} · {doubtOfTheDay.chapter_unit || `Grade ${doubtOfTheDay.grade_level}`}
+                    {translateSubjectLabel(doubtOfTheDay.subject, t)} ·{' '}
+                    {doubtOfTheDay.chapter_unit ||
+                      `${t('student:community.filterGrade')} ${doubtOfTheDay.grade_level}`}
                   </span>
                 </span>
               )}
             </div>
             <p className="text-sm font-lollipop-regular text-slate-900 dark:text-white line-clamp-2">
-              {doubtOfTheDay?.title || 'Daily conceptual challenge'}
+              {doubtOfTheDay?.title || t('student:community.dailyChallengeFallback')}
             </p>
           </div>
           {doubtOfTheDay && (
             <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800 text-xs font-lollipop-regular">
               <span className="text-slate-500 dark:text-slate-400 tabular-nums">
-                {doubtOfTheDay.upvotes} upvotes · {doubtOfTheDay.comments_count} replies
+                {t('student:community.upvotesRepliesLine', {
+                  upvotes: doubtOfTheDay.upvotes,
+                  replies: doubtOfTheDay.comments_count,
+                })}
               </span>
               <button
                 type="button"
@@ -482,7 +490,7 @@ export const CommunityDoubtForum: React.FC<CommunityDoubtForumProps> = ({
                 }}
                 className="text-slate-600 dark:text-slate-300 hover:underline cursor-pointer whitespace-nowrap"
               >
-                Open Thread →
+                {t('student:community.openThread')} &rarr;
               </button>
             </div>
           )}
@@ -494,10 +502,10 @@ export const CommunityDoubtForum: React.FC<CommunityDoubtForumProps> = ({
             <div className="flex items-center justify-between text-xs font-lollipop-regular">
               <span className="flex items-center gap-1.5 text-[#00A896]">
                 <Award className="w-4 h-4" />
-                <span>Peer-Answer Challenge</span>
+                <span>{t('student:community.peerChallenge')}</span>
               </span>
               <span className="text-slate-700 dark:text-slate-200 tabular-nums">
-                {peerAnswersThisWeek} / {challengeTarget} this week
+                {peerAnswersThisWeek} / {challengeTarget} {t('student:community.thisWeek')}
               </span>
             </div>
             <div className="w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
@@ -508,13 +516,15 @@ export const CommunityDoubtForum: React.FC<CommunityDoubtForumProps> = ({
             </div>
             <p className="text-xs font-lollipop-regular text-slate-600 dark:text-slate-300">
               {peerAnswersThisWeek >= challengeTarget
-                ? 'Weekly goal reached! Keep helping peers in the Unanswered Queue.'
-                : `Answer ${challengeTarget - peerAnswersThisWeek} more unanswered doubt this week to earn the Peer Helper milestone.`}
+                ? t('student:community.challengeGoalReached')
+                : t('student:community.challengeMoreNeeded', {
+                    remaining: challengeTarget - peerAnswersThisWeek,
+                  })}
             </p>
           </div>
           <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800 text-xs font-lollipop-regular text-slate-500 dark:text-slate-300 tabular-nums">
-            <span>Forum Points: {forumPoints} pts</span>
-            <span>Best Answers: {bestAnswerCountForUser}</span>
+            <span>{t('student:community.forumPointsLine', { pts: forumPoints })}</span>
+            <span>{t('student:community.bestAnswersLine', { count: bestAnswerCountForUser })}</span>
           </div>
         </div>
 
@@ -524,17 +534,19 @@ export const CommunityDoubtForum: React.FC<CommunityDoubtForumProps> = ({
             <div className="flex items-center justify-between text-xs font-lollipop-regular text-slate-600 dark:text-slate-300">
               <span className="flex items-center gap-1.5 text-slate-900 dark:text-white">
                 <Video className="w-4 h-4 text-slate-600 dark:text-slate-300" />
-                <span>Weekly Live Doubt-Clearing</span>
+                <span>{t('student:community.liveSession')}</span>
               </span>
-              <span className="text-emerald-600 dark:text-emerald-400">Thu · 5:00 PM</span>
+              <span className="text-emerald-600 dark:text-emerald-400">
+                {t('student:community.liveSlotTime')}
+              </span>
             </div>
             <p className="text-sm font-lollipop-regular text-slate-900 dark:text-white">
-              Class 10 Algebra, Calculus &amp; Physics Numericals Live Walkthrough
+              {t('student:community.liveWalkthroughTitle')}
             </p>
           </div>
           <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800 gap-2">
             <span className="text-xs font-lollipop-regular text-slate-500 dark:text-slate-400">
-              Hosted by Dr. David Vance
+              {t('student:community.hostedByVance')}
             </span>
             <div className="flex items-center gap-2">
               <button
@@ -546,7 +558,7 @@ export const CommunityDoubtForum: React.FC<CommunityDoubtForumProps> = ({
                     : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-white'
                 }`}
               >
-                {liveSessionRsvp ? '✓ Registered' : 'RSVP Seat'}
+                {liveSessionRsvp ? t('student:community.rsvpRegistered') : t('student:community.rsvpSeat')}
               </button>
               {onJoinLiveSession && (
                 <button
@@ -554,7 +566,7 @@ export const CommunityDoubtForum: React.FC<CommunityDoubtForumProps> = ({
                   onClick={onJoinLiveSession}
                   className="px-3 py-1.5 rounded-lg bg-[#00A896] hover:bg-[#009282] text-white text-xs font-lollipop-regular cursor-pointer whitespace-nowrap"
                 >
-                  Join Live
+                  {t('student:community.joinLive')}
                 </button>
               )}
             </div>
@@ -565,21 +577,29 @@ export const CommunityDoubtForum: React.FC<CommunityDoubtForumProps> = ({
       {/* Space Tabs Bar */}
       <div className="bg-white dark:bg-[#0E1A2D] rounded-2xl p-2 border border-slate-200/90 dark:border-slate-800/80 shadow-xs flex flex-wrap items-center gap-1.5">
         {[
-          { id: 'subject-doubts' as ForumSpace, label: 'Subject-Wise Doubts', icon: <Layers className="w-4 h-4" /> },
-          { id: 'assignment-exam' as ForumSpace, label: 'Assignment & Exam Help', icon: <FileText className="w-4 h-4" /> },
+          {
+            id: 'subject-doubts' as ForumSpace,
+            label: t('student:community.tabSubjectDoubts'),
+            icon: <Layers className="w-4 h-4" />,
+          },
+          {
+            id: 'assignment-exam' as ForumSpace,
+            label: t('student:community.tabAssignmentExam'),
+            icon: <FileText className="w-4 h-4" />,
+          },
           {
             id: 'unanswered' as ForumSpace,
-            label: `Unanswered Queue (${unansweredCount})`,
+            label: t('student:community.unansweredTabCount', { count: unansweredCount }),
             icon: <Clock className="w-4 h-4" />,
           },
           {
             id: 'study-groups' as ForumSpace,
-            label: `Study Groups (${forumStudyGroups.length})`,
+            label: t('student:community.studyGroupsTabCount', { count: forumStudyGroups.length }),
             icon: <Users className="w-4 h-4" />,
           },
           {
             id: 'resources' as ForumSpace,
-            label: `Resource Library (${forumResources.length})`,
+            label: t('student:community.resourcesTabCount', { count: forumResources.length }),
             icon: <BookOpen className="w-4 h-4" />,
           },
         ].map((tab) => {
@@ -604,7 +624,9 @@ export const CommunityDoubtForum: React.FC<CommunityDoubtForumProps> = ({
         {isEducator && flaggedCount > 0 && (
           <span className="ml-auto px-3 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 text-xs font-lollipop-regular flex items-center gap-1.5 whitespace-nowrap">
             <Flag className="w-3.5 h-3.5" />
-            <span className="tabular-nums">{flaggedCount} Flagged for Moderator Review</span>
+            <span className="tabular-nums">
+              {t('student:community.flaggedReviewCount', { count: flaggedCount })}
+            </span>
           </span>
         )}
       </div>
@@ -619,10 +641,10 @@ export const CommunityDoubtForum: React.FC<CommunityDoubtForumProps> = ({
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={
               activeSpace === 'study-groups'
-                ? 'Search study groups by subject, chapter, or schedule...'
+                ? t('student:community.searchGroups')
                 : activeSpace === 'resources'
-                ? 'Search notes, previous papers, revision guides, or videos...'
-                : 'Search doubts by title, chapter (e.g. Class 10 Algebra), or keyword...'
+                ? t('student:community.searchResources')
+                : t('student:community.searchDoubts')
             }
             className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-lollipop-regular text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-slate-400"
           />
@@ -633,13 +655,13 @@ export const CommunityDoubtForum: React.FC<CommunityDoubtForumProps> = ({
             {/* Quick Subject Icon Strip matching illustrated subject icons */}
             <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
               {[
-                { value: 'All', label: 'All Subjects', iconSubject: 'General' },
-                { value: 'Physics', label: 'Physics', iconSubject: 'Physics' },
-                { value: 'Chemistry', label: 'Chemistry', iconSubject: 'Chemistry' },
-                { value: 'Mathematics', label: 'Maths', iconSubject: 'Mathematics' },
-                { value: 'Biology', label: 'Biology', iconSubject: 'Biology' },
-                { value: 'Coding', label: 'Coding', iconSubject: 'Coding' },
-                { value: 'English', label: 'General', iconSubject: 'General' },
+                { value: 'All', label: t('student:community.allSubjects'), iconSubject: 'General' },
+                { value: 'Physics', label: translateSubjectLabel('Physics', t), iconSubject: 'Physics' },
+                { value: 'Chemistry', label: translateSubjectLabel('Chemistry', t), iconSubject: 'Chemistry' },
+                { value: 'Mathematics', label: translateSubjectLabel('Maths', t), iconSubject: 'Mathematics' },
+                { value: 'Biology', label: translateSubjectLabel('Biology', t), iconSubject: 'Biology' },
+                { value: 'Coding', label: translateSubjectLabel('Coding', t), iconSubject: 'Coding' },
+                { value: 'English', label: translateSubjectLabel('General', t), iconSubject: 'General' },
               ].map((item) => {
                 const isActiveSub = selectedSubject.toLowerCase() === item.value.toLowerCase();
                 return (
@@ -664,12 +686,12 @@ export const CommunityDoubtForum: React.FC<CommunityDoubtForumProps> = ({
             <select
               value={selectedSubject}
               onChange={(e) => setSelectedSubject(e.target.value)}
-              aria-label="Filter by subject"
+              aria-label={t('student:community.filterSubject')}
               className="px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm font-lollipop-regular text-slate-800 dark:text-white cursor-pointer"
             >
               {SUBJECT_OPTIONS.map((sub) => (
                 <option key={sub} value={sub}>
-                  {sub === 'All' ? 'All Subjects' : sub}
+                  {sub === 'All' ? t('student:community.allSubjects') : translateSubjectLabel(sub, t)}
                 </option>
               ))}
             </select>
@@ -677,12 +699,12 @@ export const CommunityDoubtForum: React.FC<CommunityDoubtForumProps> = ({
             <select
               value={selectedChapter}
               onChange={(e) => setSelectedChapter(e.target.value)}
-              aria-label="Filter by chapter or unit"
+              aria-label={t('student:community.doubtChapterLabel')}
               className="px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm font-lollipop-regular text-slate-800 dark:text-white cursor-pointer"
             >
               {availableChapters.map((ch) => (
                 <option key={ch} value={ch}>
-                  {ch}
+                  {ch === 'All Chapters' ? t('student:community.allChapters') : ch}
                 </option>
               ))}
             </select>
@@ -690,13 +712,13 @@ export const CommunityDoubtForum: React.FC<CommunityDoubtForumProps> = ({
             <select
               value={selectedGrade}
               onChange={(e) => setSelectedGrade(e.target.value)}
-              aria-label="Filter by grade"
+              aria-label={t('student:community.filterGrade')}
               className="px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm font-lollipop-regular text-slate-800 dark:text-white cursor-pointer"
             >
-              <option value="All">All Grades</option>
+              <option value="All">{t('student:community.allGrades')}</option>
               {[6, 7, 8, 9, 10, 11, 12].map((g) => (
                 <option key={g} value={String(g)}>
-                  Grade {g}
+                  {t('student:community.filterGrade')} {g}
                 </option>
               ))}
             </select>
@@ -704,12 +726,12 @@ export const CommunityDoubtForum: React.FC<CommunityDoubtForumProps> = ({
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as 'priority' | 'upvotes' | 'newest')}
-              aria-label="Sort doubts"
+              aria-label={t('student:community.sortLabel')}
               className="px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm font-lollipop-regular text-slate-800 dark:text-white cursor-pointer"
             >
-              <option value="priority">Sort: Priority Queue</option>
-              <option value="upvotes">Sort: Most Upvoted</option>
-              <option value="newest">Sort: Newest</option>
+              <option value="priority">{t('student:community.sortPriority')}</option>
+              <option value="upvotes">{t('student:community.sortUpvotes')}</option>
+              <option value="newest">{t('student:community.sortNewest')}</option>
             </select>
             </div>
           </div>
@@ -724,7 +746,7 @@ export const CommunityDoubtForum: React.FC<CommunityDoubtForumProps> = ({
             >
               {SUBJECT_OPTIONS.map((sub) => (
                 <option key={sub} value={sub}>
-                  {sub === 'All' ? 'All Subjects' : sub}
+                  {sub === 'All' ? t('student:community.allSubjects') : translateSubjectLabel(sub, t)}
                 </option>
               ))}
             </select>
@@ -734,7 +756,7 @@ export const CommunityDoubtForum: React.FC<CommunityDoubtForumProps> = ({
               className="px-4 py-2.5 rounded-xl bg-[#00A896] hover:bg-[#009282] text-white text-xs sm:text-sm font-lollipop-regular flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
             >
               <Plus className="w-4 h-4" />
-              <span>Create Study Group</span>
+              <span>{t('student:community.createGroup')}</span>
             </button>
           </div>
         )}
@@ -746,10 +768,10 @@ export const CommunityDoubtForum: React.FC<CommunityDoubtForumProps> = ({
               onChange={(e) => setResourceTypeFilter(e.target.value)}
               className="px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm font-lollipop-regular text-slate-800 dark:text-white cursor-pointer"
             >
-              <option value="All">All Resource Types</option>
+              <option value="All">{t('student:community.allResourceTypes')}</option>
               {RESOURCE_TYPES.map((rt) => (
                 <option key={rt} value={rt}>
-                  {rt}
+                  {t(`student:community.resourceTypes.${rt}`, { defaultValue: rt })}
                 </option>
               ))}
             </select>
@@ -760,7 +782,7 @@ export const CommunityDoubtForum: React.FC<CommunityDoubtForumProps> = ({
             >
               {SUBJECT_OPTIONS.map((sub) => (
                 <option key={sub} value={sub}>
-                  {sub === 'All' ? 'All Subjects' : sub}
+                  {sub === 'All' ? t('student:community.allSubjects') : translateSubjectLabel(sub, t)}
                 </option>
               ))}
             </select>
@@ -770,7 +792,7 @@ export const CommunityDoubtForum: React.FC<CommunityDoubtForumProps> = ({
               className="px-4 py-2.5 rounded-xl bg-[#00A896] hover:bg-[#009282] text-white text-xs sm:text-sm font-lollipop-regular flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
             >
               <Plus className="w-4 h-4" />
-              <span>Share Resource</span>
+              <span>{t('student:community.shareResource')}</span>
             </button>
           </div>
         )}
@@ -784,10 +806,10 @@ export const CommunityDoubtForum: React.FC<CommunityDoubtForumProps> = ({
           {activeSpace === 'unanswered' && (
             <div className="bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/80 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-sm font-lollipop-regular text-slate-700 dark:text-slate-200">
               <span>
-                Priority Queue: Questions awaiting an accepted or teacher-verified answer appear here first so no student doubt goes unanswered.
+                {t('student:community.priorityQueueNote')}
               </span>
               <span className="text-slate-700 dark:text-slate-200 whitespace-nowrap tabular-nums">
-                {filteredPosts.length} Open Doubts
+                {t('student:community.openDoubtsCount', { count: filteredPosts.length })}
               </span>
             </div>
           )}
@@ -795,10 +817,10 @@ export const CommunityDoubtForum: React.FC<CommunityDoubtForumProps> = ({
           {filteredPosts.length === 0 ? (
             <div className="bg-white dark:bg-[#0E1A2D] rounded-2xl p-10 border border-slate-200/90 dark:border-slate-800/80 text-center space-y-3">
               <p className="text-base font-lollipop-regular text-slate-800 dark:text-white">
-                No matching doubts found for the current filters.
+                {t('student:community.noDoubtsFound')}
               </p>
               <p className="text-sm font-lollipop-regular text-slate-500 dark:text-slate-400">
-                Try clearing your search or post a new question for peers and instructors.
+                {t('student:community.noDoubtsHint')}
               </p>
               <div className="flex items-center justify-center gap-3 pt-2">
                 <button
@@ -811,14 +833,14 @@ export const CommunityDoubtForum: React.FC<CommunityDoubtForumProps> = ({
                   }}
                   className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-sm font-lollipop-regular text-slate-700 dark:text-white cursor-pointer"
                 >
-                  Clear Filters
+                  {t('student:community.clearFiltersBtn')}
                 </button>
                 <button
                   type="button"
                   onClick={() => setIsAskModalOpen(true)}
                   className="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white border border-slate-300 dark:border-slate-600 text-sm font-lollipop-regular cursor-pointer"
                 >
-                  Ask a Doubt
+                  {t('student:community.askDoubt')}
                 </button>
               </div>
             </div>
@@ -849,7 +871,7 @@ export const CommunityDoubtForum: React.FC<CommunityDoubtForumProps> = ({
                           <span aria-hidden="true">·</span>
                           <span className="inline-flex items-center gap-1.5">
                             <SubjectIcon subject={post.subject} size="xs" />
-                            <span>{post.subject}</span>
+                            <span>{translateSubjectLabel(post.subject, t)}</span>
                           </span>
                           {post.chapter_unit && (
                             <>
@@ -858,11 +880,13 @@ export const CommunityDoubtForum: React.FC<CommunityDoubtForumProps> = ({
                             </>
                           )}
                           <span aria-hidden="true">·</span>
-                          <span>Grade {post.grade_level}</span>
+                          <span>{t('student:community.filterGrade')} {post.grade_level}</span>
                           {post.space === 'assignment-exam' && (
                             <>
                               <span aria-hidden="true">·</span>
-                              <span className="text-slate-700 dark:text-slate-200">Assignment &amp; Exam Help</span>
+                              <span className="text-slate-700 dark:text-slate-200">
+                                {t('student:community.assignmentExamHelp')}
+                              </span>
                             </>
                           )}
                           <span aria-hidden="true">·</span>
@@ -882,27 +906,29 @@ export const CommunityDoubtForum: React.FC<CommunityDoubtForumProps> = ({
                           {hasAccepted && (
                             <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
                               <CheckCircle2 className="w-3.5 h-3.5" />
-                              <span>Accepted Answer</span>
+                              <span>{t('student:community.acceptedAnswer')}</span>
                             </span>
                           )}
                           {post.is_verified && (
                             <span className="flex items-center gap-1 text-[#00A896]">
                               <ShieldCheck className="w-3.5 h-3.5" />
-                              <span>Teacher-Verified Solution</span>
+                              <span>{t('student:community.teacherVerifiedSolution')}</span>
                             </span>
                           )}
                           {!hasAccepted && !post.is_verified && (
                             <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
                               <Clock className="w-3.5 h-3.5" />
                               <span>
-                                {post.is_high_priority ? 'High-Priority Unanswered' : 'Awaiting Accepted Answer'}
+                                {post.is_high_priority
+                                  ? t('student:community.highPriorityUnanswered')
+                                  : t('student:community.awaitingAccepted')}
                               </span>
                             </span>
                           )}
                           {post.is_flagged && (
                             <span className="flex items-center gap-1 text-rose-600 dark:text-rose-400">
                               <Flag className="w-3.5 h-3.5" />
-                              <span>Flagged for Moderator Review</span>
+                              <span>{t('student:community.flaggedReview')}</span>
                             </span>
                           )}
                         </div>
@@ -913,7 +939,7 @@ export const CommunityDoubtForum: React.FC<CommunityDoubtForumProps> = ({
                       type="button"
                       onClick={() => upvoteCommunityPost(post.id)}
                       className="min-h-[40px] px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs sm:text-sm font-lollipop-regular text-slate-700 dark:text-white transition-colors cursor-pointer flex items-center gap-1.5 shrink-0 tabular-nums"
-                      title="Upvote this question"
+                      title={t('student:community.upvote')}
                     >
                       <ThumbsUp className="w-4 h-4" />
                       <span>{post.upvotes}</span>
@@ -927,7 +953,7 @@ export const CommunityDoubtForum: React.FC<CommunityDoubtForumProps> = ({
                     {post.attempted_solution && (
                       <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/70 space-y-1">
                         <div className="text-xs font-lollipop-regular text-slate-500 dark:text-slate-400">
-                          Student&apos;s Attempted Solution
+                          {t('student:community.studentAttempted')}
                         </div>
                         <p className="text-sm font-lollipop-regular text-slate-800 dark:text-slate-100">
                           {post.attempted_solution}

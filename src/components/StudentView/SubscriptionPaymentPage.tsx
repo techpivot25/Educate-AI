@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   ArrowLeft,
   Building2,
@@ -18,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { AI_ADDON_PACKS, AI_MODEL_TIER_SPECS, formatCompactTokens } from '../../utils/tokenPricing';
+import { translateStatusLabel } from '../../i18n/helpers';
 
 export type PlanId = string;
 export type PaymentOptionId = 'Credit Card' | 'Debit Card' | 'PayPal' | 'UPI' | 'Net Banking';
@@ -53,6 +55,8 @@ export const SubscriptionPaymentPage: React.FC<SubscriptionPaymentPageProps> = (
     currentUser,
     addNotification,
   } = useApp();
+  const { t, i18n } = useTranslation(['student', 'common']);
+  const intlLocale = i18n.language === 'en' ? 'en-IN' : `${i18n.language}-IN`;
 
   const todayIso = new Date().toISOString().split('T')[0];
 
@@ -156,26 +160,33 @@ export const SubscriptionPaymentPage: React.FC<SubscriptionPaymentPageProps> = (
   };
 
   const validatePaymentForm = (): string | null => {
+    const localizedMethod = t(`student:subscription.paymentMethods.${paymentOption}`, {
+      defaultValue: paymentOption,
+    });
     if (paymentOption === 'Credit Card' || paymentOption === 'Debit Card') {
-      if (!cardHolder.trim()) return `Please enter the cardholder name for your ${paymentOption}.`;
+      if (!cardHolder.trim()) {
+        return t('student:subscription.errCardHolder', { method: localizedMethod });
+      }
       const rawDigits = cardNumber.replace(/\s+/g, '');
-      if (rawDigits.length < 12) return `Please enter a valid ${paymentOption.toLowerCase()} number.`;
-      if (!/^\d{2}\/\d{2}$/.test(cardExpiry.trim())) return 'Please enter expiry in MM/YY format.';
-      if (cardCvv.replace(/\D/g, '').length < 3) return 'Please enter a valid 3 or 4 digit CVV.';
+      if (rawDigits.length < 12) {
+        return t('student:subscription.errCardNum', { method: localizedMethod });
+      }
+      if (!/^\d{2}\/\d{2}$/.test(cardExpiry.trim())) return t('student:subscription.errExpiry');
+      if (cardCvv.replace(/\D/g, '').length < 3) return t('student:subscription.errCvv');
     } else if (paymentOption === 'PayPal') {
       if (!paypalEmail.trim() || !paypalEmail.includes('@')) {
-        return 'Please enter a valid PayPal account email address.';
+        return t('student:subscription.errPaypal');
       }
     } else if (paymentOption === 'UPI') {
       if (!upiId.trim() || !upiId.includes('@')) {
-        return 'Please enter a valid UPI ID (e.g., name@okbank).';
+        return t('student:subscription.validationUpi');
       }
     } else if (paymentOption === 'Net Banking') {
-      if (!selectedBank) return 'Please select your bank for Net Banking.';
+      if (!selectedBank) return t('student:subscription.errBank');
     }
 
     if (!termsAccepted) {
-      return 'You must accept the Terms & Conditions before completing your subscription payment.';
+      return t('student:subscription.errTerms');
     }
 
     return null;
@@ -194,7 +205,7 @@ export const SubscriptionPaymentPage: React.FC<SubscriptionPaymentPageProps> = (
 
     setTimeout(() => {
       const refId = `PVQ-PAY-${Math.floor(100000 + Math.random() * 900000)}`;
-      const paidAtStr = new Date().toLocaleString('en-IN', {
+      const paidAtStr = new Date().toLocaleString(intlLocale, {
         dateStyle: 'medium',
         timeStyle: 'short',
       });
@@ -203,7 +214,7 @@ export const SubscriptionPaymentPage: React.FC<SubscriptionPaymentPageProps> = (
         const recordedTx = purchaseAddonTokenPack(selectedAddonPack.id, paymentOption);
         setReceiptMeta({
           referenceId: recordedTx?.invoiceId || refId,
-          planName: `AI Credit Top-Up: ${selectedAddonPack.name}`,
+          planName: t('student:subscription.topUpPlanName', { name: selectedAddonPack.name }),
           baseAmount: selectedBasePrice,
           gstAmount,
           totalAmount: totalPayable,
@@ -285,8 +296,14 @@ export const SubscriptionPaymentPage: React.FC<SubscriptionPaymentPageProps> = (
       setStep('success');
 
       addNotification(
-        'Subscription Activated',
-        `${selectedPlan.name} (${selectedCurrency} ${totalPayable}${selectedPlan.gstApplicable ? ' incl. GST' : ''}) activated via ${paymentOption}.`,
+        t('student:subscription.notifActivatedTitle'),
+        t('student:subscription.notifActivatedBody', {
+          plan: selectedPlan.name,
+          currency: selectedCurrency,
+          total: totalPayable,
+          gst: selectedPlan.gstApplicable ? ' incl. GST' : '',
+          method: t(`student:subscription.paymentMethods.${paymentOption}`, { defaultValue: paymentOption }),
+        }),
         'success',
         'student'
       );
@@ -317,29 +334,29 @@ export const SubscriptionPaymentPage: React.FC<SubscriptionPaymentPageProps> = (
                 className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-white text-xs cursor-pointer transition-colors"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
-                <span>Back to Plans</span>
+                <span>{t('student:subscription.backToPlans')}</span>
               </button>
             )}
             <span className="px-2.5 py-0.5 rounded-full text-[11px] bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700">
-              Current Status: {subscriptionState.tier}
+              {t('student:subscription.currentStatus')}: {subscriptionState.tier}
               {subscriptionState.tier === '7-Day Free Trial'
-                ? ` (${subscriptionState.trialDaysLeft} days left)`
-                : ' (Active)'}
+                ? ` (${t('student:subscription.daysLeft', { days: subscriptionState.trialDaysLeft })})`
+                : ` (${t('student:subscription.activeStatus')})`}
             </span>
           </div>
           <h1 className="text-xl sm:text-2xl font-light text-slate-900 dark:text-white tracking-wide">
             {step === 'plans'
-              ? 'Choose Your Learning Subscription Plan'
+              ? t('student:subscription.choosePlanTitle')
               : step === 'payment'
-              ? 'Complete Subscription Payment'
-              : 'Subscription Payment Confirmed'}
+              ? t('student:subscription.paymentTitle')
+              : t('student:subscription.confirmedTitle')}
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-300">
             {step === 'plans'
-              ? 'Upgrade from your 7-day free trial with transparent INR pricing (+ GST as applicable).'
+              ? t('student:subscription.choosePlanSubtitle')
               : step === 'payment'
-              ? 'Select your preferred payment method and recurring monthly billing preference.'
-              : 'Your learning access is active. No financial details were saved during checkout.'}
+              ? t('student:subscription.paymentSubtitle')
+              : t('student:subscription.confirmedSubtitle')}
           </p>
         </div>
 
@@ -354,7 +371,7 @@ export const SubscriptionPaymentPage: React.FC<SubscriptionPaymentPageProps> = (
                 : 'bg-slate-50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-300 border-slate-200 dark:border-slate-700 cursor-pointer'
             }`}
           >
-            1. Select Plan
+            {t('student:subscription.step1')}
           </button>
           <span className="text-slate-400">&rarr;</span>
           <div
@@ -364,7 +381,7 @@ export const SubscriptionPaymentPage: React.FC<SubscriptionPaymentPageProps> = (
                 : 'bg-slate-50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-300 border-slate-200 dark:border-slate-700'
             }`}
           >
-            2. Payment &amp; Terms
+            {t('student:subscription.step2Terms')}
           </div>
         </div>
       </div>
@@ -374,7 +391,10 @@ export const SubscriptionPaymentPage: React.FC<SubscriptionPaymentPageProps> = (
         <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/35 border border-amber-200 dark:border-amber-800/70 text-xs text-amber-900 dark:text-amber-200 flex items-start gap-2.5">
           <Info className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
           <div>
-            Your current tier (<strong>{currentGrandfatheredPlan.name}</strong>) has been discontinued for new enrollments, but your active entitlement remains grandfathered and unaffected through <strong>{subscriptionState.expiresAt || subscriptionState.trialEndDate}</strong>.
+            {t('student:subscription.grandfatheredNotice', {
+              plan: currentGrandfatheredPlan.name,
+              date: subscriptionState.expiresAt || subscriptionState.trialEndDate,
+            })}
           </div>
         </div>
       )}
@@ -384,7 +404,7 @@ export const SubscriptionPaymentPage: React.FC<SubscriptionPaymentPageProps> = (
         <div className="space-y-6">
           {availablePlans.length === 0 ? (
             <div className="bg-white dark:bg-[#0E1A2D] rounded-2xl p-8 border border-slate-200 dark:border-slate-800 text-center text-xs text-slate-500 dark:text-slate-300">
-              No active subscription plans are currently open for new enrollment. Existing active subscribers retain uninterrupted access.
+              {t('student:subscription.noPlansAvailable')}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
@@ -448,8 +468,15 @@ export const SubscriptionPaymentPage: React.FC<SubscriptionPaymentPageProps> = (
                       </div>
                       <div className="text-[11px] leading-snug text-[#00A896] dark:text-teal-300 tabular-nums">
                         {plan.gstApplicable
-                          ? `+ 18% GST (${plan.currency} ${planGst}) • Total: ${plan.currency} ${planTotal.toLocaleString('en-IN')}`
-                          : `Tax inclusive • Total: ${plan.currency} ${planTotal.toLocaleString('en-IN')}`}
+                          ? t('student:subscription.gstMeta', {
+                              currency: plan.currency,
+                              gst: planGst,
+                              total: planTotal.toLocaleString('en-IN'),
+                            })
+                          : t('student:subscription.taxInclusiveMeta', {
+                              currency: plan.currency,
+                              total: planTotal.toLocaleString('en-IN'),
+                            })}
                       </div>
                     </div>
 
@@ -457,7 +484,11 @@ export const SubscriptionPaymentPage: React.FC<SubscriptionPaymentPageProps> = (
                     <div className="mt-3 px-3.5 py-2 rounded-xl bg-slate-50/90 dark:bg-slate-800/40 border border-slate-200/70 dark:border-slate-700/60 flex items-center justify-between gap-2 text-[11px]">
                       <span className="text-slate-700 dark:text-slate-200 flex items-center gap-1.5 font-medium">
                         <Cpu className="w-3.5 h-3.5 text-[#00A896] shrink-0" />
-                        <span>{formatCompactTokens(plan.monthlyTokenQuota ?? 350000)} AI tokens/mo</span>
+                        <span>
+                          {t('student:subscription.aiTokensPerMo', {
+                            tokens: formatCompactTokens(plan.monthlyTokenQuota ?? 350000),
+                          })}
+                        </span>
                       </span>
                       <span className="text-slate-500 dark:text-slate-400 truncate">
                         {AI_MODEL_TIER_SPECS[plan.aiModelTier || 'flash-lite-hybrid']?.shortLabel}
@@ -486,7 +517,9 @@ export const SubscriptionPaymentPage: React.FC<SubscriptionPaymentPageProps> = (
                         }`}
                       >
                         <span>
-                          {isCurrentActive ? `Selected (${plan.name})` : `Choose ${plan.name}`}
+                          {isCurrentActive
+                            ? t('student:subscription.selectedBtn', { name: plan.name })
+                            : t('student:subscription.chooseBtn', { name: plan.name })}
                         </span>
                       </button>
                     </div>
@@ -502,15 +535,15 @@ export const SubscriptionPaymentPage: React.FC<SubscriptionPaymentPageProps> = (
               <div>
                 <h2 className="text-base font-medium text-slate-900 dark:text-white flex items-center gap-2">
                   <Coins className="w-4 h-4 text-[#00A896]" />
-                  <span>AI Token Credit Add-On Packs (Top-Up Wallet)</span>
+                  <span>{t('student:subscription.addonWalletHeading')}</span>
                 </h2>
                 <p className="text-xs text-slate-500 dark:text-slate-300 mt-1">
-                  Add-on tokens activate automatically when your monthly plan quota reaches 100% and roll over while active.
+                  {t('student:subscription.addonWalletSub')}
                 </p>
               </div>
               <div className="inline-flex items-center gap-3 px-4 py-2 rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 text-xs text-slate-700 dark:text-slate-200 tabular-nums shrink-0">
                 <span>
-                  Monthly Left:{' '}
+                  {t('student:subscription.monthlyLeft')}{' '}
                   <strong className="text-[#00A896]">
                     {formatCompactTokens(
                       Math.max(
@@ -522,7 +555,7 @@ export const SubscriptionPaymentPage: React.FC<SubscriptionPaymentPageProps> = (
                 </span>
                 <span className="text-slate-300 dark:text-slate-600">|</span>
                 <span>
-                  Add-On Wallet:{' '}
+                  {t('student:subscription.addOnWallet')}{' '}
                   <strong className="text-cyan-600 dark:text-cyan-400">
                     +{formatCompactTokens(currentStudentAiQuota.addonCreditsRemaining)}
                   </strong>
@@ -554,11 +587,14 @@ export const SubscriptionPaymentPage: React.FC<SubscriptionPaymentPageProps> = (
                           INR {pack.priceINR}
                         </span>
                         <span className="text-[11px] text-[#00A896] tabular-nums">
-                          + 18% GST (Total: INR {pack.priceINR + packGst})
+                          {t('student:subscription.addonPackGst', { total: pack.priceINR + packGst })}
                         </span>
                       </div>
                       <div className="text-xs font-medium text-cyan-700 dark:text-cyan-300">
-                        +{formatCompactTokens(pack.tokens)} AI tokens &bull; {pack.approxDoubts}
+                        {t('student:subscription.addonPackTokens', {
+                          tokens: formatCompactTokens(pack.tokens),
+                          doubts: pack.approxDoubts,
+                        })}
                       </div>
                       <p className="text-xs text-slate-500 dark:text-slate-300 leading-relaxed min-h-[36px]">
                         {pack.description}
@@ -569,7 +605,7 @@ export const SubscriptionPaymentPage: React.FC<SubscriptionPaymentPageProps> = (
                       onClick={() => handleChooseAddonPack(pack.id)}
                       className="w-full h-9 px-3 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-600 text-xs font-medium text-slate-900 dark:text-white cursor-pointer transition-colors"
                     >
-                      Buy {pack.name}
+                      {t('student:subscription.buyPackName', { name: pack.name })}
                     </button>
                   </div>
                 );
@@ -582,11 +618,11 @@ export const SubscriptionPaymentPage: React.FC<SubscriptionPaymentPageProps> = (
             <div className="flex items-center gap-2.5">
               <ShieldCheck className="w-4 h-4 text-[#00A896] shrink-0" />
               <span>
-                All plans support Credit Card, Debit Card, PayPal, UPI, and Net Banking with optional monthly recurring auto-pay. We never store your financial credentials.
+                {t('student:subscription.pricingPrivacyNote')}
               </span>
             </div>
             <span className="text-[11px] text-slate-500 dark:text-slate-400 shrink-0">
-              All prices in INR + GST as applicable
+              {t('student:subscription.inrGstNote')}
             </span>
           </div>
         </div>
@@ -601,9 +637,11 @@ export const SubscriptionPaymentPage: React.FC<SubscriptionPaymentPageProps> = (
             <div className="bg-white dark:bg-[#0E1A2D] rounded-2xl p-4 border border-slate-200/90 dark:border-slate-800/80 shadow-xs space-y-2.5">
               <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-300">
                 <span>
-                  {checkoutType === 'addon' ? 'Selected AI Credit Add-On Pack' : 'Selected Subscription Plan'}
+                  {checkoutType === 'addon'
+                    ? t('student:subscription.selectedAddonLabel')
+                    : t('student:subscription.selectedPlanLabel')}
                 </span>
-                <span>All prices + GST as applicable</span>
+                <span>{t('student:subscription.allPricesGst')}</span>
               </div>
               {checkoutType === 'addon' ? (
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -652,11 +690,11 @@ export const SubscriptionPaymentPage: React.FC<SubscriptionPaymentPageProps> = (
             <div className="bg-white dark:bg-[#0E1A2D] rounded-2xl p-5 border border-slate-200/90 dark:border-slate-800/80 shadow-xs space-y-4">
               <div className="flex items-center justify-between">
                 <h2 className="text-base font-light text-slate-900 dark:text-white">
-                  Select Payment Method
+                  {t('student:subscription.paymentMethod')}
                 </h2>
                 <span className="inline-flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-300">
                   <Lock className="w-3.5 h-3.5 text-[#00A896]" />
-                  <span>Session-Only Checkout</span>
+                  <span>{t('student:subscription.sessionOnlyCheckout')}</span>
                 </span>
               </div>
 
@@ -685,7 +723,9 @@ export const SubscriptionPaymentPage: React.FC<SubscriptionPaymentPageProps> = (
                     }`}
                   >
                     {opt.icon}
-                    <span className="text-center leading-tight">{opt.id}</span>
+                    <span className="text-center leading-tight">
+                      {t(`student:subscription.paymentMethods.${opt.id}`, { defaultValue: opt.id })}
+                    </span>
                   </button>
                 ))}
               </div>
@@ -695,24 +735,32 @@ export const SubscriptionPaymentPage: React.FC<SubscriptionPaymentPageProps> = (
                 {(paymentOption === 'Credit Card' || paymentOption === 'Debit Card') && (
                   <div className="space-y-3 text-xs">
                     <div className="text-slate-700 dark:text-slate-200">
-                      {paymentOption} Details (never saved after transaction)
+                      {t('student:subscription.cardDetailsNote', {
+                        method: t(`student:subscription.paymentMethods.${paymentOption}`, {
+                          defaultValue: paymentOption,
+                        }),
+                      })}
                     </div>
                     <div>
                       <label className="block text-[11px] text-slate-500 dark:text-slate-300 mb-1">
-                        Cardholder Name
+                        {t('student:subscription.cardHolder')}
                       </label>
                       <input
                         type="text"
                         value={cardHolder}
                         onChange={(e) => setCardHolder(e.target.value)}
-                        placeholder={currentUser?.name || 'Name on card'}
+                        placeholder={currentUser?.name || t('student:subscription.cardHolder')}
                         autoComplete="off"
                         className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-slate-400"
                       />
                     </div>
                     <div>
                       <label className="block text-[11px] text-slate-500 dark:text-slate-300 mb-1">
-                        {paymentOption} Number
+                        {t('student:subscription.cardNumberField', {
+                          method: t(`student:subscription.paymentMethods.${paymentOption}`, {
+                            defaultValue: paymentOption,
+                          }),
+                        })}
                       </label>
                       <input
                         type="text"
@@ -727,7 +775,7 @@ export const SubscriptionPaymentPage: React.FC<SubscriptionPaymentPageProps> = (
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="block text-[11px] text-slate-500 dark:text-slate-300 mb-1">
-                          Expiry Date (MM/YY)
+                          {t('student:subscription.expiryDate')}
                         </label>
                         <input
                           type="text"
@@ -741,7 +789,7 @@ export const SubscriptionPaymentPage: React.FC<SubscriptionPaymentPageProps> = (
                       </div>
                       <div>
                         <label className="block text-[11px] text-slate-500 dark:text-slate-300 mb-1">
-                          CVV / Security Code
+                          {t('student:subscription.cvvSecurity')}
                         </label>
                         <input
                           type="password"
@@ -761,11 +809,11 @@ export const SubscriptionPaymentPage: React.FC<SubscriptionPaymentPageProps> = (
                 {paymentOption === 'PayPal' && (
                   <div className="space-y-3 text-xs">
                     <div className="text-slate-700 dark:text-slate-200">
-                      PayPal Checkout
+                      {t('student:subscription.paypalCheckout')}
                     </div>
                     <div>
                       <label className="block text-[11px] text-slate-500 dark:text-slate-300 mb-1">
-                        PayPal Account Email
+                        {t('student:subscription.paypalEmailLabel')}
                       </label>
                       <input
                         type="email"
@@ -777,7 +825,9 @@ export const SubscriptionPaymentPage: React.FC<SubscriptionPaymentPageProps> = (
                       />
                     </div>
                     <p className="text-[11px] text-slate-500 dark:text-slate-300">
-                      You will authorize this INR {totalPayable.toLocaleString('en-IN')} payment via PayPal for this session without saving your PayPal credentials.
+                      {t('student:subscription.paypalSessionNote', {
+                        amount: totalPayable.toLocaleString('en-IN'),
+                      })}
                     </p>
                   </div>
                 )}
@@ -785,7 +835,7 @@ export const SubscriptionPaymentPage: React.FC<SubscriptionPaymentPageProps> = (
                 {paymentOption === 'UPI' && (
                   <div className="space-y-3 text-xs">
                     <div className="text-slate-700 dark:text-slate-200">
-                      UPI Instant Payment (GPay / PhonePe / Paytm / BHIM)
+                      {t('student:subscription.upiHeading')}
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {UPI_APPS.map((app) => (
@@ -805,7 +855,7 @@ export const SubscriptionPaymentPage: React.FC<SubscriptionPaymentPageProps> = (
                     </div>
                     <div>
                       <label className="block text-[11px] text-slate-500 dark:text-slate-300 mb-1">
-                        Enter UPI ID ({selectedUpiApp})
+                        {t('student:subscription.enterUpiForApp', { app: selectedUpiApp })}
                       </label>
                       <input
                         type="text"
@@ -822,7 +872,7 @@ export const SubscriptionPaymentPage: React.FC<SubscriptionPaymentPageProps> = (
                 {paymentOption === 'Net Banking' && (
                   <div className="space-y-3 text-xs">
                     <div className="text-slate-700 dark:text-slate-200">
-                      Net Banking — Choose Your Bank
+                      {t('student:subscription.netBankingChooseBank')}
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {NET_BANKING_BANKS.map((bank) => (
@@ -851,12 +901,14 @@ export const SubscriptionPaymentPage: React.FC<SubscriptionPaymentPageProps> = (
                     <RefreshCw className="w-4 h-4 text-[#00A896] mt-0.5 shrink-0" />
                     <div className="space-y-0.5">
                       <div className="text-xs font-medium text-slate-900 dark:text-white">
-                        Enable Monthly Recurring Payment (Auto-Renew Monthly)
+                        {t('student:subscription.autoRenewTitle')}
                       </div>
                       <p className="text-[11px] text-slate-500 dark:text-slate-300 leading-relaxed">
                         {selectedPlan.id === 'monthly'
-                          ? 'Automatically bills INR 250 + GST every month so your study access continues uninterrupted. Cancel anytime.'
-                          : `After your ${selectedPlan.name.toLowerCase()} period ends, automatically continue with monthly recurring billing (INR 250/month + GST). Cancel anytime.`}
+                          ? t('student:subscription.autoRenewMonthlyDesc')
+                          : t('student:subscription.autoRenewPostPeriodDesc', {
+                              plan: selectedPlan.name.toLowerCase(),
+                            })}
                       </p>
                     </div>
                   </div>
@@ -884,10 +936,10 @@ export const SubscriptionPaymentPage: React.FC<SubscriptionPaymentPageProps> = (
               <ShieldAlert className="w-5 h-5 text-slate-700 dark:text-slate-200 shrink-0 mt-0.5" />
               <div className="space-y-1 text-xs">
                 <div className="font-medium text-slate-900 dark:text-white">
-                  Financial Data Disclaimer — Zero Financial Data Saved
+                  {t('student:subscription.disclaimerHeading')}
                 </div>
                 <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
-                  PivotIQ does <strong>not</strong> save, store, or retain any financial or payment data—including credit or debit card numbers, CVV, expiry dates, UPI IDs/PINs, PayPal credentials, or Net Banking login details—in our database or your browser storage. Payment inputs are used transiently for this session only and cleared immediately after checkout.
+                  {t('student:subscription.disclaimerBody')}
                 </p>
               </div>
             </div>
@@ -897,14 +949,16 @@ export const SubscriptionPaymentPage: React.FC<SubscriptionPaymentPageProps> = (
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 text-xs font-medium text-slate-900 dark:text-white">
                   <FileText className="w-4 h-4 text-slate-500 dark:text-slate-300" />
-                  <span>Terms &amp; Conditions and Subscription Billing Policy</span>
+                  <span>{t('student:subscription.termsPolicyHeading')}</span>
                 </div>
                 <button
                   type="button"
                   onClick={() => setShowFullTerms((prev) => !prev)}
                   className="text-[11px] text-[#00A896] hover:underline cursor-pointer"
                 >
-                  {showFullTerms ? 'Hide Full Terms' : 'Read Full Terms'}
+                  {showFullTerms
+                    ? t('student:subscription.hideFullTerms')
+                    : t('student:subscription.readFullTerms')}
                 </button>
               </div>
 
@@ -913,18 +967,10 @@ export const SubscriptionPaymentPage: React.FC<SubscriptionPaymentPageProps> = (
                   showFullTerms ? 'max-h-60 overflow-y-auto' : 'max-h-24 overflow-y-auto'
                 }`}
               >
-                <p>
-                  1. <strong>Subscription Plans &amp; GST:</strong> Subscriptions are offered as Monthly (INR 250), Quarterly (INR 600), and Annual (INR 1,100) plans. Goods &amp; Services Tax (GST @ 18% or as applicable under Indian tax regulations) is added at checkout.
-                </p>
-                <p>
-                  2. <strong>Monthly Recurring Billing:</strong> If you enable the monthly recurring payment option, you authorize recurring monthly billing of INR 250 + applicable GST upon completion of your active billing cycle until cancelled. You may cancel recurring billing anytime prior to the next renewal date from Account Settings.
-                </p>
-                <p>
-                  3. <strong>Financial Data Privacy &amp; Non-Storage:</strong> No card numbers, CVV codes, UPI PINs/handles, PayPal passwords, or Net Banking credentials are saved, cached, or logged by the platform.
-                </p>
-                <p>
-                  4. <strong>Access &amp; Cancellation:</strong> Plan benefits activate immediately upon payment confirmation. Existing paid cycles remain active through the end of the purchased period even if recurring renewal is turned off.
-                </p>
+                <p>{t('student:subscription.term1')}</p>
+                <p>{t('student:subscription.term2')}</p>
+                <p>{t('student:subscription.term3')}</p>
+                <p>{t('student:subscription.term4')}</p>
               </div>
 
               <label className="flex items-start gap-2.5 cursor-pointer select-none pt-1">
@@ -938,8 +984,7 @@ export const SubscriptionPaymentPage: React.FC<SubscriptionPaymentPageProps> = (
                   className="mt-0.5 w-4 h-4 rounded border-slate-300 text-[#00A896] focus:ring-[#00A896] cursor-pointer"
                 />
                 <span className="text-xs text-slate-700 dark:text-slate-200 leading-snug">
-                  I have read and accept the{' '}
-                  <span className="underline">Terms &amp; Conditions</span>, GST applicability (+18% as applicable), and acknowledge that my financial data will not be saved.
+                  {t('student:subscription.termsCheckbox')}
                 </span>
               </label>
 
@@ -955,12 +1000,16 @@ export const SubscriptionPaymentPage: React.FC<SubscriptionPaymentPageProps> = (
           {/* Right 5 Cols: Order Summary & Pay Action */}
           <div className="lg:col-span-5 bg-white dark:bg-[#0E1A2D] rounded-2xl p-5 sm:p-6 border border-slate-200/90 dark:border-slate-800/80 shadow-xs space-y-5 lg:sticky lg:top-24">
             <h3 className="text-base font-light text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-3">
-              Order &amp; Tax Summary
+              {t('student:subscription.orderTaxSummary')}
             </h3>
 
             <div className="space-y-3 text-xs">
               <div className="flex items-center justify-between text-slate-700 dark:text-slate-200">
-                <span>{checkoutType === 'addon' ? 'Selected Credit Pack' : 'Selected Plan'}</span>
+                <span>
+                  {checkoutType === 'addon'
+                    ? t('student:subscription.selectedCreditPack')
+                    : t('student:subscription.selectedPlanShort')}
+                </span>
                 <span className="font-medium text-slate-900 dark:text-white">
                   {checkoutType === 'addon' ? selectedAddonPack.name : selectedPlan.name}
                 </span>
@@ -968,28 +1017,38 @@ export const SubscriptionPaymentPage: React.FC<SubscriptionPaymentPageProps> = (
               <div className="flex items-center justify-between text-slate-700 dark:text-slate-200">
                 <span>
                   {checkoutType === 'addon'
-                    ? `Pack Price (+${selectedAddonPack.tokens.toLocaleString()} tokens)`
-                    : `Plan Base Price (${selectedPlan.billingCycleLabel})`}
+                    ? t('student:subscription.packPriceLabel', {
+                        tokens: selectedAddonPack.tokens.toLocaleString(),
+                      })
+                    : t('student:subscription.planBasePriceLabel', {
+                        cycle: selectedPlan.billingCycleLabel,
+                      })}
                 </span>
                 <span className="tabular-nums">{selectedCurrency} {selectedBasePrice.toLocaleString('en-IN')}.00</span>
               </div>
               <div className="flex items-center justify-between text-slate-700 dark:text-slate-200">
-                <span>GST (18% as applicable)</span>
+                <span>{t('student:subscription.gstApplicableLabel')}</span>
                 <span className="tabular-nums">{selectedCurrency} {gstAmount.toLocaleString('en-IN')}.00</span>
               </div>
               <div className="flex items-center justify-between text-slate-700 dark:text-slate-200">
-                <span>Payment Method</span>
-                <span>{paymentOption}</span>
+                <span>{t('student:subscription.paymentMethod')}</span>
+                <span>
+                  {t(`student:subscription.paymentMethods.${paymentOption}`, {
+                    defaultValue: paymentOption,
+                  })}
+                </span>
               </div>
               <div className="flex items-center justify-between text-slate-700 dark:text-slate-200">
-                <span>Monthly Recurring Auto-Pay</span>
+                <span>{t('student:subscription.monthlyAutoPayLabel')}</span>
                 <span className={recurringMonthly ? 'text-[#00A896]' : 'text-slate-500 dark:text-slate-400'}>
-                  {recurringMonthly ? 'Enabled (INR 250/mo + GST)' : 'One-Time Cycle Only'}
+                  {recurringMonthly
+                    ? t('student:subscription.autoPayEnabledNote')
+                    : t('student:subscription.oneTimeCycleOnly')}
                 </span>
               </div>
 
               <div className="pt-3 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between text-sm text-slate-900 dark:text-white">
-                <span>Total Payable</span>
+                <span>{t('student:subscription.totalPayable')}</span>
                 <span className="text-lg tabular-nums font-medium">
                   {selectedCurrency} {totalPayable.toLocaleString('en-IN')}.00
                 </span>
@@ -1008,13 +1067,19 @@ export const SubscriptionPaymentPage: React.FC<SubscriptionPaymentPageProps> = (
               <Lock className="w-4 h-4" />
               <span>
                 {isProcessing
-                  ? 'Processing Payment...'
-                  : `Pay ${selectedCurrency} ${totalPayable.toLocaleString('en-IN')} via ${paymentOption}`}
+                  ? t('student:subscription.processing')
+                  : t('student:subscription.payViaBtn', {
+                      currency: selectedCurrency,
+                      amount: totalPayable.toLocaleString('en-IN'),
+                      method: t(`student:subscription.paymentMethods.${paymentOption}`, {
+                        defaultValue: paymentOption,
+                      }),
+                    })}
               </span>
             </button>
 
             <p className="text-[11px] text-center text-slate-500 dark:text-slate-400">
-              No financial details are saved. Instant activation upon checkout.
+              {t('student:subscription.instantActivationNote')}
             </p>
           </div>
         </form>
@@ -1028,52 +1093,60 @@ export const SubscriptionPaymentPage: React.FC<SubscriptionPaymentPageProps> = (
               <CheckCircle2 className="w-6 h-6" />
             </div>
             <h2 className="text-xl font-light text-slate-900 dark:text-white">
-              Subscription Activated Successfully
+              {t('student:subscription.successHeading')}
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-300">
-              Your {receiptMeta.planName} is now active. All transient financial inputs were cleared and were not saved.
+              {t('student:subscription.successSub', { plan: receiptMeta.planName })}
             </p>
           </div>
 
           <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 space-y-2.5 text-xs">
             <div className="flex justify-between">
-              <span className="text-slate-500 dark:text-slate-300">Reference ID</span>
+              <span className="text-slate-500 dark:text-slate-300">{t('student:subscription.referenceId')}</span>
               <span className="text-slate-900 dark:text-white tabular-nums">{receiptMeta.referenceId}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-500 dark:text-slate-300">Active Plan</span>
+              <span className="text-slate-500 dark:text-slate-300">{t('student:subscription.activePlanLabel')}</span>
               <span className="text-slate-900 dark:text-white">{receiptMeta.planName}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-500 dark:text-slate-300">Base Price</span>
+              <span className="text-slate-500 dark:text-slate-300">{t('student:subscription.basePriceLabel')}</span>
               <span className="text-slate-900 dark:text-white tabular-nums">
                 INR {receiptMeta.baseAmount.toLocaleString('en-IN')}.00
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-500 dark:text-slate-300">GST (18% as applicable)</span>
+              <span className="text-slate-500 dark:text-slate-300">{t('student:subscription.gstApplicableLabel')}</span>
               <span className="text-slate-900 dark:text-white tabular-nums">
                 INR {receiptMeta.gstAmount.toLocaleString('en-IN')}.00
               </span>
             </div>
             <div className="flex justify-between pt-2 border-t border-slate-200 dark:border-slate-700 font-medium">
-              <span className="text-slate-900 dark:text-white">Total Paid</span>
+              <span className="text-slate-900 dark:text-white">{t('student:subscription.totalPaidLabel')}</span>
               <span className="text-slate-900 dark:text-white tabular-nums">
                 INR {receiptMeta.totalAmount.toLocaleString('en-IN')}.00
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-500 dark:text-slate-300">Payment Method</span>
-              <span className="text-slate-900 dark:text-white">{receiptMeta.method} (Not saved)</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-500 dark:text-slate-300">Monthly Recurring Auto-Pay</span>
+              <span className="text-slate-500 dark:text-slate-300">{t('student:subscription.paymentMethod')}</span>
               <span className="text-slate-900 dark:text-white">
-                {receiptMeta.recurringMonthly ? 'Enabled (Monthly)' : 'Off'}
+                {t('student:subscription.methodNotSaved', {
+                  method: t(`student:subscription.paymentMethods.${receiptMeta.method}`, {
+                    defaultValue: receiptMeta.method,
+                  }),
+                })}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-500 dark:text-slate-300">Confirmed On</span>
+              <span className="text-slate-500 dark:text-slate-300">{t('student:subscription.monthlyAutoPayLabel')}</span>
+              <span className="text-slate-900 dark:text-white">
+                {receiptMeta.recurringMonthly
+                  ? t('student:subscription.enabledMonthly')
+                  : t('student:subscription.offLabel')}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-500 dark:text-slate-300">{t('student:subscription.confirmedOn')}</span>
               <span className="text-slate-900 dark:text-white">{receiptMeta.paidAt}</span>
             </div>
           </div>
@@ -1084,14 +1157,14 @@ export const SubscriptionPaymentPage: React.FC<SubscriptionPaymentPageProps> = (
               onClick={onBackToDashboard}
               className="px-5 py-2.5 rounded-xl bg-[#00A896] hover:bg-[#009282] text-white text-xs cursor-pointer transition-colors"
             >
-              Return to Student Dashboard
+              {t('student:subscription.returnStudentDash')}
             </button>
             <button
               type="button"
               onClick={() => setStep('plans')}
               className="px-5 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white border border-slate-300 dark:border-slate-600 text-xs cursor-pointer transition-colors"
             >
-              View Subscription Plans
+              {t('student:subscription.viewPlansBtn')}
             </button>
           </div>
         </div>
@@ -1101,10 +1174,10 @@ export const SubscriptionPaymentPage: React.FC<SubscriptionPaymentPageProps> = (
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
             <h3 className="text-base font-light text-slate-900 dark:text-white">
-              Billing History &amp; Access Status
+              {t('student:subscription.billingHistoryHeading')}
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-300">
-              Synced with Admin Financial Ledger. Only invoice metadata is stored; card/UPI credentials are never saved.
+              {t('student:subscription.billingHistorySub')}
             </p>
           </div>
           <span
@@ -1114,25 +1187,30 @@ export const SubscriptionPaymentPage: React.FC<SubscriptionPaymentPageProps> = (
                 : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
             }`}
           >
-            Module Access: {subscriptionState.moduleAccessEnabled === false ? 'Suspended' : 'Provisioned'}
+            {t('student:subscription.moduleAccessLabel', {
+              state:
+                subscriptionState.moduleAccessEnabled === false
+                  ? t('student:subscription.suspendedState')
+                  : t('student:subscription.provisionedState'),
+            })}
           </span>
         </div>
 
         {studentTransactions.length === 0 ? (
           <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-700 text-xs text-slate-500 dark:text-slate-300">
-            No paid invoices yet. You are currently on {subscriptionState.tier}.
+            {t('student:subscription.noPaidInvoices', { tier: subscriptionState.tier })}
           </div>
         ) : (
           <div className="overflow-x-auto rounded-xl border border-slate-200/80 dark:border-slate-800">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
                 <tr className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-300 text-[11px]">
-                  <th className="py-2.5 px-3 font-normal">Invoice ID</th>
-                  <th className="py-2.5 px-3 font-normal">Plan</th>
-                  <th className="py-2.5 px-3 font-normal">Total (incl. GST)</th>
-                  <th className="py-2.5 px-3 font-normal">Method</th>
-                  <th className="py-2.5 px-3 font-normal">Expires</th>
-                  <th className="py-2.5 px-3 font-normal">Status</th>
+                  <th className="py-2.5 px-3 font-normal">{t('student:subscription.colInvoiceId')}</th>
+                  <th className="py-2.5 px-3 font-normal">{t('student:subscription.colPlan')}</th>
+                  <th className="py-2.5 px-3 font-normal">{t('student:subscription.colTotalGst')}</th>
+                  <th className="py-2.5 px-3 font-normal">{t('student:subscription.colMethod')}</th>
+                  <th className="py-2.5 px-3 font-normal">{t('student:subscription.colExpires')}</th>
+                  <th className="py-2.5 px-3 font-normal">{t('student:subscription.colStatus')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -1142,13 +1220,19 @@ export const SubscriptionPaymentPage: React.FC<SubscriptionPaymentPageProps> = (
                     <td className="py-2.5 px-3 text-slate-700 dark:text-slate-200">
                       {tx.planName}
                       {tx.recurringMonthly && (
-                        <span className="ml-1.5 text-[10px] text-[#00A896]">(Monthly Recurring)</span>
+                        <span className="ml-1.5 text-[10px] text-[#00A896]">
+                          {t('student:subscription.monthlyRecurringTag')}
+                        </span>
                       )}
                     </td>
                     <td className="py-2.5 px-3 tabular-nums text-slate-900 dark:text-white">
                       INR {tx.totalAmountINR.toLocaleString('en-IN')}
                     </td>
-                    <td className="py-2.5 px-3 text-slate-600 dark:text-slate-300">{tx.paymentMethod}</td>
+                    <td className="py-2.5 px-3 text-slate-600 dark:text-slate-300">
+                      {t(`student:subscription.paymentMethods.${tx.paymentMethod}`, {
+                        defaultValue: tx.paymentMethod,
+                      })}
+                    </td>
                     <td className="py-2.5 px-3 text-slate-600 dark:text-slate-300">{tx.expiresAt}</td>
                     <td className="py-2.5 px-3">
                       <span
@@ -1160,7 +1244,7 @@ export const SubscriptionPaymentPage: React.FC<SubscriptionPaymentPageProps> = (
                             : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'
                         }`}
                       >
-                        {tx.paymentStatus}
+                        {translateStatusLabel(tx.paymentStatus, t)}
                       </span>
                     </td>
                   </tr>

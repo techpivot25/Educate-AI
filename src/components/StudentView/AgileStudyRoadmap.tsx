@@ -1,7 +1,9 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useApp } from '../../context/AppContext';
 import { DailyStudyTask, StudyTaskStatus } from '../../types';
 import { getLocalizedSubjectName, isSubjectEnrolled, resolveSubjectsForBoard } from '../../data/curriculumData';
+import { translateSubjectLabel, translateBoardLabel, translateStatusLabel } from '../../i18n/helpers';
 import {
   ChevronLeft,
   ChevronRight,
@@ -61,6 +63,8 @@ export const AgileStudyRoadmap: React.FC = () => {
     currentUser,
     activeCategories,
   } = useApp();
+  const { t, i18n } = useTranslation(['student', 'common']);
+  const intlLocale = i18n.language === 'en' ? 'en-US' : `${i18n.language}-IN`;
 
   // Selected day state (defaults to today so Day view immediately shows current day's tasks)
   const [selectedDate, setSelectedDate] = useState<Date>(() => {
@@ -243,7 +247,7 @@ export const AgileStudyRoadmap: React.FC = () => {
   const currentYear = currentDate.getFullYear();
   const currentMonthIndex = currentDate.getMonth(); // 0-indexed: 9 = Oct, 10 = Nov
   const currentMonthKey = `${currentYear}-${String(currentMonthIndex + 1).padStart(2, '0')}`;
-  const currentMonthName = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  const currentMonthName = currentDate.toLocaleDateString(intlLocale, { month: 'long', year: 'numeric' });
   const daysInCurrentMonth = new Date(currentYear, currentMonthIndex + 1, 0).getDate();
 
   // Helper to open Add Task modal synced to a given day in the current roadmap month
@@ -268,7 +272,7 @@ export const AgileStudyRoadmap: React.FC = () => {
   // Derived cells for the interactive mini calendar inside Add Task popup
   const pickerYear = pickerCalendarDate.getFullYear();
   const pickerMonthIndex = pickerCalendarDate.getMonth();
-  const pickerMonthLabel = pickerCalendarDate.toLocaleDateString('en-US', {
+  const pickerMonthLabel = pickerCalendarDate.toLocaleDateString(intlLocale, {
     month: 'long',
     year: 'numeric',
   });
@@ -307,12 +311,12 @@ export const AgileStudyRoadmap: React.FC = () => {
         dateObj: d,
         dateStr: toDateStr(d),
         dayNum: d.getDate(),
-        weekdayShort: d.toLocaleDateString('en-US', { weekday: 'short' }),
-        monthShort: d.toLocaleDateString('en-US', { month: 'short' }),
+        weekdayShort: d.toLocaleDateString(intlLocale, { weekday: 'short' }),
+        monthShort: d.toLocaleDateString(intlLocale, { month: 'short' }),
         isToday: toDateStr(d) === todayStr,
       };
     });
-  }, [selectedDate, todayStr]);
+  }, [selectedDate, todayStr, intlLocale]);
 
   const weekRangeLabel = useMemo(() => {
     if (weekDays.length < 7) return currentMonthName;
@@ -326,24 +330,24 @@ export const AgileStudyRoadmap: React.FC = () => {
 
   const selectedDayShortLabel = useMemo(
     () =>
-      selectedDate.toLocaleDateString('en-US', {
+      selectedDate.toLocaleDateString(intlLocale, {
         weekday: 'short',
         month: 'short',
         day: 'numeric',
         year: 'numeric',
       }),
-    [selectedDate]
+    [selectedDate, intlLocale]
   );
 
   const selectedDayFullLabel = useMemo(
     () =>
-      selectedDate.toLocaleDateString('en-US', {
+      selectedDate.toLocaleDateString(intlLocale, {
         weekday: 'long',
         month: 'long',
         day: 'numeric',
         year: 'numeric',
       }),
-    [selectedDate]
+    [selectedDate, intlLocale]
   );
 
   // Jump straight to today's date & month
@@ -526,7 +530,7 @@ export const AgileStudyRoadmap: React.FC = () => {
     }
 
     const dateObj = new Date(targetDateStr + 'T00:00:00');
-    const formattedDate = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const formattedDate = dateObj.toLocaleDateString(intlLocale, { month: 'short', day: 'numeric' });
 
     addNotification(
       'Task Rescheduled 📅',
@@ -687,7 +691,7 @@ export const AgileStudyRoadmap: React.FC = () => {
       addStudyTask(newTask);
     } else {
       setDailyTasks((prev) => [...prev, newTask]);
-      const formattedDate = new Date(dateStr + 'T00:00:00').toLocaleDateString('en-US', {
+      const formattedDate = new Date(dateStr + 'T00:00:00').toLocaleDateString(intlLocale, {
         month: 'short',
         day: 'numeric',
       });
@@ -733,7 +737,7 @@ export const AgileStudyRoadmap: React.FC = () => {
           bg: 'bg-emerald-500/8 text-emerald-700/75 dark:text-emerald-300/75 border-emerald-500/15',
           dot: 'bg-emerald-500/50',
           icon: <CheckCircle2 className="w-3 h-3 text-emerald-600/50 dark:text-emerald-400/50" />,
-          label: 'Completed',
+          label: t('student:roadmap.completed'),
           chipBg: 'bg-emerald-600/50 hover:bg-emerald-600/60 text-slate-900 dark:text-white',
         };
       case 'In Progress':
@@ -741,7 +745,7 @@ export const AgileStudyRoadmap: React.FC = () => {
           bg: 'bg-blue-500/8 text-blue-700/75 dark:text-blue-300/75 border-blue-500/15',
           dot: 'bg-blue-500/50 animate-pulse',
           icon: <TrendingUp className="w-3 h-3 text-blue-600/50 dark:text-blue-400/50" />,
-          label: 'In Progress',
+          label: t('student:roadmap.inProgress'),
           chipBg: 'bg-[#0284C7]/50 hover:bg-[#0284C7]/60 text-slate-900 dark:text-white',
         };
       case 'On Hold':
@@ -749,7 +753,7 @@ export const AgileStudyRoadmap: React.FC = () => {
           bg: 'bg-amber-500/8 text-amber-700/75 dark:text-amber-300/75 border-amber-500/15',
           dot: 'bg-amber-500/50',
           icon: <Pause className="w-3 h-3 text-amber-600/50 dark:text-amber-400/50" />,
-          label: 'On Hold',
+          label: t('student:roadmap.onHold'),
           chipBg: 'bg-amber-600/50 hover:bg-amber-600/60 text-slate-900 dark:text-white',
         };
       case 'Revision':
@@ -757,7 +761,7 @@ export const AgileStudyRoadmap: React.FC = () => {
           bg: 'bg-purple-500/8 text-purple-700/75 dark:text-purple-300/75 border-purple-500/15',
           dot: 'bg-purple-500/50',
           icon: <RotateCcw className="w-3 h-3 text-purple-600/50 dark:text-purple-400/50" />,
-          label: 'Revision',
+          label: t('student:roadmap.revision'),
           chipBg: 'bg-purple-600/50 hover:bg-purple-600/60 text-slate-900 dark:text-white',
         };
       case 'To Do':
@@ -766,7 +770,7 @@ export const AgileStudyRoadmap: React.FC = () => {
           bg: 'bg-slate-500/8 text-slate-700/75 dark:text-white/75 border-slate-500/15',
           dot: 'bg-slate-400/50',
           icon: <Clock className="w-3 h-3 text-slate-500/50 dark:text-white/50" />,
-          label: 'To Do',
+          label: t('student:roadmap.todo'),
           chipBg: 'bg-[#4F46E5]/50 hover:bg-[#4F46E5]/60 text-slate-900 dark:text-white',
         };
     }
@@ -776,31 +780,31 @@ export const AgileStudyRoadmap: React.FC = () => {
   const getEmptyDayLabel = (day: number) => {
     switch (day) {
       case 2:
-        return 'Rest / Prep';
+        return t('student:roadmap.emptyDay.restPrep');
       case 6:
       case 13:
       case 25:
-        return 'Self-Study';
+        return t('student:roadmap.emptyDay.selfStudy');
       case 7:
       case 14:
       case 21:
       case 28:
-        return 'Sprint Review';
+        return t('student:roadmap.emptyDay.sprintReview');
       case 9:
-        return 'Quiz Prep';
+        return t('student:roadmap.emptyDay.quizPrep');
       case 11:
-        return 'Sprint Retro';
+        return t('student:roadmap.emptyDay.sprintRetro');
       case 16:
       case 26:
-        return 'Formula Revision';
+        return t('student:roadmap.emptyDay.formulaRevision');
       case 19:
-        return 'Assessment';
+        return t('student:roadmap.emptyDay.assessment');
       case 20:
-        return 'Mock Test';
+        return t('student:roadmap.emptyDay.mockTest');
       case 27:
-        return 'Chapter Quiz';
+        return t('student:roadmap.emptyDay.chapterQuiz');
       default:
-        return 'Free Study';
+        return t('student:roadmap.emptyDay.freeStudy');
     }
   };
 
@@ -854,17 +858,16 @@ export const AgileStudyRoadmap: React.FC = () => {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3.5 border-b border-slate-100 dark:border-slate-800/80">
           <div className="flex flex-wrap items-center gap-2.5">
             <h1 className="text-xl sm:text-2xl font-light text-slate-900 dark:text-white tracking-wide">
-              Agile Study <span className="font-semibold text-slate-900 dark:text-white">Roadmap</span>
+              {t('student:roadmap.heading')}
             </h1>
             <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-50/50 dark:bg-indigo-950/35 text-indigo-700/75 dark:text-indigo-300/75 border border-indigo-200/50 dark:border-indigo-800/50 flex items-center gap-1 shadow-2xs">
               <Zap className="w-3 h-3 text-indigo-600/50 dark:text-indigo-400/50" />
-              Interactive
+              {t('student:roadmap.interactiveBadge')}
             </span>
           </div>
 
           <div className="text-xs sm:text-sm text-slate-600 dark:text-white font-normal md:text-right leading-snug">
-            <span className="block sm:inline">1.5 hrs Daily Core Mathematics + </span>
-            <span className="block sm:inline font-medium text-slate-900 dark:text-white">Rotating Electives &amp; Sprint Tracking</span>
+            <span>{t('student:roadmap.dailyCoreBanner')}</span>
           </div>
         </div>
 
@@ -884,7 +887,7 @@ export const AgileStudyRoadmap: React.FC = () => {
                 }`}
               >
                 <Layers className="w-3.5 h-3.5" />
-                <span>Sprint</span>
+                <span>{t('student:roadmap.sprint')}</span>
               </button>
 
               {/* Context-aware Period Switcher (< Month / Week / Day >) */}
@@ -893,14 +896,8 @@ export const AgileStudyRoadmap: React.FC = () => {
                   type="button"
                   onClick={handlePrevPeriod}
                   className="p-1 text-slate-500 dark:text-white hover:text-slate-900 dark:hover:text-white cursor-pointer rounded-lg hover:bg-slate-200/60 dark:hover:bg-slate-700 transition-colors"
-                  title={
-                    calendarViewMode === 'day'
-                      ? 'Previous Day'
-                      : calendarViewMode === 'week'
-                      ? 'Previous Week'
-                      : 'Previous Month'
-                  }
-                  aria-label="Previous Period"
+                  title={t('student:roadmap.prevPeriod')}
+                  aria-label={t('student:roadmap.prevPeriod')}
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
@@ -915,14 +912,8 @@ export const AgileStudyRoadmap: React.FC = () => {
                   type="button"
                   onClick={handleNextPeriod}
                   className="p-1 text-slate-500 dark:text-white hover:text-slate-900 dark:hover:text-white cursor-pointer rounded-lg hover:bg-slate-200/60 dark:hover:bg-slate-700 transition-colors"
-                  title={
-                    calendarViewMode === 'day'
-                      ? 'Next Day'
-                      : calendarViewMode === 'week'
-                      ? 'Next Week'
-                      : 'Next Month'
-                  }
-                  aria-label="Next Period"
+                  title={t('student:roadmap.nextPeriod')}
+                  aria-label={t('student:roadmap.nextPeriod')}
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>
@@ -937,9 +928,9 @@ export const AgileStudyRoadmap: React.FC = () => {
                   type="button"
                   onClick={handleJumpToToday}
                   className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-white border border-slate-200 dark:border-slate-700 text-xs font-normal cursor-pointer transition-colors"
-                  title="Jump to current date"
+                  title={t('student:roadmap.today')}
                 >
-                  Today
+                  {t('student:roadmap.today')}
                 </button>
               )}
             </div>
@@ -955,7 +946,7 @@ export const AgileStudyRoadmap: React.FC = () => {
                     : 'text-slate-500 dark:text-white/80 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
-                Month
+                {t('student:roadmap.monthView')}
               </button>
               <button
                 type="button"
@@ -966,7 +957,7 @@ export const AgileStudyRoadmap: React.FC = () => {
                     : 'text-slate-500 dark:text-white/80 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
-                Week
+                {t('student:roadmap.weekView')}
               </button>
               <button
                 type="button"
@@ -977,7 +968,7 @@ export const AgileStudyRoadmap: React.FC = () => {
                     : 'text-slate-500 dark:text-white/80 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
-                Day
+                {t('student:roadmap.dayView')}
               </button>
             </div>
           </div>
@@ -990,24 +981,24 @@ export const AgileStudyRoadmap: React.FC = () => {
               <select
                 value={activeSubjectFilter}
                 onChange={(e) => setActiveSubjectFilter(e.target.value)}
-                aria-label="Filter tasks by subject"
+                aria-label={t('student:roadmap.filterBySubject')}
                 className="pl-7 pr-6 py-1.5 rounded-xl bg-slate-50 dark:bg-[#132036] border border-slate-200 dark:border-slate-700/80 text-xs font-bold text-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-slate-400 cursor-pointer max-w-[230px]"
               >
-                <option value="ALL">All Subjects ({allDropdownSubjectNames.length})</option>
+                <option value="ALL">{t('student:roadmap.allSubjectsCount', { count: allDropdownSubjectNames.length })}</option>
                 {enrolledSubjectNames.length > 0 && (
-                  <optgroup label="My Selected Subjects">
+                  <optgroup label={t('student:roadmap.mySelectedSubjects')}>
                     {enrolledSubjectNames.map((subjName) => (
                       <option key={`filter-enr-${subjName}`} value={subjName}>
-                        {subjName}
+                        {translateSubjectLabel(subjName, t)}
                       </option>
                     ))}
                   </optgroup>
                 )}
                 {otherSubjectNames.length > 0 && (
-                  <optgroup label={`Grade ${studentGradeLevel} Curriculum (${currentBoard})`}>
+                  <optgroup label={t('student:roadmap.gradeCurriculumGroup', { grade: studentGradeLevel, board: translateBoardLabel(currentBoard, t) })}>
                     {otherSubjectNames.map((subjName) => (
                       <option key={`filter-oth-${subjName}`} value={subjName}>
-                        {subjName}
+                        {translateSubjectLabel(subjName, t)}
                       </option>
                     ))}
                   </optgroup>
@@ -1021,35 +1012,35 @@ export const AgileStudyRoadmap: React.FC = () => {
               className="px-3.5 py-1.5 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white border border-slate-300 dark:border-slate-600 text-xs font-normal flex items-center gap-1.5 shadow-xs cursor-pointer transition-colors"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>Add Task</span>
+              <span>{t('student:roadmap.addTask')}</span>
             </button>
 
             {/* Offline Study Pack button */}
             <button
               onClick={() => setIsOfflineModalOpen(true)}
-              title="Save Study Plan & AI Summaries for Offline Viewing / Low-Bandwidth Mode"
+              title={t('student:banners.offlinePackTooltip')}
               className="px-3 py-1.5 rounded-xl bg-teal-50/50 dark:bg-teal-950/25 hover:bg-teal-100/50 dark:hover:bg-teal-900/25 text-[#00A896]/75 dark:text-[#4DF0D7]/70 border border-teal-200/50 dark:border-teal-800/50 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
             >
               <Download className="w-3.5 h-3.5" />
-              <span>Offline Pack</span>
+              <span>{t('student:roadmap.offlinePackBtn')}</span>
             </button>
 
             {/* Parental Weekly Digest button */}
             <button
               onClick={() => setIsParentDigestOpen(true)}
-              title="Parental Weekly Digest: Completed vs Planned Sprint Hours"
+              title={t('student:banners.parentDigestTooltip')}
               className="px-3 py-1.5 rounded-xl bg-amber-50/50 dark:bg-amber-950/25 hover:bg-amber-100/50 dark:hover:bg-amber-900/25 text-amber-700/75 dark:text-amber-300/70 border border-amber-200/50 dark:border-amber-800/50 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
             >
               <Mail className="w-3.5 h-3.5" />
-              <span>Parent Digest</span>
+              <span>{t('student:roadmap.parentDigestBtn')}</span>
             </button>
 
             {/* Export Spreadsheet button */}
             <button
               onClick={exportStudyPlanSpreadsheet}
-              title="Export 3-Sheet Agile Study Plan (.CSV)"
+              title={t('student:roadmap.exportCsvTitle')}
               className="p-2 rounded-xl bg-emerald-50/50 dark:bg-emerald-950/25 hover:bg-emerald-100/50 dark:hover:bg-emerald-900/20 text-emerald-700/75 dark:text-emerald-300/70 border border-emerald-200/50 dark:border-emerald-800/50 cursor-pointer transition-colors"
-              aria-label="Export Spreadsheet"
+              aria-label={t('student:roadmap.exportSheet')}
             >
               <FileSpreadsheet className="w-4 h-4" />
             </button>
@@ -1071,7 +1062,7 @@ export const AgileStudyRoadmap: React.FC = () => {
                 : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-white hover:bg-slate-200 dark:hover:bg-slate-700'
             }`}
           >
-            <span>All Tasks</span>
+            <span>{t('student:roadmap.allTasks')}</span>
             <span
               className={`px-1.5 py-0.2 rounded-full text-[10px] font-normal ${
                 activeStatusFilter === 'ALL'
@@ -1100,7 +1091,7 @@ export const AgileStudyRoadmap: React.FC = () => {
                   : 'text-slate-500 dark:text-slate-300'
               }`}
             />
-            <span>To Do</span>
+            <span>{t('student:roadmap.todo')}</span>
             <span
               className={`px-1.5 py-0.2 rounded-full text-[10px] font-normal ${
                 activeStatusFilter === 'To Do'
@@ -1127,7 +1118,7 @@ export const AgileStudyRoadmap: React.FC = () => {
                 activeStatusFilter === 'In Progress' ? 'bg-white' : 'bg-blue-500'
               }`}
             />
-            <span>In Progress</span>
+            <span>{t('student:roadmap.inProgress')}</span>
             <span
               className={`px-1.5 py-0.2 rounded-full text-[10px] font-normal ${
                 activeStatusFilter === 'In Progress'
@@ -1154,7 +1145,7 @@ export const AgileStudyRoadmap: React.FC = () => {
                 activeStatusFilter === 'On Hold' ? 'text-white' : 'text-amber-600 dark:text-amber-300'
               }`}
             />
-            <span>On Hold</span>
+            <span>{t('student:roadmap.onHold')}</span>
             <span
               className={`px-1.5 py-0.2 rounded-full text-[10px] font-normal ${
                 activeStatusFilter === 'On Hold'
@@ -1181,7 +1172,7 @@ export const AgileStudyRoadmap: React.FC = () => {
                 activeStatusFilter === 'Revision' ? 'text-white' : 'text-purple-600 dark:text-purple-300'
               }`}
             />
-            <span>Revision</span>
+            <span>{t('student:roadmap.revision')}</span>
             <span
               className={`px-1.5 py-0.2 rounded-full text-[10px] font-normal ${
                 activeStatusFilter === 'Revision'
@@ -1208,7 +1199,7 @@ export const AgileStudyRoadmap: React.FC = () => {
                 activeStatusFilter === 'Completed' ? 'text-white' : 'text-emerald-600 dark:text-emerald-300'
               }`}
             />
-            <span>Done</span>
+            <span>{t('student:roadmap.done')}</span>
             <span
               className={`px-1.5 py-0.2 rounded-full text-[10px] font-normal ${
                 activeStatusFilter === 'Completed'
@@ -1229,10 +1220,10 @@ export const AgileStudyRoadmap: React.FC = () => {
                 setActiveSubjectFilter('ALL');
               }}
               className="text-xs font-normal text-slate-500 hover:text-slate-700 dark:hover:text-white px-2 py-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-1 transition-colors cursor-pointer"
-              title="Show all tasks"
+              title={t('student:filters.resetFilters')}
             >
               <X className="w-3 h-3" />
-              <span>Reset</span>
+              <span>{t('common:actions.reset')}</span>
             </button>
           )}
         </div>
@@ -1244,9 +1235,9 @@ export const AgileStudyRoadmap: React.FC = () => {
           </div>
           <div className="min-w-[130px] sm:min-w-[150px]">
             <div className="flex items-center justify-between text-xs">
-              <span className="font-normal text-slate-700 dark:text-white">Sprint Points</span>
+              <span className="font-normal text-slate-700 dark:text-white">{t('student:roadmap.sprintPoints')}</span>
               <span className="font-normal text-amber-600/70 dark:text-amber-400/70">
-                {earnedPoints} / {totalPoints} pts
+                {earnedPoints} / {totalPoints} {t('common:units.pts')}
               </span>
             </div>
             <div className="w-full bg-slate-200/50 dark:bg-slate-700/50 h-1.5 rounded-full overflow-hidden mt-1">
@@ -1267,13 +1258,13 @@ export const AgileStudyRoadmap: React.FC = () => {
         <div className="bg-white dark:bg-[#111827] rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden">
           {/* Day Header Row (Mon, Tue, Wed, Thu, Fri, Sat, Sun) */}
           <div className="grid grid-cols-7 border-b border-slate-200 dark:border-slate-800 text-center py-2.5 bg-slate-50/70 dark:bg-slate-800/50 text-xs font-extrabold text-slate-500 dark:text-white uppercase tracking-wider">
-            <div>Mon</div>
-            <div>Tue</div>
-            <div>Wed</div>
-            <div>Thu</div>
-            <div>Fri</div>
-            <div>Sat</div>
-            <div>Sun</div>
+            <div>{t('student:roadmap.weekdaysShort.mon')}</div>
+            <div>{t('student:roadmap.weekdaysShort.tue')}</div>
+            <div>{t('student:roadmap.weekdaysShort.wed')}</div>
+            <div>{t('student:roadmap.weekdaysShort.thu')}</div>
+            <div>{t('student:roadmap.weekdaysShort.fri')}</div>
+            <div>{t('student:roadmap.weekdaysShort.sat')}</div>
+            <div>{t('student:roadmap.weekdaysShort.sun')}</div>
           </div>
 
           {/* Dynamic Calendar Grid: Calculated dynamically for current month & year */}
@@ -1321,16 +1312,16 @@ export const AgileStudyRoadmap: React.FC = () => {
                         <div className="flex items-center justify-between text-xs font-bold text-slate-500 dark:text-white">
                           <span>{cell.day}</span>
                           <span className="text-[9px] uppercase tracking-wider font-semibold">
-                            {cell.type === 'prev' ? 'Prev' : 'Next'}
+                            {cell.type === 'prev' ? t('student:roadmap.prevPeriod') : t('student:roadmap.nextPeriod')}
                           </span>
                         </div>
                         {isDragTarget ? (
                           <div className="my-1 py-1 text-center bg-indigo-600/50 text-slate-900 dark:text-white rounded text-[10px] font-bold animate-pulse">
-                            Drop to move
+                            {t('student:roadmap.dropHere')}
                           </div>
                         ) : (
                           <span className="text-[10px] text-slate-400 dark:text-white italic">
-                            {cell.type === 'prev' ? 'Prev Month' : 'Next Month'}
+                            {cell.type === 'prev' ? t('student:roadmap.prevMonth') : t('student:roadmap.nextMonth')}
                           </span>
                         )}
                       </div>
@@ -1343,9 +1334,9 @@ export const AgileStudyRoadmap: React.FC = () => {
                   const isDragTarget = dragOverDateStr === dateStr;
 
                   // Tasks for this specific day in the selected month
-                  const dayTasks = monthTasks.filter((t) => {
-                    if (t.date) return t.date === dateStr;
-                    return t.day === dayNum;
+                  const dayTasks = monthTasks.filter((tItem) => {
+                    if (tItem.date) return tItem.date === dateStr;
+                    return tItem.day === dayNum;
                   });
                   const visibleTasks = dayTasks.filter(isTaskVisible);
                   const hasTasks = dayTasks.length > 0;
@@ -1389,7 +1380,7 @@ export const AgileStudyRoadmap: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => handleSelectDayView(dateStr)}
-                          title={`View ${currentMonthName} ${dayNum} schedule`}
+                          title={`${currentMonthName} ${dayNum}`}
                           className={`text-xs font-bold inline-flex items-center gap-1 hover:underline cursor-pointer ${
                             dateStr === todayStr
                               ? 'px-1.5 py-0.5 rounded-md bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white'
@@ -1400,19 +1391,19 @@ export const AgileStudyRoadmap: React.FC = () => {
                         >
                           <span>{dayNum}</span>
                           {dateStr === todayStr && (
-                            <span className="text-[9px] font-normal uppercase tracking-wide">Today</span>
+                            <span className="text-[9px] font-normal uppercase tracking-wide">{t('student:roadmap.today')}</span>
                           )}
                         </button>
 
                         <div className="flex items-center gap-1">
                           {isDragTarget && (
                             <span className="text-[9px] font-black bg-indigo-600/50 text-slate-900 dark:text-white px-1.5 py-0.5 rounded shadow-xs animate-pulse">
-                              Drop here
+                              {t('student:roadmap.dropHere')}
                             </span>
                           )}
                           <button
                             onClick={() => openAddTaskModal(dayNum, dateStr)}
-                            title={`Schedule task on ${currentMonthName} ${dayNum}`}
+                            title={t('student:roadmap.addTask')}
                             className="opacity-0 group-hover:opacity-100 p-0.5 rounded text-slate-400 hover:text-indigo-600/75 dark:hover:text-indigo-400/75 transition-opacity cursor-pointer"
                           >
                             <Plus className="w-3 h-3" />
@@ -1440,11 +1431,7 @@ export const AgileStudyRoadmap: React.FC = () => {
                                 setDragOverDateStr(null);
                               }}
                               onClick={() => handleOpenTask(task)}
-                              title={
-                                overdueInfo.isOverdue
-                                  ? `${overdueInfo.reason} — Click to update status or reschedule`
-                                  : `Drag to reschedule date, or click to edit status (${task.status}) & points (${task.points || 20} pts)`
-                              }
+                              title={overdueInfo.isOverdue ? overdueInfo.reason : undefined}
                               className={`p-2 rounded-lg text-[11px] font-bold shadow-xs cursor-grab active:cursor-grabbing hover:opacity-90 hover:scale-[1.02] transition-all relative group/card border ${
                                 overdueInfo.isOverdue
                                   ? 'border-red-500/80 dark:border-red-400/75 ring-1 ring-red-500/35'
@@ -1454,10 +1441,10 @@ export const AgileStudyRoadmap: React.FC = () => {
                               <div className="flex items-center justify-between gap-1.5">
                                 <span className="flex items-center gap-1.5 truncate font-normal">
                                   <SubjectIcon subject={task.subject} size="xs" />
-                                  <span className="truncate">{task.subject}</span>
+                                  <span className="truncate">{translateSubjectLabel(task.subject, t)}</span>
                                 </span>
                                 <span className="text-[9px] bg-black/15 dark:bg-black/25 px-1.5 py-0.5 rounded font-extrabold flex items-center gap-0.5 shrink-0">
-                                  {task.points || 20} pts
+                                  {task.points || 20} {t('common:units.pts')}
                                 </span>
                               </div>
                               <div className="text-[10px] text-slate-800/85 dark:text-white/90 font-normal truncate mt-0.5">
@@ -1467,7 +1454,7 @@ export const AgileStudyRoadmap: React.FC = () => {
                               {overdueInfo.isOverdue && (
                                 <div className="mt-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-600 text-white text-[8px] font-normal">
                                   <Flag className="w-2.5 h-2.5 fill-white text-white shrink-0" />
-                                  <span>Overdue</span>
+                                  <span>{t('student:roadmap.overdueLabel')}</span>
                                 </div>
                               )}
 
@@ -1475,14 +1462,14 @@ export const AgileStudyRoadmap: React.FC = () => {
                               <div className="mt-1 flex items-center justify-between text-[8px] text-slate-800/90 dark:text-white/90 font-medium gap-1">
                                 <span className="flex items-center gap-1 truncate">
                                   <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${badge.dot}`} />
-                                  <span className="truncate">{task.status}</span>
+                                  <span className="truncate">{badge.label}</span>
                                 </span>
                                 {task.study_time ? (
                                   <span className="bg-black/10 dark:bg-black/20 px-1 rounded shrink-0">
                                     {formatStudyTime(task.study_time)}
                                   </span>
                                 ) : task.is_core ? (
-                                  <span className="text-amber-700/80 dark:text-amber-200/75 shrink-0">★ Core</span>
+                                  <span className="text-amber-700/80 dark:text-amber-200/75 shrink-0">★ {t('student:roadmap.coreTag')}</span>
                                 ) : null}
                               </div>
 
@@ -1495,30 +1482,30 @@ export const AgileStudyRoadmap: React.FC = () => {
                                   <button
                                     type="button"
                                     onClick={() => handleQuickStatusChange(task.id, 'Completed')}
-                                    title="Mark Completed (100% weight to Course Completion Tracker)"
+                                    title={t('student:roadmap.completed')}
                                     className="px-1.5 py-0.5 rounded text-[8px] font-black bg-emerald-500/50 hover:bg-emerald-500/70 text-slate-900 dark:text-white shadow-2xs cursor-pointer transition-transform active:scale-95"
                                   >
-                                    ✓ Done
+                                    {t('student:roadmap.doneBtn')}
                                   </button>
                                 )}
                                 {task.status !== 'In Progress' && task.status !== 'Completed' && (
                                   <button
                                     type="button"
                                     onClick={() => handleQuickStatusChange(task.id, 'In Progress')}
-                                    title="Mark In Progress"
+                                    title={t('student:roadmap.inProgress')}
                                     className="px-1.5 py-0.5 rounded text-[8px] font-black bg-blue-500/50 hover:bg-blue-500/70 text-slate-900 dark:text-white shadow-2xs cursor-pointer transition-transform active:scale-95"
                                   >
-                                    ▶ In Prog
+                                    ▶ {t('student:roadmap.startBtn')}
                                   </button>
                                 )}
                                 {task.status !== 'Revision' && task.status === 'Completed' && (
                                   <button
                                     type="button"
                                     onClick={() => handleQuickStatusChange(task.id, 'Revision')}
-                                    title="Move to Revision"
+                                    title={t('student:roadmap.revision')}
                                     className="px-1.5 py-0.5 rounded text-[8px] font-black bg-purple-500/50 hover:bg-purple-500/70 text-slate-900 dark:text-white shadow-2xs cursor-pointer transition-transform active:scale-95"
                                   >
-                                    ↺ Revise
+                                    {t('student:roadmap.reviseBtn')}
                                   </button>
                                 )}
                               </div>
@@ -1529,7 +1516,7 @@ export const AgileStudyRoadmap: React.FC = () => {
                         {/* If has tasks but none match current filter */}
                         {hasTasks && visibleTasks.length === 0 && (
                           <div className="text-[10px] text-slate-400 dark:text-white italic py-1 text-center">
-                            {dayTasks.length} {dayTasks.length === 1 ? 'task' : 'tasks'} (filtered)
+                            {t('student:roadmap.hiddenByFilter', { count: dayTasks.length })}
                           </div>
                         )}
 
@@ -1544,7 +1531,7 @@ export const AgileStudyRoadmap: React.FC = () => {
                       {/* Day Footer info */}
                       {visibleTasks.length > 0 && (
                         <div className="text-[9px] text-slate-500 dark:text-white font-semibold text-right">
-                          {visibleTasks.reduce((s, t) => s + (t.duration_hrs || 1.5), 0)}h
+                          {visibleTasks.reduce((s, tItem) => s + (tItem.duration_hrs || 1.5), 0)}h
                         </div>
                       )}
                     </div>
@@ -1564,10 +1551,10 @@ export const AgileStudyRoadmap: React.FC = () => {
               <div>
                 <h2 className="text-base font-light text-slate-900 dark:text-white flex items-center gap-2 tracking-wide">
                   <Calendar className="w-4 h-4 text-indigo-600/50 dark:text-indigo-400/50" />
-                  Sprint Week Schedule: {weekRangeLabel}
+                  {t('student:roadmap.weekScheduleHeading', { range: weekRangeLabel })}
                 </h2>
                 <p className="text-xs text-slate-500 dark:text-white mt-0.5">
-                  Drag tasks between days to rebalance workload. Click a day header to inspect that day&apos;s full schedule.
+                  {t('student:roadmap.weekScheduleSub')}
                 </p>
               </div>
               <span className="text-xs font-bold text-indigo-600/75 dark:text-indigo-400/75 bg-indigo-50/50 dark:bg-indigo-950/30 px-2.5 py-1 rounded-xl self-start sm:self-auto border border-indigo-200/50 dark:border-indigo-800/50">
@@ -1629,20 +1616,20 @@ export const AgileStudyRoadmap: React.FC = () => {
                           </span>
                           {isToday && (
                             <span className="text-[9px] font-normal px-1.5 py-0.2 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white">
-                              Today
+                              {t('student:roadmap.today')}
                             </span>
                           )}
                         </button>
                         <div className="flex items-center gap-1">
                           {isDragTarget && (
                             <span className="text-[9px] font-black bg-indigo-600/50 text-slate-900 dark:text-white px-1 rounded animate-pulse">
-                              Drop
+                              {t('student:roadmap.dropHere')}
                             </span>
                           )}
                           <button
                             onClick={() => openAddTaskModal(dayNum, dateStr)}
                             className="text-slate-400 hover:text-indigo-600/75 dark:hover:text-white cursor-pointer"
-                            title={`Add task for ${monthShort} ${dayNum}`}
+                            title={t('student:roadmap.addTask')}
                           >
                             <Plus className="w-3.5 h-3.5" />
                           </button>
@@ -1678,19 +1665,19 @@ export const AgileStudyRoadmap: React.FC = () => {
                               <div className="flex items-center justify-between text-[11px] font-bold">
                                 <span className="flex items-center gap-1.5 font-normal truncate">
                                   <SubjectIcon subject={task.subject} size="xs" />
-                                  <span className="truncate">{task.subject}</span>
+                                  <span className="truncate">{translateSubjectLabel(task.subject, t)}</span>
                                 </span>
-                                <span className="text-[9px] bg-black/15 dark:bg-black/25 px-1 rounded">{task.points || 20} pts</span>
+                                <span className="text-[9px] bg-black/15 dark:bg-black/25 px-1 rounded">{task.points || 20} {t('common:units.pts')}</span>
                               </div>
                               <p className="text-[10px] text-slate-800/85 dark:text-white/90 line-clamp-2 mt-0.5">{task.topic}</p>
                               {overdueInfo.isOverdue && (
                                 <div className="mt-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-600 text-white text-[8px] font-normal">
                                   <Flag className="w-2.5 h-2.5 fill-white text-white shrink-0" />
-                                  <span>Overdue</span>
+                                  <span>{t('student:roadmap.overdueLabel')}</span>
                                 </div>
                               )}
                               <div className="mt-1.5 pt-1 border-t border-slate-900/10 dark:border-white/15 flex items-center justify-between text-[9px]">
-                                <span className="font-semibold">{task.status}</span>
+                                <span className="font-semibold">{badge.label}</span>
                                 <span>
                                   {task.study_time ? `${formatStudyTime(task.study_time)} · ` : ''}
                                   {task.duration_hrs}h
@@ -1709,7 +1696,7 @@ export const AgileStudyRoadmap: React.FC = () => {
                     </div>
 
                     <div className="pt-2 text-[10px] font-semibold text-slate-400 dark:text-white">
-                      Target: 1.5h core practice
+                      {t('student:roadmap.targetPractice')}
                     </div>
                   </div>
                 );
@@ -1736,29 +1723,29 @@ export const AgileStudyRoadmap: React.FC = () => {
                 <div className="flex flex-wrap items-center gap-2">
                   <Calendar className="w-4 h-4 text-slate-600 dark:text-slate-300" />
                   <h2 className="text-base font-light text-slate-900 dark:text-white tracking-wide">
-                    {selectedDateStr === todayStr ? "Today's Tasks" : 'Daily Study Tasks'} &bull;{' '}
+                    {selectedDateStr === todayStr ? t('student:roadmap.todaysTasksHeading') : t('student:roadmap.dailyTasksHeading')} &bull;{' '}
                     <span className="font-medium">{selectedDayFullLabel}</span>
                   </h2>
                   {selectedDateStr === todayStr && (
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-normal bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-white border border-slate-300 dark:border-slate-600">
-                      Today
+                      {t('student:roadmap.today')}
                     </span>
                   )}
                 </div>
                 <p className="text-xs text-slate-500 dark:text-slate-300">
-                  Review your focus tasks for this day, update workflow status, or add a new study block.
+                  {t('student:roadmap.dayTasksSub')}
                 </p>
               </div>
 
               <div className="flex flex-wrap items-center gap-2 shrink-0">
                 <span className="px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-700 dark:text-slate-200 tabular-nums">
-                  {dayDoneCount} / {visibleDayTasks.length} Done
+                  {t('student:roadmap.doneRatio', { done: dayDoneCount, total: visibleDayTasks.length })}
                 </span>
                 <span className="px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-700 dark:text-slate-200 tabular-nums">
-                  {dayHours}h planned
+                  {t('student:roadmap.plannedHours', { hrs: dayHours })}
                 </span>
                 <span className="px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-700 dark:text-slate-200 tabular-nums">
-                  {dayEarnedPts} / {dayTotalPts} pts
+                  {dayEarnedPts} / {dayTotalPts} {t('common:units.pts')}
                 </span>
                 <button
                   type="button"
@@ -1766,7 +1753,7 @@ export const AgileStudyRoadmap: React.FC = () => {
                   className="px-3 py-1.5 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white border border-slate-300 dark:border-slate-600 text-xs font-normal inline-flex items-center gap-1 cursor-pointer transition-colors"
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  <span>Add Task</span>
+                  <span>{t('student:roadmap.addTask')}</span>
                 </button>
               </div>
             </div>
@@ -1777,11 +1764,14 @@ export const AgileStudyRoadmap: React.FC = () => {
                 <div className="space-y-1">
                   <p className="text-sm font-normal text-slate-800 dark:text-white">
                     {selectedDayAllTasks.length > 0
-                      ? `${selectedDayAllTasks.length} ${selectedDayAllTasks.length === 1 ? 'task is' : 'tasks are'} hidden by the active status or subject filter.`
-                      : `No study tasks scheduled for ${selectedDayShortLabel} (${getEmptyDayLabel(selectedDayNum)}).`}
+                      ? t('student:roadmap.hiddenByFilter', { count: selectedDayAllTasks.length })
+                      : t('student:roadmap.noScheduledTasks', {
+                          date: selectedDayShortLabel,
+                          hint: getEmptyDayLabel(selectedDayNum),
+                        })}
                   </p>
                   <p className="text-xs text-slate-500 dark:text-slate-300">
-                    Schedule a study session for this day or use Prev/Next arrows above to browse other days.
+                    {t('student:roadmap.dayTasksSub')}
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center justify-center gap-2">
@@ -1794,7 +1784,7 @@ export const AgileStudyRoadmap: React.FC = () => {
                       }}
                       className="px-3.5 py-1.5 rounded-xl border border-slate-300 dark:border-slate-600 text-xs font-normal text-slate-700 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
                     >
-                      Reset Filters
+                      {t('student:filters.resetFilters')}
                     </button>
                   )}
                   <button
@@ -1803,7 +1793,7 @@ export const AgileStudyRoadmap: React.FC = () => {
                     className="px-4 py-1.5 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white border border-slate-300 dark:border-slate-600 text-xs font-normal inline-flex items-center gap-1.5 cursor-pointer"
                   >
                     <Plus className="w-3.5 h-3.5" />
-                    <span>Schedule Task for This Day</span>
+                    <span>{t('student:roadmap.scheduleDayBtn')}</span>
                   </button>
                 </div>
               </div>
@@ -1814,7 +1804,7 @@ export const AgileStudyRoadmap: React.FC = () => {
                   const overdueInfo = getTaskOverdueInfo(task);
                   const timeWindow = task.study_time
                     ? formatStudyWindow(task.study_time, task.duration_hrs)
-                    : `${task.duration_hrs}h flexible slot`;
+                    : t('student:roadmap.flexibleSlot', { hrs: task.duration_hrs });
 
                   return (
                     <div
@@ -1833,12 +1823,12 @@ export const AgileStudyRoadmap: React.FC = () => {
                           </div>
                           <div className="min-w-0 flex-1 space-y-1">
                             <div className="text-xs font-medium text-slate-900 dark:text-white truncate" title={task.subject}>
-                              {task.subject}
+                              {translateSubjectLabel(task.subject, t)}
                             </div>
                             <div className="flex flex-wrap items-center gap-1">
                               {task.is_core && (
                                 <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
-                                  Core
+                                  {t('student:roadmap.coreTag')}
                                 </span>
                               )}
                               <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] border ${badge.bg}`}>
@@ -1848,7 +1838,7 @@ export const AgileStudyRoadmap: React.FC = () => {
                               {overdueInfo.isOverdue && (
                                 <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-red-600/15 dark:bg-red-500/20 border border-red-500/45 text-red-600 dark:text-red-400 text-[10px]">
                                   <Flag className="w-2.5 h-2.5 fill-red-600 text-red-600 dark:fill-red-400 dark:text-red-400 shrink-0" />
-                                  <span>Overdue</span>
+                                  <span>{t('student:roadmap.overdueLabel')}</span>
                                 </span>
                               )}
                             </div>
@@ -1865,7 +1855,7 @@ export const AgileStudyRoadmap: React.FC = () => {
                             <span>{timeWindow}</span>
                           </span>
                           <span>&bull; {task.duration_hrs}h</span>
-                          <span>&bull; +{task.points ?? 20} pts</span>
+                          <span>&bull; +{task.points ?? 20} {t('common:units.pts')}</span>
                         </div>
 
                         {task.notes && (
@@ -1887,7 +1877,7 @@ export const AgileStudyRoadmap: React.FC = () => {
                               onClick={() => handleQuickStatusChange(task.id, 'In Progress')}
                               className="px-2.5 py-1 rounded-lg text-[11px] bg-blue-50/70 hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-900/40 text-blue-700 dark:text-blue-300 border border-blue-200/70 dark:border-blue-800/60 cursor-pointer transition-colors"
                             >
-                              Start
+                              {t('student:roadmap.startBtn')}
                             </button>
                           )}
                           {task.status !== 'Completed' && (
@@ -1896,7 +1886,7 @@ export const AgileStudyRoadmap: React.FC = () => {
                               onClick={() => handleQuickStatusChange(task.id, 'Completed')}
                               className="px-2.5 py-1 rounded-lg text-[11px] bg-emerald-50/70 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/70 dark:border-emerald-800/60 cursor-pointer transition-colors"
                             >
-                              ✓ Done
+                              {t('student:roadmap.doneBtn')}
                             </button>
                           )}
                           {task.status === 'Completed' && (
@@ -1905,7 +1895,7 @@ export const AgileStudyRoadmap: React.FC = () => {
                               onClick={() => handleQuickStatusChange(task.id, 'Revision')}
                               className="px-2.5 py-1 rounded-lg text-[11px] bg-purple-50/70 hover:bg-purple-100 dark:bg-purple-950/40 dark:hover:bg-purple-900/40 text-purple-700 dark:text-purple-300 border border-purple-200/70 dark:border-purple-800/60 cursor-pointer transition-colors"
                             >
-                              ↺ Revision
+                              {t('student:roadmap.reviseBtn')}
                             </button>
                           )}
                         </div>
@@ -1913,8 +1903,8 @@ export const AgileStudyRoadmap: React.FC = () => {
                           type="button"
                           onClick={() => handleOpenTask(task)}
                           className="p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white cursor-pointer"
-                          title="Edit task details"
-                          aria-label="Edit task details"
+                          title={t('common:actions.edit')}
+                          aria-label={t('common:actions.edit')}
                         >
                           <Edit3 className="w-3.5 h-3.5" />
                         </button>
@@ -1936,10 +1926,10 @@ export const AgileStudyRoadmap: React.FC = () => {
               <div>
                 <h2 className="text-base font-light text-slate-900 dark:text-white flex items-center gap-2 tracking-wide">
                   <Layers className="w-4 h-4 text-indigo-600/50 dark:text-indigo-400/50" />
-                  Agile Sprint Kanban Board ({currentMonthName})
+                  {t('student:roadmap.kanbanHeading', { month: currentMonthName })}
                 </h2>
                 <p className="text-xs text-slate-500 dark:text-white mt-0.5">
-                  Drag tasks between columns or click to advance through sprint cycles and earn study story points.
+                  {t('student:roadmap.kanbanSub')}
                 </p>
               </div>
 
@@ -1947,11 +1937,11 @@ export const AgileStudyRoadmap: React.FC = () => {
                 {overdueSprintCount > 0 && (
                   <div className="text-xs font-normal text-red-600 dark:text-red-400 bg-red-50/80 dark:bg-red-950/40 px-3 py-1.5 rounded-xl border border-red-300/70 dark:border-red-700/60 flex items-center gap-1.5">
                     <Flag className="w-3.5 h-3.5 fill-red-600 text-red-600 dark:fill-red-400 dark:text-red-400 shrink-0" />
-                    <span>{overdueSprintCount} Overdue</span>
+                    <span>{t('student:roadmap.overdueCount', { count: overdueSprintCount })}</span>
                   </div>
                 )}
                 <div className="text-xs font-bold text-indigo-600/75 dark:text-indigo-400/75 bg-indigo-50/50 dark:bg-indigo-950/30 px-3 py-1.5 rounded-xl border border-indigo-200/50 dark:border-indigo-800/50">
-                  {completedCount} of {totalTasks} Tasks Done ({currentMonthName})
+                  {t('student:roadmap.tasksDoneOfTotal', { done: completedCount, total: totalTasks, month: currentMonthName })}
                 </div>
               </div>
             </div>
@@ -1960,20 +1950,20 @@ export const AgileStudyRoadmap: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-5 gap-3.5 mt-5 items-start">
               {(
                 [
-                  { status: 'To Do', label: 'To Do', color: 'slate', dot: 'bg-slate-400/50' },
-                  { status: 'In Progress', label: 'In Progress', color: 'blue', dot: 'bg-blue-500/50 animate-pulse' },
-                  { status: 'On Hold', label: 'On Hold', color: 'amber', dot: 'bg-amber-500/50' },
-                  { status: 'Revision', label: 'Revision', color: 'purple', dot: 'bg-purple-500/50' },
-                  { status: 'Completed', label: 'Done / Completed', color: 'emerald', dot: 'bg-emerald-500/50' },
+                  { status: 'To Do', label: t('student:roadmap.todo'), color: 'slate', dot: 'bg-slate-400/50' },
+                  { status: 'In Progress', label: t('student:roadmap.inProgress'), color: 'blue', dot: 'bg-blue-500/50 animate-pulse' },
+                  { status: 'On Hold', label: t('student:roadmap.onHold'), color: 'amber', dot: 'bg-amber-500/50' },
+                  { status: 'Revision', label: t('student:roadmap.revision'), color: 'purple', dot: 'bg-purple-500/50' },
+                  { status: 'Completed', label: t('student:roadmap.completed'), color: 'emerald', dot: 'bg-emerald-500/50' },
                 ] as const
               ).map((column) => {
                 const columnTasks = monthTasks.filter(
-                  (t) =>
-                    t.status === column.status &&
+                  (tItem) =>
+                    tItem.status === column.status &&
                     (activeSubjectFilter === 'ALL' ||
-                      (t.subject || '').toLowerCase() === activeSubjectFilter.toLowerCase())
+                      (tItem.subject || '').toLowerCase() === activeSubjectFilter.toLowerCase())
                 );
-                const colPoints = columnTasks.reduce((s, t) => s + (t.points || 20), 0);
+                const colPoints = columnTasks.reduce((s, tItem) => s + (tItem.points || 20), 0);
 
                 return (
                   <div
@@ -2032,17 +2022,17 @@ export const AgileStudyRoadmap: React.FC = () => {
                               <div className="flex items-center justify-between gap-1.5 text-xs font-bold">
                                 <span className="flex items-center gap-1.5 font-normal text-slate-900 dark:text-white group-hover:text-indigo-600/75 transition-colors truncate">
                                   <SubjectIcon subject={task.subject} size="xs" />
-                                  <span className="truncate">{task.subject}</span>
+                                  <span className="truncate">{translateSubjectLabel(task.subject, t)}</span>
                                 </span>
                                 <span className="text-[10px] font-extrabold bg-amber-50/50 dark:bg-amber-950/25 text-amber-700/75 dark:text-amber-300/75 px-1.5 py-0.5 rounded border border-amber-200/30 dark:border-amber-800/30 shrink-0">
-                                  +{task.points || 20} pts
+                                  +{task.points || 20} {t('common:units.pts')}
                                 </span>
                               </div>
 
                               {overdueInfo.isOverdue && (
                                 <div className="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-600/15 dark:bg-red-500/20 border border-red-500/45 text-red-600 dark:text-red-400 text-[10px] font-normal">
                                   <Flag className="w-3 h-3 fill-red-600 text-red-600 dark:fill-red-400 dark:text-red-400 shrink-0" />
-                                  <span>Overdue</span>
+                                  <span>{t('student:roadmap.overdueLabel')}</span>
                                 </div>
                               )}
 
@@ -2052,11 +2042,11 @@ export const AgileStudyRoadmap: React.FC = () => {
 
                               <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[10px] text-slate-400 dark:text-slate-200">
                                 <span>
-                                  Day {task.day}
+                                  {t('common:units.day')} {task.day}
                                   {task.study_time ? ` · ${formatStudyTime(task.study_time)}` : ''} · {task.duration_hrs}h
                                 </span>
                                 {task.is_core && (
-                                  <span className="text-indigo-600/75 dark:text-indigo-400/75 font-bold">Core</span>
+                                  <span className="text-indigo-600/75 dark:text-indigo-400/75 font-bold">{t('student:roadmap.coreTag')}</span>
                                 )}
                               </div>
 
@@ -2068,10 +2058,10 @@ export const AgileStudyRoadmap: React.FC = () => {
                                       e.stopPropagation();
                                       handleQuickStatusChange(task.id, 'In Progress');
                                     }}
-                                    title="Move to In Progress"
+                                    title={t('student:roadmap.inProgress')}
                                     className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-50/50 text-blue-700/75 hover:bg-blue-100/50 dark:bg-blue-950/30 dark:text-blue-300/75 cursor-pointer"
                                   >
-                                    Progress
+                                    {t('student:roadmap.inProgress')}
                                   </button>
                                 )}
                                 {column.status !== 'Completed' && (
@@ -2080,10 +2070,10 @@ export const AgileStudyRoadmap: React.FC = () => {
                                       e.stopPropagation();
                                       handleQuickStatusChange(task.id, 'Completed');
                                     }}
-                                    title="Mark Completed"
+                                    title={t('student:roadmap.completed')}
                                     className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-50/50 text-emerald-700/75 hover:bg-emerald-100/50 dark:bg-emerald-950/30 dark:text-emerald-300/75 cursor-pointer"
                                   >
-                                    Done
+                                    {t('student:roadmap.done')}
                                   </button>
                                 )}
                                 {column.status !== 'Revision' && (
@@ -2092,10 +2082,10 @@ export const AgileStudyRoadmap: React.FC = () => {
                                       e.stopPropagation();
                                       handleQuickStatusChange(task.id, 'Revision');
                                     }}
-                                    title="Move to Revision"
+                                    title={t('student:roadmap.revision')}
                                     className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-50/50 text-purple-700/75 hover:bg-purple-100/50 dark:bg-purple-950/30 dark:text-purple-300/75 cursor-pointer"
                                   >
-                                    Revision
+                                    {t('student:roadmap.revision')}
                                   </button>
                                 )}
                               </div>
@@ -2105,14 +2095,14 @@ export const AgileStudyRoadmap: React.FC = () => {
 
                         {columnTasks.length === 0 && (
                           <div className="text-xs text-slate-400 dark:text-white italic py-8 text-center border-2 border-dashed border-slate-200/50 dark:border-slate-700/50 rounded-xl">
-                            No tasks in {column.label}
+                            {t('student:roadmap.noTasksInColumn', { column: column.label })}
                           </div>
                         )}
                       </div>
                     </div>
 
                     <div className="pt-2 text-[10px] font-extrabold text-slate-400 dark:text-white text-right">
-                      Total: {colPoints} pts
+                      {t('student:roadmap.totalPts', { pts: colPoints })}
                     </div>
                   </div>
                 );
@@ -2127,27 +2117,27 @@ export const AgileStudyRoadmap: React.FC = () => {
         <div className="flex flex-wrap items-center gap-4">
           <span className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-[#4F46E5]/50" />
-            <span className="font-normal text-slate-700 dark:text-white">Core Math (1.5h)</span>
+            <span className="font-normal text-slate-700 dark:text-white">{translateSubjectLabel('Mathematics', t)} (1.5h)</span>
           </span>
           <span className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-[#0284C7]/50" />
-            <span className="font-normal text-slate-700 dark:text-white">Physics Lab</span>
+            <span className="font-normal text-slate-700 dark:text-white">{translateSubjectLabel('Physics', t)}</span>
           </span>
           <span className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-[#0EA5E9]/50" />
-            <span className="font-normal text-slate-700 dark:text-white">History Reading</span>
+            <span className="font-normal text-slate-700 dark:text-white">{translateSubjectLabel('History', t)}</span>
           </span>
           <span className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/50" />
-            <span className="font-normal text-slate-700 dark:text-white">Completed</span>
+            <span className="font-normal text-slate-700 dark:text-white">{t('student:roadmap.completed')}</span>
           </span>
           <span className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-amber-500/50" />
-            <span className="font-normal text-slate-700 dark:text-white">On Hold</span>
+            <span className="font-normal text-slate-700 dark:text-white">{t('student:roadmap.onHold')}</span>
           </span>
           <span className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-purple-500/50" />
-            <span className="font-normal text-slate-700 dark:text-white">Revision</span>
+            <span className="font-normal text-slate-700 dark:text-white">{t('student:roadmap.revision')}</span>
           </span>
         </div>
 
@@ -2156,7 +2146,7 @@ export const AgileStudyRoadmap: React.FC = () => {
           className="text-xs font-normal text-[#4F46E5]/70 dark:text-[#818CF8]/70 hover:underline cursor-pointer flex items-center gap-1"
         >
           <RefreshCw className="w-3.5 h-3.5" />
-          <span>Recalculate AI Sprints</span>
+          <span>{t('student:roadmap.recalculateAiSprints')}</span>
         </button>
       </div>
 
@@ -2173,14 +2163,14 @@ export const AgileStudyRoadmap: React.FC = () => {
               <div>
                 <div className="flex items-center gap-2">
                   <span className="px-2.5 py-0.5 rounded-full text-xs font-normal bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
-                    {selectedTask.subject}
+                    {translateSubjectLabel(selectedTask.subject, t)}
                   </span>
                   <span className="text-xs font-normal text-slate-400 dark:text-white">
-                    Day {selectedTask.day} · {selectedTask.date}
+                    {t('common:units.day')} {selectedTask.day} · {selectedTask.date}
                   </span>
                 </div>
                 <h3 className="text-lg font-normal text-slate-900 dark:text-white mt-1.5 tracking-wide">
-                  Update Task & Status
+                  {t('student:roadmap.editModalTitle')}
                 </h3>
               </div>
               <button
@@ -2195,7 +2185,7 @@ export const AgileStudyRoadmap: React.FC = () => {
               {/* Topic / Title */}
               <div>
                 <label className="block text-xs font-normal text-slate-700 dark:text-white mb-1">
-                  Topic / Task Description
+                  {t('student:roadmap.topic')}
                 </label>
                 <input
                   type="text"
@@ -2209,16 +2199,16 @@ export const AgileStudyRoadmap: React.FC = () => {
               {/* Status Picker: 5 Choices (In Progress, On Hold, Completed, Revision, To Do) */}
               <div>
                 <label className="block text-xs font-normal text-slate-700 dark:text-white mb-2">
-                  Select Status
+                  {t('student:roadmap.status')}
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {(
                     [
-                      { status: 'In Progress', icon: <TrendingUp className="w-3.5 h-3.5" />, activeBg: 'bg-blue-600/50 text-slate-900 dark:text-white border-blue-600/50' },
-                      { status: 'On Hold', icon: <Pause className="w-3.5 h-3.5" />, activeBg: 'bg-amber-600/50 text-slate-900 dark:text-white border-amber-600/50' },
-                      { status: 'Completed', icon: <CheckCircle2 className="w-3.5 h-3.5" />, activeBg: 'bg-emerald-600/50 text-slate-900 dark:text-white border-emerald-600/50' },
-                      { status: 'Revision', icon: <RotateCcw className="w-3.5 h-3.5" />, activeBg: 'bg-purple-600/50 text-slate-900 dark:text-white border-purple-600/50' },
-                      { status: 'To Do', icon: <Clock className="w-3.5 h-3.5" />, activeBg: 'bg-slate-700/50 text-slate-900 dark:text-white border-slate-700/50' },
+                      { status: 'In Progress', label: t('student:roadmap.inProgress'), icon: <TrendingUp className="w-3.5 h-3.5" />, activeBg: 'bg-blue-600/50 text-slate-900 dark:text-white border-blue-600/50' },
+                      { status: 'On Hold', label: t('student:roadmap.onHold'), icon: <Pause className="w-3.5 h-3.5" />, activeBg: 'bg-amber-600/50 text-slate-900 dark:text-white border-amber-600/50' },
+                      { status: 'Completed', label: t('student:roadmap.completed'), icon: <CheckCircle2 className="w-3.5 h-3.5" />, activeBg: 'bg-emerald-600/50 text-slate-900 dark:text-white border-emerald-600/50' },
+                      { status: 'Revision', label: t('student:roadmap.revision'), icon: <RotateCcw className="w-3.5 h-3.5" />, activeBg: 'bg-purple-600/50 text-slate-900 dark:text-white border-purple-600/50' },
+                      { status: 'To Do', label: t('student:roadmap.todo'), icon: <Clock className="w-3.5 h-3.5" />, activeBg: 'bg-slate-700/50 text-slate-900 dark:text-white border-slate-700/50' },
                     ] as const
                   ).map((option) => (
                     <button
@@ -2232,7 +2222,7 @@ export const AgileStudyRoadmap: React.FC = () => {
                       }`}
                     >
                       {option.icon}
-                      <span>{option.status}</span>
+                      <span>{option.label}</span>
                     </button>
                   ))}
                 </div>
@@ -2244,11 +2234,8 @@ export const AgileStudyRoadmap: React.FC = () => {
                   <div>
                     <label className="text-xs font-normal text-slate-800 dark:text-white flex items-center gap-1.5">
                       <Award className="w-4 h-4 text-amber-500/50" />
-                      Study Points (XP)
+                      {t('student:roadmap.storyPoints')}
                     </label>
-                    <p className="text-[11px] font-normal text-slate-500 dark:text-white mt-0.5">
-                      Sprint story points awarded when marked Completed
-                    </p>
                   </div>
 
                   {/* Stepper controls */}
@@ -2281,7 +2268,6 @@ export const AgileStudyRoadmap: React.FC = () => {
 
                 {/* Quick Presets */}
                 <div className="flex items-center gap-1.5 mt-3 pt-2.5 border-t border-slate-200/80 dark:border-slate-700/80 text-[11px]">
-                  <span className="text-slate-400 dark:text-white font-normal mr-1">Presets:</span>
                   {[10, 15, 20, 25, 30, 50].map((pts) => (
                     <button
                       key={pts}
@@ -2293,7 +2279,7 @@ export const AgileStudyRoadmap: React.FC = () => {
                           : 'bg-white dark:bg-slate-700 text-slate-700 dark:text-white border border-slate-200 dark:border-slate-600 hover:bg-amber-50/50'
                       }`}
                     >
-                      {pts}p
+                      {pts}
                     </button>
                   ))}
                 </div>
@@ -2303,7 +2289,7 @@ export const AgileStudyRoadmap: React.FC = () => {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="block text-xs font-normal text-slate-700 dark:text-white mb-1">
-                    Scheduled Date
+                    {t('student:roadmap.date')}
                   </label>
                   <input
                     type="date"
@@ -2315,7 +2301,7 @@ export const AgileStudyRoadmap: React.FC = () => {
 
                 <div>
                   <label className="block text-xs font-normal text-slate-700 dark:text-white mb-1">
-                    Study Start Time
+                    {t('student:roadmap.studyTime')}
                   </label>
                   <input
                     type="time"
@@ -2327,7 +2313,7 @@ export const AgileStudyRoadmap: React.FC = () => {
 
                 <div>
                   <label className="block text-xs font-normal text-slate-700 dark:text-white mb-1">
-                    Duration (hours)
+                    {t('student:roadmap.duration')}
                   </label>
                   <input
                     type="number"
@@ -2344,12 +2330,11 @@ export const AgileStudyRoadmap: React.FC = () => {
               {/* Study Notes */}
               <div>
                 <label className="block text-xs font-normal text-slate-700 dark:text-white mb-1">
-                  Revision Notes / Formula References
+                  {t('student:roadmap.notes')}
                 </label>
                 <textarea
                   value={editNotes}
                   onChange={(e) => setEditNotes(e.target.value)}
-                  placeholder="e.g. Focus on sign rules when multiplying inequalities..."
                   rows={2}
                   className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white font-normal focus:ring-2 focus:ring-indigo-500/50 focus:outline-hidden"
                 />
@@ -2360,7 +2345,7 @@ export const AgileStudyRoadmap: React.FC = () => {
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2 text-xs font-normal text-slate-900 dark:text-white">
                     <Upload className="w-3.5 h-3.5 text-[#00A896]" />
-                    <span>Deliverable Submission &amp; Feedback</span>
+                    <span>{t('student:roadmap.deliverableFeedbackHeading')}</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     {selectedTask.isCustom && (
@@ -2373,25 +2358,28 @@ export const AgileStudyRoadmap: React.FC = () => {
                             : 'bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'
                         }`}
                       >
-                        {selectedTask.customCategory || 'Custom'}: {selectedTask.approvalStatus || 'Pending Approval'}
+                        {t(`student:roadmap.customCategories.${selectedTask.customCategory || 'Custom Task'}`, {
+                          defaultValue: selectedTask.customCategory || 'Custom',
+                        })}
+                        : {translateStatusLabel(selectedTask.approvalStatus || 'Pending Approval', t)}
                       </span>
                     )}
                     <span className="px-2 py-0.5 rounded-full text-[10px] bg-slate-200/80 dark:bg-slate-700 text-slate-700 dark:text-slate-200">
-                      {selectedTask.submissionStatus || 'Pending'}
+                      {translateStatusLabel(selectedTask.submissionStatus || 'Pending', t)}
                     </span>
                   </div>
                 </div>
 
                 {selectedTask.adminReviewNote && (
                   <div className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-[11px] text-slate-700 dark:text-slate-200">
-                    Admin Review Note: {selectedTask.adminReviewNote}
+                    {selectedTask.adminReviewNote}
                   </div>
                 )}
 
                 {selectedTask.score !== undefined && (
                   <div className="p-3 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-xs space-y-1">
                     <div className="flex items-center justify-between text-emerald-800 dark:text-emerald-300">
-                      <span>Instructor Grade ({selectedTask.gradedBy || 'Academic Admin'})</span>
+                      <span>{selectedTask.gradedBy || t('common:header.adminRoleShort')}</span>
                       <span className="tabular-nums">
                         {selectedTask.score} / {selectedTask.maxScore || 100}
                       </span>
@@ -2422,7 +2410,7 @@ export const AgileStudyRoadmap: React.FC = () => {
                       }`}
                     >
                       {item.icon}
-                      <span>{item.id}</span>
+                      <span>{t(`student:roadmap.deliverableTypes.${item.id}`)}</span>
                     </button>
                   ))}
                 </div>
@@ -2465,7 +2453,7 @@ export const AgileStudyRoadmap: React.FC = () => {
                     <span className="text-[11px] text-emerald-600 dark:text-emerald-400">{subSuccessMsg}</span>
                   ) : (
                     <span className="text-[10px] text-slate-500 dark:text-slate-400">
-                      Syncs immediately to Admin Submission Tracking Grid
+                      {t('student:roadmap.deliverableFeedbackHeading')}
                     </span>
                   )}
                   <button
@@ -2491,11 +2479,11 @@ export const AgileStudyRoadmap: React.FC = () => {
                             }
                           : prev
                       );
-                      setSubSuccessMsg('Deliverable submitted to Admin!');
+                      setSubSuccessMsg(t('student:roadmap.deliverableSubmitted'));
                     }}
                     className="px-3 py-1.5 rounded-xl bg-[#00A896] hover:bg-[#009282] text-white text-[11px] cursor-pointer transition-colors"
                   >
-                    Submit Deliverable
+                    {t('student:roadmap.submitDeliverable')}
                   </button>
                 </div>
               </div>
@@ -2505,7 +2493,7 @@ export const AgileStudyRoadmap: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-indigo-600/50 dark:text-indigo-400/50" />
                   <span className="text-xs font-normal text-indigo-900/80 dark:text-indigo-200/80">
-                    Need guidance on {selectedTask.subject}?
+                    {t('student:roadmap.askTutorShortcut', { subject: translateSubjectLabel(selectedTask.subject, t) })}
                   </span>
                 </div>
                 <button
@@ -2519,7 +2507,7 @@ export const AgileStudyRoadmap: React.FC = () => {
                   }}
                   className="text-xs font-normal text-indigo-600/75 dark:text-indigo-400/75 hover:underline cursor-pointer"
                 >
-                  Ask AI Tutor →
+                  {t('student:roadmap.askTutorLink')}
                 </button>
               </div>
 
@@ -2531,7 +2519,7 @@ export const AgileStudyRoadmap: React.FC = () => {
                   className="px-3 py-2 rounded-xl text-rose-600/75 hover:bg-rose-50/50 dark:hover:bg-rose-950/20 text-xs font-normal flex items-center gap-1 cursor-pointer transition-colors"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
-                  <span>Delete</span>
+                  <span>{t('common:actions.delete')}</span>
                 </button>
 
                 <div className="flex items-center gap-2">
@@ -2540,13 +2528,13 @@ export const AgileStudyRoadmap: React.FC = () => {
                     onClick={() => setSelectedTask(null)}
                     className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-normal text-slate-700 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
                   >
-                    Cancel
+                    {t('common:actions.cancel')}
                   </button>
                   <button
                     type="submit"
                     className="px-5 py-2 rounded-xl bg-indigo-600/50 hover:bg-indigo-600/65 text-slate-900 dark:text-white text-xs font-normal shadow-xs cursor-pointer transition-colors"
                   >
-                    Save Changes
+                    {t('student:roadmap.saveTask')}
                   </button>
                 </div>
               </div>
@@ -2566,10 +2554,10 @@ export const AgileStudyRoadmap: React.FC = () => {
             <div className="flex items-start justify-between">
               <div>
                 <h3 className="text-lg font-normal text-slate-900 dark:text-white tracking-wide">
-                  Schedule New Study Task
+                  {t('student:roadmap.newModalTitle')}
                 </h3>
                 <p className="text-xs font-normal text-slate-500 dark:text-white mt-0.5">
-                  Pick a date on the calendar, set your study time slot, and choose a subject.
+                  {t('student:roadmap.newModalSub')}
                 </p>
               </div>
               <button
@@ -2588,7 +2576,7 @@ export const AgileStudyRoadmap: React.FC = () => {
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-xs font-normal text-slate-800 dark:text-white flex items-center gap-1.5">
                       <Calendar className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-                      <span>Select Study Day</span>
+                      <span>{t('student:roadmap.selectStudyDay')}</span>
                     </span>
                     <div className="flex items-center gap-1">
                       <button
@@ -2599,7 +2587,7 @@ export const AgileStudyRoadmap: React.FC = () => {
                           )
                         }
                         className="p-1 rounded-lg bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-white hover:bg-slate-100 cursor-pointer"
-                        aria-label="Previous calendar month"
+                        aria-label={t('student:roadmap.prevMonth')}
                       >
                         <ChevronLeft className="w-3.5 h-3.5" />
                       </button>
@@ -2614,7 +2602,7 @@ export const AgileStudyRoadmap: React.FC = () => {
                           )
                         }
                         className="p-1 rounded-lg bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-white hover:bg-slate-100 cursor-pointer"
-                        aria-label="Next calendar month"
+                        aria-label={t('student:roadmap.nextMonth')}
                       >
                         <ChevronRight className="w-3.5 h-3.5" />
                       </button>
@@ -2623,13 +2611,13 @@ export const AgileStudyRoadmap: React.FC = () => {
 
                   {/* Weekday Header */}
                   <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-normal text-slate-400 dark:text-slate-300">
-                    <div>Mo</div>
-                    <div>Tu</div>
-                    <div>We</div>
-                    <div>Th</div>
-                    <div>Fr</div>
-                    <div>Sa</div>
-                    <div>Su</div>
+                    <div>{t('student:roadmap.weekdaysMin.mon')}</div>
+                    <div>{t('student:roadmap.weekdaysMin.tue')}</div>
+                    <div>{t('student:roadmap.weekdaysMin.wed')}</div>
+                    <div>{t('student:roadmap.weekdaysMin.thu')}</div>
+                    <div>{t('student:roadmap.weekdaysMin.fri')}</div>
+                    <div>{t('student:roadmap.weekdaysMin.sat')}</div>
+                    <div>{t('student:roadmap.weekdaysMin.sun')}</div>
                   </div>
 
                   {/* Calendar Day Cells */}
@@ -2640,12 +2628,12 @@ export const AgileStudyRoadmap: React.FC = () => {
                       }
                       const isSelected = newTaskDateStr === cell.dateStr;
                       const dayScheduledCount = dailyTasks.filter(
-                        (t) =>
-                          t.date === cell.dateStr ||
-                          (!t.date &&
+                        (tItem) =>
+                          tItem.date === cell.dateStr ||
+                          (!tItem.date &&
                             pickerMonthIndex === 9 &&
                             pickerYear === 2026 &&
-                            t.day === cell.day)
+                            tItem.day === cell.day)
                       ).length;
 
                       return (
@@ -2656,11 +2644,6 @@ export const AgileStudyRoadmap: React.FC = () => {
                             setNewTaskDateStr(cell.dateStr);
                             setNewTaskDay(cell.day);
                           }}
-                          title={
-                            dayScheduledCount > 0
-                              ? `${cell.dateStr} • ${dayScheduledCount} task(s) scheduled`
-                              : `Select ${cell.dateStr}`
-                          }
                           className={`h-8 rounded-lg text-[11px] font-normal flex flex-col items-center justify-center relative transition-all cursor-pointer ${
                             isSelected
                               ? 'bg-indigo-600/50 text-slate-900 dark:text-white shadow-xs ring-2 ring-indigo-500/20'
@@ -2682,9 +2665,8 @@ export const AgileStudyRoadmap: React.FC = () => {
 
                   <div className="flex items-center justify-between gap-2 pt-1 text-[10px] text-slate-500 dark:text-slate-300">
                     <span>
-                      Selected:{' '}
                       <span className="font-normal text-slate-800 dark:text-white">
-                        {new Date(newTaskDateStr + 'T00:00:00').toLocaleDateString('en-US', {
+                        {new Date(newTaskDateStr + 'T00:00:00').toLocaleDateString(intlLocale, {
                           weekday: 'short',
                           month: 'short',
                           day: 'numeric',
@@ -2703,7 +2685,7 @@ export const AgileStudyRoadmap: React.FC = () => {
                         if (d) setNewTaskDay(d);
                         if (y && m) setPickerCalendarDate(new Date(y, m - 1, 1));
                       }}
-                      aria-label="Exact study date"
+                      aria-label={t('student:roadmap.date')}
                       className="px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-[10px] font-normal text-slate-700 dark:text-white cursor-pointer"
                     />
                   </div>
@@ -2714,7 +2696,7 @@ export const AgileStudyRoadmap: React.FC = () => {
                   <div>
                     <label className="block text-xs font-normal text-slate-800 dark:text-white mb-1 flex items-center gap-1.5">
                       <Clock className="w-3.5 h-3.5 text-slate-500 dark:text-slate-300" />
-                      <span>Study Start Time</span>
+                      <span>{t('student:roadmap.studyTime')}</span>
                     </label>
                     <input
                       type="time"
@@ -2727,7 +2709,7 @@ export const AgileStudyRoadmap: React.FC = () => {
 
                   <div>
                     <span className="block text-[10px] font-normal text-slate-500 dark:text-slate-300 mb-1">
-                      Quick Time Slots:
+                      {t('student:roadmap.quickTimeSlots')}
                     </span>
                     <div className="grid grid-cols-2 gap-1.5">
                       {[
@@ -2754,24 +2736,24 @@ export const AgileStudyRoadmap: React.FC = () => {
 
                   <div>
                     <label className="block text-xs font-normal text-slate-800 dark:text-white mb-1">
-                      Study Duration
+                      {t('student:roadmap.duration')}
                     </label>
                     <select
                       value={newTaskDuration}
                       onChange={(e) => setNewTaskDuration(Number(e.target.value) || 1.5)}
                       className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white font-normal cursor-pointer"
                     >
-                      <option value={0.5}>0.5 hr (30 mins)</option>
-                      <option value={1}>1.0 hr (60 mins)</option>
-                      <option value={1.5}>1.5 hrs (90 mins)</option>
-                      <option value={2}>2.0 hrs (2 hours)</option>
-                      <option value={2.5}>2.5 hrs</option>
-                      <option value={3}>3.0 hrs (Deep Focus)</option>
+                      <option value={0.5}>0.5 {t('common:units.hrs')} (30 {t('common:units.min')})</option>
+                      <option value={1}>1.0 {t('common:units.hrs')} (60 {t('common:units.min')})</option>
+                      <option value={1.5}>1.5 {t('common:units.hrs')} (90 {t('common:units.min')})</option>
+                      <option value={2}>2.0 {t('common:units.hrs')}</option>
+                      <option value={2.5}>2.5 {t('common:units.hrs')}</option>
+                      <option value={3}>3.0 {t('common:units.hrs')}</option>
                     </select>
                   </div>
 
                   <div className="p-2.5 rounded-xl bg-indigo-50/50 dark:bg-indigo-950/25 border border-indigo-200/40 dark:border-indigo-800/40 text-[10px] text-indigo-800/80 dark:text-indigo-200/80">
-                    <span className="font-normal block">Scheduled Window:</span>
+                    <span className="font-normal block">{t('student:roadmap.scheduledWindow')}</span>
                     <span>
                       {formatStudyWindow(newTaskTime, newTaskDuration)} ({newTaskDuration}h)
                     </span>
@@ -2782,7 +2764,7 @@ export const AgileStudyRoadmap: React.FC = () => {
               {/* Subject Dropdown */}
               <div>
                 <label className="block text-xs font-normal text-slate-700 dark:text-white mb-1">
-                  Subject (Grade {studentGradeLevel} &bull; {currentBoard})
+                  {t('student:roadmap.subject')} ({t('student:dashboard.gradeLabel')} {studentGradeLevel} &bull; {translateBoardLabel(currentBoard, t)})
                 </label>
                 <select
                   value={newTaskSubject}
@@ -2791,30 +2773,30 @@ export const AgileStudyRoadmap: React.FC = () => {
                   required
                 >
                   {enrolledSubjectNames.length > 0 && (
-                    <optgroup label="My Selected Subjects (Profile)">
+                    <optgroup label={t('student:roadmap.mySelectedSubjects')}>
                       {enrolledSubjectNames.map((subjName) => (
                         <option key={`add-enr-${subjName}`} value={subjName}>
-                          {subjName}
+                          {translateSubjectLabel(subjName, t)}
                         </option>
                       ))}
                     </optgroup>
                   )}
                   {otherSubjectNames.length > 0 && (
-                    <optgroup label={`All Grade ${studentGradeLevel} Curriculum Subjects (${currentBoard})`}>
+                    <optgroup label={t('student:roadmap.gradeCurriculumGroup', { grade: studentGradeLevel, board: translateBoardLabel(currentBoard, t) })}>
                       {otherSubjectNames.map((subjName) => (
                         <option key={`add-oth-${subjName}`} value={subjName}>
-                          {subjName}
+                          {translateSubjectLabel(subjName, t)}
                         </option>
                       ))}
                     </optgroup>
                   )}
                   {allDropdownSubjectNames.length === 0 && (
                     <>
-                      <option value="Mathematics">Mathematics</option>
-                      <option value="Physics">Physics</option>
-                      <option value="Chemistry">Chemistry</option>
-                      <option value="Biology">Biology</option>
-                      <option value="Computer Science">Computer Science</option>
+                      <option value="Mathematics">{translateSubjectLabel('Mathematics', t)}</option>
+                      <option value="Physics">{translateSubjectLabel('Physics', t)}</option>
+                      <option value="Chemistry">{translateSubjectLabel('Chemistry', t)}</option>
+                      <option value="Biology">{translateSubjectLabel('Biology', t)}</option>
+                      <option value="Computer Science">{translateSubjectLabel('Computer Science', t)}</option>
                     </>
                   )}
                 </select>
@@ -2822,27 +2804,27 @@ export const AgileStudyRoadmap: React.FC = () => {
 
               <div className="space-y-1.5">
                 <label className="block text-xs font-normal text-slate-700 dark:text-white">
-                  Topic / Lesson Title
+                  {t('student:roadmap.topicTitle')}
                 </label>
                 <input
                   type="text"
                   list="roadmap-curriculum-topics"
-                  placeholder="Select a syllabus topic below or type a custom lesson title..."
+                  placeholder={t('student:roadmap.topicPlaceholder')}
                   value={newTaskTopic}
                   onChange={(e) => setNewTaskTopic(e.target.value)}
                   className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm text-slate-900 dark:text-white font-normal"
                   required
                 />
                 <datalist id="roadmap-curriculum-topics">
-                  {suggestedTopicsForSelectedSubject.map((t) => (
-                    <option key={t.id} value={t.title} />
+                  {suggestedTopicsForSelectedSubject.map((topItem) => (
+                    <option key={topItem.id} value={topItem.title} />
                   ))}
                 </datalist>
 
                 {suggestedTopicsForSelectedSubject.length > 0 && (
                   <div className="pt-1 space-y-1">
                     <span className="text-[10px] font-normal text-slate-500 dark:text-white/80 block">
-                      Quick-pick {newTaskSubject} curriculum topics (from Admin catalog):
+                      {t('student:roadmap.quickPickTopics', { subject: translateSubjectLabel(newTaskSubject, t) })}
                     </span>
                     <div className="flex flex-wrap gap-1.5 max-h-20 overflow-y-auto">
                       {suggestedTopicsForSelectedSubject.map((top) => (
@@ -2867,24 +2849,24 @@ export const AgileStudyRoadmap: React.FC = () => {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-normal text-slate-700 dark:text-white mb-1">
-                    Initial Status
+                    {t('student:roadmap.initialStatus')}
                   </label>
                   <select
                     value={newTaskStatus}
                     onChange={(e) => setNewTaskStatus(e.target.value as StudyTaskStatus)}
                     className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm text-slate-900 dark:text-white font-normal"
                   >
-                    <option value="To Do">To Do</option>
-                    <option value="In Progress">In Progress</option>
-                    <option value="On Hold">On Hold</option>
-                    <option value="Revision">Revision</option>
-                    <option value="Completed">Completed</option>
+                    <option value="To Do">{t('student:roadmap.todo')}</option>
+                    <option value="In Progress">{t('student:roadmap.inProgress')}</option>
+                    <option value="On Hold">{t('student:roadmap.onHold')}</option>
+                    <option value="Revision">{t('student:roadmap.revision')}</option>
+                    <option value="Completed">{t('student:roadmap.completed')}</option>
                   </select>
                 </div>
 
                 <div>
                   <label className="block text-xs font-normal text-slate-700 dark:text-white mb-1">
-                    Study Points (XP)
+                    {t('student:roadmap.storyPoints')}
                   </label>
                   <input
                     type="number"
@@ -2907,15 +2889,15 @@ export const AgileStudyRoadmap: React.FC = () => {
                       onChange={(e) => setNewTaskIsCustom(e.target.checked)}
                       className="rounded text-[#00A896] focus:ring-[#00A896]"
                     />
-                    <span>Propose as Custom Task / Side Project (Routes to Admin Approval Queue)</span>
+                    <span>{t('student:roadmap.proposeCustom')}</span>
                   </label>
                   <select
                     value={newTaskPriority}
                     onChange={(e) => setNewTaskPriority(e.target.value as 'Normal' | 'High')}
                     className="px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-[11px] text-slate-800 dark:text-white cursor-pointer"
                   >
-                    <option value="Normal">Priority: Normal</option>
-                    <option value="High">Priority: High</option>
+                    <option value="Normal">{t('student:roadmap.priorityNormal')}</option>
+                    <option value="High">{t('student:roadmap.priorityHigh')}</option>
                   </select>
                 </div>
 
@@ -2932,7 +2914,7 @@ export const AgileStudyRoadmap: React.FC = () => {
                             : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'
                         }`}
                       >
-                        {cat}
+                        {t(`student:roadmap.customCategories.${cat}`)}
                       </button>
                     ))}
                   </div>
@@ -2947,7 +2929,7 @@ export const AgileStudyRoadmap: React.FC = () => {
                     className="rounded text-indigo-600/50 focus:ring-indigo-500/50"
                   />
                   <label htmlFor="newCoreCheckbox" className="text-xs font-normal text-slate-700 dark:text-white cursor-pointer">
-                    Mark as Core Daily Practice (Guaranteed Daily Sprint block)
+                    {t('student:roadmap.markCoreCheckbox')}
                   </label>
                 </div>
               </div>
@@ -2958,13 +2940,13 @@ export const AgileStudyRoadmap: React.FC = () => {
                   onClick={() => setIsNewTaskOpen(false)}
                   className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-normal text-slate-700 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
                 >
-                  Cancel
+                  {t('common:actions.cancel')}
                 </button>
                 <button
                   type="submit"
                   className="px-5 py-2 rounded-xl bg-indigo-600/50 hover:bg-indigo-600/65 text-slate-900 dark:text-white text-xs font-normal shadow-xs cursor-pointer transition-colors"
                 >
-                  Add to Roadmap
+                  {t('student:roadmap.addToRoadmap')}
                 </button>
               </div>
             </form>

@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useApp } from '../../context/AppContext';
 import { processAvatarImage } from '../../utils/imageUtils';
 import { DBSubject, EducationBoard, LanguageMedium } from '../../types';
+import { SUPPORTED_LOCALES } from '../../i18n';
+import { translateSubjectLabel, translateCategoryLabel } from '../../i18n/helpers';
 import {
   BOARD_LABELS,
   getLocalizedSubjectName,
@@ -37,33 +40,6 @@ import {
   Image as ImageIcon,
   AlertTriangle,
 } from 'lucide-react';
-
-const SUPPORTED_BOARDS: { value: EducationBoard; label: string }[] = [
-  { value: 'CBSE', label: 'CBSE - Central Board of Secondary Education' },
-  { value: 'ICSE', label: 'ICSE / CISCE - Indian Certificate of Secondary Education' },
-  { value: 'IB', label: 'IB - International Baccalaureate' },
-  { value: 'IGCSE', label: 'Cambridge IGCSE / Edexcel' },
-  { value: 'PSEB', label: 'PSEB - Punjab School Education Board' },
-  { value: 'GSEB', label: 'GSEB - Gujarat Secondary & Higher Secondary' },
-  { value: 'MSBSHSE', label: 'MSBSHSE - Maharashtra State Board' },
-  { value: 'KSEEB', label: 'KSEEB - Karnataka Secondary Education Board' },
-  { value: 'BSEAP/TOSS', label: 'BSEAP / TOSS - Andhra Pradesh & Telangana' },
-  { value: 'WBBSE', label: 'WBBSE - West Bengal Board of Secondary Education' },
-  { value: 'Tamil Nadu State Board', label: 'Tamil Nadu State Board' },
-];
-
-const SUPPORTED_LANGUAGES: { value: LanguageMedium; label: string; native: string }[] = [
-  { value: 'en', label: 'English', native: 'Default International' },
-  { value: 'hi', label: 'Hindi', native: 'हिंदी' },
-  { value: 'pa', label: 'Punjabi', native: 'ਪੰਜਾਬੀ' },
-  { value: 'mr', label: 'Marathi', native: 'मराठी' },
-  { value: 'bn', label: 'Bengali', native: 'বাংলা' },
-  { value: 'ta', label: 'Tamil', native: 'தமிழ்' },
-  { value: 'te', label: 'Telugu', native: 'తెలుగు' },
-  { value: 'gu', label: 'Gujarati', native: 'ગુજરાતી' },
-  { value: 'kn', label: 'Kannada', native: 'ಕನ್ನಡ' },
-  { value: 'ml', label: 'Malayalam', native: 'മലയാളം' },
-];
 
 interface PresetAvatar {
   id: string;
@@ -109,13 +85,14 @@ const PRESET_AVATARS: PresetAvatar[] = [
 ];
 
 export const UserProfileModal: React.FC = () => {
+  const { t } = useTranslation('common');
   const {
     currentUser,
     updateCurrentUser,
     isProfileOpen,
     setIsProfileOpen,
     lessonPlans,
-    setGlobalLanguage,
+    changePlatformLanguage,
     setCurrentBoard,
     boardsConfig,
     boardSubjectMappings,
@@ -344,7 +321,6 @@ export const UserProfileModal: React.FC = () => {
       guardian_phone: guardianPhone,
       guardian_email: guardianEmail,
     });
-    setGlobalLanguage(languageMedium);
     setCurrentBoard(educationBoard);
     setSaveSuccess(true);
     setTimeout(() => {
@@ -419,13 +395,13 @@ export const UserProfileModal: React.FC = () => {
                   {currentUser?.role || role}
                 </span>
               </div>
-              <p className="text-xs text-white/80">Account Profile & Workspace Settings</p>
+              <p className="text-xs text-white/80">{t('profileModal.title')}</p>
             </div>
           </div>
           <button
             onClick={() => setIsProfileOpen(false)}
             className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors cursor-pointer"
-            aria-label="Close Profile"
+            aria-label={t('actions.close')}
           >
             <X className="w-5 h-5" />
           </button>
@@ -451,7 +427,7 @@ export const UserProfileModal: React.FC = () => {
           {saveSuccess && (
             <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-xs font-normal flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>Profile details saved and synced to Admin directory!</span>
+              <span>{t('profileModal.savedToast')}</span>
             </div>
           )}
 
@@ -460,7 +436,7 @@ export const UserProfileModal: React.FC = () => {
             <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
               <h3 className="text-sm font-normal text-slate-900 dark:text-white flex items-center gap-2">
                 <User className="w-4 h-4 text-[#00A896]" />
-                <span>Account Information</span>
+                <span>{t('profileModal.accountTab')}</span>
               </h3>
               <div className="flex items-center gap-2">
                 <label className="text-xs font-normal text-slate-500 dark:text-white">Status:</label>
@@ -469,8 +445,8 @@ export const UserProfileModal: React.FC = () => {
                   onChange={(e) => setStatus(e.target.value as 'Active' | 'Inactive')}
                   className="text-xs font-normal px-2.5 py-1 rounded-lg border border-slate-200 dark:border-[#1C3A66] bg-slate-50 dark:bg-[#132A4C]/60 text-slate-800 dark:text-white cursor-pointer focus:outline-none focus:ring-1 focus:ring-[#00A896]"
                 >
-                  <option value="Active">Active</option>
-                  <option value="Inactive">Inactive</option>
+                  <option value="Active">{t('statuses.ACTIVE')}</option>
+                  <option value="Inactive">{t('statuses.INACTIVE')}</option>
                 </select>
               </div>
             </div>
@@ -488,7 +464,7 @@ export const UserProfileModal: React.FC = () => {
                 <div className="space-y-1 flex-1">
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-normal text-slate-800 dark:text-white block">
-                      Avatar Profile Selection
+                      {t('profileModal.chooseAvatar')}
                     </label>
                     <span className="text-[10px] text-[#00A896] font-normal">Live Preview</span>
                   </div>
@@ -530,7 +506,7 @@ export const UserProfileModal: React.FC = () => {
                         }}
                         className="px-2 py-1.5 rounded-lg text-slate-500 hover:text-rose-500 text-[11px] font-normal transition-colors cursor-pointer"
                       >
-                        Reset
+                        {t('actions.reset')}
                       </button>
                     )}
                   </div>
@@ -633,7 +609,7 @@ export const UserProfileModal: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-normal text-slate-700 dark:text-white mb-1">
-                  Full Name (Editable)
+                  {t('profileModal.fullName')}
                 </label>
                 <div className="relative">
                   <User className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -649,7 +625,7 @@ export const UserProfileModal: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-normal text-slate-700 dark:text-white mb-1">
-                  Email Address (Editable)
+                  {t('profileModal.email')}
                 </label>
                 <div className="relative">
                   <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -670,7 +646,7 @@ export const UserProfileModal: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <h4 className="text-xs font-normal uppercase tracking-wider text-[#00A896] dark:text-[#00A896] flex items-center gap-1.5">
                     <BookOpen className="w-4 h-4" />
-                    <span>Academic & Curriculum Configuration</span>
+                    <span>{t('profileModal.academicConfig')}</span>
                   </h4>
                   <span className="text-[10px] bg-[#00A896]/10 dark:bg-[#00A896]/20 text-[#00A896] px-2.5 py-0.5 rounded-full font-normal border border-[#00A896]/30">
                     Auto-Syncs With AI Tutor
@@ -681,7 +657,7 @@ export const UserProfileModal: React.FC = () => {
                   {/* Grade Dropdown (Dynamic Admin Active Grades) */}
                   <div>
                     <label className="block text-[11px] font-normal text-slate-700 dark:text-white mb-1">
-                      Current Grade Level (Admin Curriculum Grades)
+                      {t('profileModal.gradeLevel')}
                     </label>
                     <select
                       value={gradeLevel}
@@ -690,18 +666,7 @@ export const UserProfileModal: React.FC = () => {
                     >
                       {gradeOptions.map((g) => (
                         <option key={g} value={g}>
-                          Grade {g}{' '}
-                          {g <= 7
-                            ? '(Middle School)'
-                            : g === 8
-                            ? '(Secondary Foundations)'
-                            : g === 9
-                            ? '(Secondary High School)'
-                            : g === 10
-                            ? '(Secondary Board Exam Prep)'
-                            : g === 11
-                            ? '(Senior Secondary Stream)'
-                            : '(Senior Secondary Final Prep)'}
+                          {t('curriculumExplorer.gradeOption', { grade: g })}
                         </option>
                       ))}
                     </select>
@@ -711,7 +676,7 @@ export const UserProfileModal: React.FC = () => {
                   {(gradeLevel === 11 || gradeLevel === 12) && (
                     <div>
                       <label className="block text-[11px] font-normal text-slate-700 dark:text-white mb-1">
-                        Academic Stream (Grades 11 & 12)
+                        {t('profileModal.stream')}
                       </label>
                       <select
                         value={stream}
@@ -728,7 +693,7 @@ export const UserProfileModal: React.FC = () => {
                   {/* Education Board Selection */}
                   <div>
                     <label className="block text-[11px] font-normal text-slate-700 dark:text-white mb-1">
-                      Educational Board / Governing Syllabus
+                      {t('profileModal.governingBoard')}
                     </label>
                     <select
                       value={educationBoard}
@@ -743,22 +708,29 @@ export const UserProfileModal: React.FC = () => {
                     </select>
                   </div>
 
-                  {/* Language Medium Selection */}
+                  {/* Language Medium Selection (Bidirectionally synced with Top-Nav Switcher) */}
                   <div>
                     <label className="block text-[11px] font-normal text-slate-700 dark:text-white mb-1">
-                      Preferred Medium of Instruction
+                      {t('profileModal.preferredMedium')}
                     </label>
                     <select
                       value={languageMedium}
-                      onChange={(e) => setLanguageMedium(e.target.value as LanguageMedium)}
+                      onChange={(e) => {
+                        const nextLang = e.target.value as LanguageMedium;
+                        setLanguageMedium(nextLang);
+                        void changePlatformLanguage(nextLang, { silent: true });
+                      }}
                       className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-[#1C3A66] bg-white dark:bg-[#132A4C]/60 text-xs font-normal text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#00A896] cursor-pointer"
                     >
-                      {SUPPORTED_LANGUAGES.map((l) => (
-                        <option key={l.value} value={l.value}>
-                          {l.label} ({l.native})
+                      {SUPPORTED_LOCALES.map((l) => (
+                        <option key={l.code} value={l.code}>
+                          {l.code === 'en' ? l.nativeName : `${l.nativeName} (${l.englishName})`}
                         </option>
                       ))}
                     </select>
+                    <p className="text-[10px] text-slate-400 dark:text-slate-300 mt-1">
+                      {t('profileModal.preferredMediumHint')}
+                    </p>
                   </div>
                 </div>
 
@@ -809,7 +781,7 @@ export const UserProfileModal: React.FC = () => {
                             : 'bg-white dark:bg-[#0D1B3E] text-slate-600 dark:text-white border border-slate-200 dark:border-[#1C3A66] hover:bg-slate-100 dark:hover:bg-[#1C3A66]'
                         }`}
                       >
-                        {cat === 'ALL' ? 'All Domains' : cat}
+                        {cat === 'ALL' ? t('curriculumExplorer.allDomains') : translateCategoryLabel(cat, t)}
                       </button>
                     ))}
                   </div>
@@ -825,7 +797,7 @@ export const UserProfileModal: React.FC = () => {
                         onClick={() => setBoardSwitchWarning(null)}
                         className="text-amber-700 dark:text-amber-300 hover:underline text-[10px] cursor-pointer shrink-0"
                       >
-                        Dismiss
+                        {t('header.dismiss')}
                       </button>
                     </div>
                   )}
@@ -839,7 +811,10 @@ export const UserProfileModal: React.FC = () => {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-52 overflow-y-auto pr-1">
                       {displayedProfileSubjects.map((subj) => {
                         const isSelected = isSubjectEnrolled(subj, selectedCourses, educationBoard);
-                        const localizedName = getLocalizedSubjectName(subj.name, educationBoard);
+                        const localizedName = translateSubjectLabel(
+                          getLocalizedSubjectName(subj.name, educationBoard),
+                          t
+                        );
                         const topicCount = topicsDB.filter(
                           (t) => t.subject_id === subj.id && t.status === 'ACTIVE'
                         ).length;
@@ -914,7 +889,7 @@ export const UserProfileModal: React.FC = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                   <div>
                     <label className="block text-[11px] font-normal text-slate-700 dark:text-white mb-1">
-                      Student Mobile Number
+                      {t('auth.mobileNumber')}
                     </label>
                     <div className="relative">
                       <Phone className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -930,7 +905,7 @@ export const UserProfileModal: React.FC = () => {
 
                   <div>
                     <label className="block text-[11px] font-normal text-slate-700 dark:text-white mb-1">
-                      Guardian / Parent Name
+                      {t('profileModal.guardianName')}
                     </label>
                     <div className="relative">
                       <Users className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -946,7 +921,7 @@ export const UserProfileModal: React.FC = () => {
 
                   <div>
                     <label className="block text-[11px] font-normal text-slate-700 dark:text-white mb-1">
-                      Guardian Phone Number
+                      {t('profileModal.guardianPhone')}
                     </label>
                     <div className="relative">
                       <Phone className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -962,7 +937,7 @@ export const UserProfileModal: React.FC = () => {
 
                   <div>
                     <label className="block text-[11px] font-normal text-slate-700 dark:text-white mb-1">
-                      Guardian Email Address
+                      {t('profileModal.guardianEmail')}
                     </label>
                     <div className="relative">
                       <Mail className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -1049,14 +1024,14 @@ export const UserProfileModal: React.FC = () => {
                 className="text-xs font-normal text-[#00A896] dark:text-[#00A896] flex items-center gap-1.5 hover:underline cursor-pointer"
               >
                 <KeyRound className="w-3.5 h-3.5" />
-                <span>{showPasswordSection ? 'Hide Password Reset' : 'Change Password'}</span>
+                <span>{showPasswordSection ? 'Hide Password Reset' : t('profileModal.passwordReset')}</span>
               </button>
 
               <button
                 type="submit"
                 className={`px-4 py-2 rounded-xl text-xs font-normal shadow-xs transition-colors cursor-pointer ${themeStyles.btn}`}
               >
-                Save Details
+                {t('profileModal.saveChanges')}
               </button>
             </div>
           </form>
@@ -1066,7 +1041,7 @@ export const UserProfileModal: React.FC = () => {
             <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#132A4C]/40 border border-slate-200 dark:border-[#1C3A66] space-y-3">
               <h4 className="text-xs font-normal text-slate-900 dark:text-white flex items-center gap-1.5">
                 <Lock className="w-3.5 h-3.5 text-[#00A896]" />
-                <span>Password Reset Security</span>
+                <span>{t('profileModal.passwordReset')}</span>
               </h4>
 
               {passwordSuccess ? (
@@ -1079,7 +1054,7 @@ export const UserProfileModal: React.FC = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
                       <label className="block text-[11px] font-normal text-slate-600 dark:text-white mb-1">
-                        Current Password
+                        {t('profileModal.currentPassword')}
                       </label>
                       <input
                         type="password"
@@ -1092,7 +1067,7 @@ export const UserProfileModal: React.FC = () => {
                     </div>
                     <div>
                       <label className="block text-[11px] font-normal text-slate-600 dark:text-white mb-1">
-                        New Password
+                        {t('profileModal.newPassword')}
                       </label>
                       <input
                         type="password"
@@ -1105,7 +1080,7 @@ export const UserProfileModal: React.FC = () => {
                     </div>
                     <div>
                       <label className="block text-[11px] font-normal text-slate-600 dark:text-white mb-1">
-                        Confirm New Password
+                        {t('profileModal.confirmPassword')}
                       </label>
                       <input
                         type="password"
@@ -1121,7 +1096,7 @@ export const UserProfileModal: React.FC = () => {
                     type="submit"
                     className="px-3 py-1.5 rounded-lg bg-[#00A896] hover:bg-[#009282] text-white text-xs font-normal cursor-pointer transition-colors"
                   >
-                    Confirm Password Change
+                    {t('profileModal.updatePasswordBtn')}
                   </button>
                 </form>
               )}
@@ -1396,7 +1371,7 @@ export const UserProfileModal: React.FC = () => {
             onClick={() => setIsProfileOpen(false)}
             className="px-4 py-2 rounded-xl text-xs font-normal bg-slate-200 hover:bg-slate-300 dark:bg-[#132A4C] dark:hover:bg-[#1C3A66] text-slate-800 dark:text-white transition-colors cursor-pointer"
           >
-            Close Profile
+            {t('actions.close')}
           </button>
         </div>
       </div>

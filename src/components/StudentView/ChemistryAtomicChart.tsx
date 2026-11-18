@@ -16,6 +16,7 @@ import {
   Shield,
   CircleDot,
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export type ElementCategory =
   | 'alkali'
@@ -814,6 +815,7 @@ const CATEGORY_STYLES: Record<ElementCategory, { label: string; bg: string; text
 };
 
 export const ChemistryAtomicChart: React.FC = () => {
+  const { t } = useTranslation(['student', 'common']);
   const [selectedZ, setSelectedZ] = useState<number>(11); // Default to Sodium (Na)
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -858,14 +860,14 @@ export const ChemistryAtomicChart: React.FC = () => {
               <Atom className="w-4 h-4 animate-spin-slow" />
             </div>
             <h2 className="text-lg sm:text-xl font-normal text-slate-900 dark:text-white tracking-wide flex items-center gap-2">
-              <span>Chemistry Atomic Chart &amp; Periodic Classification</span>
+              <span>{t('student:atomicChart.title')}</span>
               <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800/80">
-                Interactive Bohr &bull; Z=1 to 82
+                {t('student:atomicChart.badge')}
               </span>
             </h2>
           </div>
           <p className="text-xs text-slate-500 dark:text-white mt-1">
-            Explore atomic numbers ($Z$), relative atomic masses ($A$), electronic configurations, Bohr orbit electron shells, and periodic trends.
+            {t('student:atomicChart.subtitle')}
           </p>
         </div>
 
@@ -876,7 +878,7 @@ export const ChemistryAtomicChart: React.FC = () => {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by Symbol (Na), Name (Iron), or Z (11)..."
+            placeholder={t('student:atomicChart.searchPlaceholder')}
             className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-slate-50 dark:bg-[#132036] border border-slate-200 dark:border-slate-700/80 text-xs text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#00A896]"
           />
         </div>
@@ -892,7 +894,7 @@ export const ChemistryAtomicChart: React.FC = () => {
               : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-white hover:bg-slate-200'
           }`}
         >
-          All Elements ({ELEMENTS_DATA.length})
+          {t('student:atomicChart.allElements', { count: ELEMENTS_DATA.length })}
         </button>
         {Object.entries(CATEGORY_STYLES).map(([key, style]) => {
           const isSelected = filterCategory === key;
@@ -908,7 +910,7 @@ export const ChemistryAtomicChart: React.FC = () => {
               }`}
             >
               <span className="w-2 h-2 rounded-full" style={{ backgroundColor: style.glow }} />
-              <span>{style.label}</span>
+              <span>{t(`student:atomicChart.categories.${key}`, { defaultValue: style.label })}</span>
               <span className="text-[10px] opacity-75">({count})</span>
             </button>
           );
@@ -922,10 +924,10 @@ export const ChemistryAtomicChart: React.FC = () => {
           <div className="flex items-center justify-between text-xs text-slate-500 dark:text-white px-1">
             <span className="flex items-center gap-1 font-semibold">
               <Layers className="w-3.5 h-3.5 text-[#00A896]" />
-              <span>Interactive Atomic Chart Grid</span>
+              <span>{t('student:atomicChart.gridTitle')}</span>
             </span>
             <span className="text-[11px] text-slate-400 dark:text-white">
-              Showing {filteredElements.length} elements &bull; Click to inspect
+              {t('student:atomicChart.showingElements', { count: filteredElements.length })}
             </span>
           </div>
 
@@ -974,30 +976,30 @@ export const ChemistryAtomicChart: React.FC = () => {
             <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#111C2E] border border-slate-200/80 dark:border-slate-800 text-xs space-y-1">
               <div className="flex items-center gap-1.5 font-bold text-slate-800 dark:text-white">
                 <TrendingUp className="w-3.5 h-3.5 text-[#00A896]" />
-                <span>Atomic Radius (pm)</span>
+                <span>{t('student:atomicChart.atomicRadiusTitle')}</span>
               </div>
               <p className="text-[11px] text-slate-500 dark:text-white">
-                Decreases across a period ($\leftarrow$), increases down a group ($\downarrow$).
+                {t('student:atomicChart.atomicRadiusDesc')}
               </p>
             </div>
 
             <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#111C2E] border border-slate-200/80 dark:border-slate-800 text-xs space-y-1">
               <div className="flex items-center gap-1.5 font-bold text-slate-800 dark:text-white">
                 <Zap className="w-3.5 h-3.5 text-amber-500" />
-                <span>Electronegativity</span>
+                <span>{t('student:atomicChart.electronegativityTitle')}</span>
               </div>
               <p className="text-[11px] text-slate-500 dark:text-white">
-                Increases across a period ($\rightarrow$), decreases down a group ($\uparrow$). F is max (3.98).
+                {t('student:atomicChart.electronegativityDesc')}
               </p>
             </div>
 
             <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#111C2E] border border-slate-200/80 dark:border-slate-800 text-xs space-y-1">
               <div className="flex items-center gap-1.5 font-bold text-slate-800 dark:text-white">
                 <Flame className="w-3.5 h-3.5 text-rose-500" />
-                <span>Ionization Enthalpy</span>
+                <span>{t('student:atomicChart.ionizationTitle')}</span>
               </div>
               <p className="text-[11px] text-slate-500 dark:text-white">
-                Energy to remove outer valence electron. Highest in noble gases (He max).
+                {t('student:atomicChart.ionizationDesc')}
               </p>
             </div>
           </div>
@@ -1021,13 +1023,13 @@ export const ChemistryAtomicChart: React.FC = () => {
                   <span>{activeElement.name}</span>
                 </h3>
                 <span className="text-[11px] font-medium text-slate-500 dark:text-white">
-                  Atomic Weight: {activeElement.mass} u &bull; {activeElement.state}
+                  {t('student:atomicChart.atomicWeight', { mass: activeElement.mass, state: activeElement.state })}
                 </span>
                 <div className="mt-1">
                   <span
                     className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${activeCategoryMeta.bg} ${activeCategoryMeta.text}`}
                   >
-                    {activeCategoryMeta.label}
+                    {t(`student:atomicChart.categories.${activeElement.category}`, { defaultValue: activeCategoryMeta.label })}
                   </span>
                 </div>
               </div>
@@ -1036,7 +1038,7 @@ export const ChemistryAtomicChart: React.FC = () => {
             <button
               onClick={handleCopyElementDetails}
               className="p-1.5 rounded-lg bg-white dark:bg-[#182740] hover:bg-slate-100 dark:hover:bg-[#203456] text-slate-500 dark:text-white border border-slate-200 dark:border-slate-700 cursor-pointer transition-colors"
-              title="Copy element data"
+              title={t('common:actions.copy')}
             >
               {copiedInfo ? <CheckCircle className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
             </button>
@@ -1045,10 +1047,10 @@ export const ChemistryAtomicChart: React.FC = () => {
           {/* Dynamic SVG Bohr Atomic Orbit Visualization */}
           <div className="bg-slate-950 rounded-xl p-3 flex flex-col items-center justify-center relative overflow-hidden border border-slate-800">
             <span className="text-[10px] font-bold text-slate-400 absolute top-2 left-3">
-              Bohr Orbit Planetary Model
+              {t('student:atomicChart.bohrModel')}
             </span>
             <span className="text-[10px] font-mono text-emerald-400 absolute top-2 right-3">
-              Shells: {activeElement.shells.join(' : ')}
+              {t('student:atomicChart.shellsPrefix', { shells: activeElement.shells.join(' : ') })}
             </span>
 
             <svg viewBox="0 0 240 180" className="w-full max-w-[240px] h-36 select-none my-1">
@@ -1101,11 +1103,11 @@ export const ChemistryAtomicChart: React.FC = () => {
             <div className="flex items-center justify-between w-full pt-1 border-t border-slate-800 text-[10px] text-slate-400">
               <span className="flex items-center gap-1">
                 <span className="w-2 h-2 rounded-full bg-sky-400" />
-                <span>Core: {activeElement.shells.slice(0, -1).reduce((a, b) => a + b, 0)}e⁻</span>
+                <span>{t('student:atomicChart.coreElectrons', { count: activeElement.shells.slice(0, -1).reduce((a, b) => a + b, 0) })}</span>
               </span>
               <span className="flex items-center gap-1">
                 <span className="w-2 h-2 rounded-full bg-amber-400" />
-                <span className="font-bold text-amber-300">Valence: {activeElement.valence}e⁻</span>
+                <span className="font-bold text-amber-300">{t('student:atomicChart.valenceElectrons', { count: activeElement.valence })}</span>
               </span>
             </div>
           </div>
@@ -1113,17 +1115,17 @@ export const ChemistryAtomicChart: React.FC = () => {
           {/* Subatomic Particles & Electronic Constants Table */}
           <div className="grid grid-cols-3 gap-2 text-center text-xs">
             <div className="p-2 rounded-xl bg-white dark:bg-[#182740] border border-slate-200/80 dark:border-slate-700/80">
-              <span className="text-[10px] text-slate-400 dark:text-white/70 block">Protons (p⁺)</span>
+              <span className="text-[10px] text-slate-400 dark:text-white/70 block">{t('student:atomicChart.protons')}</span>
               <span className="font-bold text-rose-600 dark:text-rose-400 text-sm">{activeElement.z}</span>
             </div>
             <div className="p-2 rounded-xl bg-white dark:bg-[#182740] border border-slate-200/80 dark:border-slate-700/80">
-              <span className="text-[10px] text-slate-400 dark:text-white/70 block">Neutrons (n⁰)</span>
+              <span className="text-[10px] text-slate-400 dark:text-white/70 block">{t('student:atomicChart.neutrons')}</span>
               <span className="font-bold text-slate-800 dark:text-white text-sm">
                 {Math.round(activeElement.mass - activeElement.z)}
               </span>
             </div>
             <div className="p-2 rounded-xl bg-white dark:bg-[#182740] border border-slate-200/80 dark:border-slate-700/80">
-              <span className="text-[10px] text-slate-400 dark:text-white/70 block">Electrons (e⁻)</span>
+              <span className="text-[10px] text-slate-400 dark:text-white/70 block">{t('student:atomicChart.electrons')}</span>
               <span className="font-bold text-sky-600 dark:text-sky-400 text-sm">{activeElement.z}</span>
             </div>
           </div>
@@ -1131,14 +1133,14 @@ export const ChemistryAtomicChart: React.FC = () => {
           {/* In-Depth Atomic Properties */}
           <div className="space-y-2 text-xs">
             <div className="flex items-center justify-between p-2 rounded-lg bg-white dark:bg-[#182740] border border-slate-200/60 dark:border-slate-700/70">
-              <span className="text-slate-500 dark:text-white/80">Electronic Configuration:</span>
+              <span className="text-slate-500 dark:text-white/80">{t('student:atomicChart.electronicConfig')}</span>
               <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">
                 {activeElement.electronConfig}
               </span>
             </div>
 
             <div className="flex items-center justify-between p-2 rounded-lg bg-white dark:bg-[#182740] border border-slate-200/60 dark:border-slate-700/70">
-              <span className="text-slate-500 dark:text-white/80">Common Oxidation States:</span>
+              <span className="text-slate-500 dark:text-white/80">{t('student:atomicChart.oxidationStates')}</span>
               <span className="font-bold text-slate-800 dark:text-white">
                 {activeElement.oxidationStates}
               </span>
@@ -1146,13 +1148,13 @@ export const ChemistryAtomicChart: React.FC = () => {
 
             <div className="grid grid-cols-2 gap-2">
               <div className="p-2 rounded-lg bg-white dark:bg-[#182740] border border-slate-200/60 dark:border-slate-700/70">
-                <span className="text-[10px] text-slate-400 dark:text-white/70 block">Electronegativity</span>
+                <span className="text-[10px] text-slate-400 dark:text-white/70 block">{t('student:atomicChart.electronegativityLabel')}</span>
                 <span className="font-bold text-slate-900 dark:text-white">
-                  {activeElement.electronegativity !== null ? `${activeElement.electronegativity} Pauling` : 'Noble (None)'}
+                  {activeElement.electronegativity !== null ? `${activeElement.electronegativity} Pauling` : t('student:atomicChart.nobleNone')}
                 </span>
               </div>
               <div className="p-2 rounded-lg bg-white dark:bg-[#182740] border border-slate-200/60 dark:border-slate-700/70">
-                <span className="text-[10px] text-slate-400 dark:text-white/70 block">Atomic Radius</span>
+                <span className="text-[10px] text-slate-400 dark:text-white/70 block">{t('student:atomicChart.atomicRadiusLabel')}</span>
                 <span className="font-bold text-slate-900 dark:text-white">
                   {activeElement.atomicRadius} pm
                 </span>
@@ -1164,7 +1166,7 @@ export const ChemistryAtomicChart: React.FC = () => {
           <div className="p-3 rounded-xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/60 text-xs space-y-1">
             <div className="flex items-center gap-1.5 font-bold text-blue-800 dark:text-blue-300 text-[11px]">
               <Info className="w-3.5 h-3.5 text-blue-500" />
-              <span>Board Exam &amp; Laboratory Note:</span>
+              <span>{t('student:atomicChart.boardExamNote')}</span>
             </div>
             <p className="text-[11px] text-slate-700 dark:text-white leading-relaxed">
               {activeElement.boardNotes}

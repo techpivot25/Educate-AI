@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useApp } from '../../context/AppContext';
 import { UserRole, EducationBoard, LanguageMedium } from '../../types';
 import { SchoolAutocomplete } from '../common/SchoolAutocomplete';
 import { SchoolLocationMap } from '../common/SchoolLocationMap';
 import { PivotIQLogo } from '../common/PivotIQLogo';
+import { LanguageSwitcher } from '../common/LanguageSwitcher';
+import { SUPPORTED_LOCALES } from '../../i18n';
 import {
   GraduationCap,
   Briefcase,
@@ -47,21 +50,9 @@ const SUPPORTED_BOARDS: { value: EducationBoard; label: string; desc: string }[]
   { value: 'Tamil Nadu State Board', label: 'Tamil Nadu State Board (Samacheer Kalvi)', desc: 'Tamil Nadu school education board' },
 ];
 
-const SUPPORTED_LANGUAGES: { value: LanguageMedium; label: string; native: string }[] = [
-  { value: 'en', label: 'English', native: 'Default International' },
-  { value: 'hi', label: 'Hindi', native: 'हिंदी' },
-  { value: 'pa', label: 'Punjabi', native: 'ਪੰਜਾਬੀ' },
-  { value: 'mr', label: 'Marathi', native: 'मराठी' },
-  { value: 'bn', label: 'Bengali', native: 'বাংলা' },
-  { value: 'ta', label: 'Tamil', native: 'தமிழ்' },
-  { value: 'te', label: 'Telugu', native: 'తెలుగు' },
-  { value: 'gu', label: 'Gujarati', native: 'ગુજરાતી' },
-  { value: 'kn', label: 'Kannada', native: 'ಕನ್ನಡ' },
-  { value: 'ml', label: 'Malayalam', native: 'മലയാളം' },
-];
-
 export const UnifiedLogin: React.FC = () => {
-  const { theme, toggleTheme, login, signup } = useApp();
+  const { t } = useTranslation('common');
+  const { theme, toggleTheme, login, signup, globalLanguage, changePlatformLanguage } = useApp();
 
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
   const [selectedRole, setSelectedRole] = useState<UserRole>('student');
@@ -87,7 +78,15 @@ export const UnifiedLogin: React.FC = () => {
   const [gradeNumber, setGradeNumber] = useState<number>(8);
   const [stream, setStream] = useState<string>('Science (PCM/PCB)');
   const [educationBoard, setEducationBoard] = useState<EducationBoard>('CBSE');
-  const [preferredLanguage, setPreferredLanguage] = useState<LanguageMedium>('en');
+  const [preferredLanguage, setPreferredLanguage] = useState<LanguageMedium>(
+    (globalLanguage as LanguageMedium) || 'en'
+  );
+
+  useEffect(() => {
+    if (globalLanguage) {
+      setPreferredLanguage(globalLanguage as LanguageMedium);
+    }
+  }, [globalLanguage]);
   const [selectedSchool, setSelectedSchool] = useState<{
     id?: string;
     name: string;
@@ -228,41 +227,42 @@ export const UnifiedLogin: React.FC = () => {
       />
 
       {/* Top Navigation Bar */}
-      <header className="w-full border-b border-slate-200/80 dark:border-slate-800/80 backdrop-blur-md bg-white/70 dark:bg-[#0D1B3E]/80 px-4 sm:px-8 py-3.5 flex items-center justify-between z-10">
-        <div className="flex items-center gap-3">
+      <header className="w-full border-b border-slate-200/80 dark:border-slate-800/80 backdrop-blur-md bg-white/70 dark:bg-[#0D1B3E]/80 px-4 sm:px-8 py-3.5 flex items-center justify-between z-10 gap-2">
+        <div className="flex items-center gap-3 min-w-0">
           <PivotIQLogo size={36} />
-          <div>
+          <div className="min-w-0">
             <div className="flex items-center gap-2">
               <span className="font-normal text-slate-900 dark:text-white text-base tracking-tight">
-                PivotIQ
+                {t('auth.brandName')}
               </span>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-normal bg-[#00A896]/15 text-[#00A896] dark:bg-[#00A896]/20 dark:text-[#00A896] border border-[#00A896]/30">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-normal bg-[#00A896]/15 text-[#00A896] dark:bg-[#00A896]/20 dark:text-[#00A896] border border-[#00A896]/30 whitespace-nowrap">
                 <Radio className="w-2.5 h-2.5 animate-pulse text-[#00A896]" />
-                Live Sync Ready
+                {t('header.liveSync')}
               </span>
             </div>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 hidden sm:block font-light">
-              Unified Role-Based Authentication Gateway & Institutional Onboarding
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 hidden sm:block font-light truncate">
+              {t('auth.tagline')}
             </p>
           </div>
         </div>
 
-        {/* Right Header Tools: Theme Toggle */}
-        <div className="flex items-center gap-3">
+        {/* Right Header Tools: Language Switcher & Theme Toggle */}
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          <LanguageSwitcher variant="compact" />
           <button
             onClick={toggleTheme}
-            aria-label="Toggle Light and Dark Mode"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-normal bg-white dark:bg-[#12234e] text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors shadow-xs cursor-pointer"
+            aria-label={t('header.toggleTheme')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-normal bg-white dark:bg-[#12234e] text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors shadow-xs cursor-pointer whitespace-nowrap"
           >
             {theme === 'dark' ? (
               <>
                 <Sun className="w-3.5 h-3.5 text-amber-400" />
-                <span className="hidden sm:inline font-normal">Light Mode</span>
+                <span className="hidden sm:inline font-normal">{t('header.lightMode')}</span>
               </>
             ) : (
               <>
                 <Moon className="w-3.5 h-3.5 text-[#00A896]" />
-                <span className="hidden sm:inline font-normal">Dark Mode</span>
+                <span className="hidden sm:inline font-normal">{t('header.darkMode')}</span>
               </>
             )}
           </button>
@@ -272,7 +272,7 @@ export const UnifiedLogin: React.FC = () => {
       {/* Main Container */}
       <main className="flex-1 flex flex-col items-center justify-center px-4 py-8 sm:py-12 z-10 max-w-4xl mx-auto w-full">
         {/* Auth Mode Toggle Tabs (Sign In vs Sign Up) */}
-        <div className="flex items-center p-1 bg-slate-200/80 dark:bg-[#12234e] rounded-2xl mb-6 shadow-inner">
+        <div className="flex items-center p-1 bg-slate-200/80 dark:bg-[#12234e] rounded-2xl mb-6 shadow-inner flex-wrap justify-center">
           <button
             onClick={() => setAuthMode('signin')}
             className={`px-6 py-2 rounded-xl text-xs font-normal transition-all cursor-pointer ${
@@ -281,7 +281,7 @@ export const UnifiedLogin: React.FC = () => {
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
-            Sign In to Account
+            {t('auth.signInTab')}
           </button>
           <button
             onClick={() => setAuthMode('signup')}
@@ -291,9 +291,9 @@ export const UnifiedLogin: React.FC = () => {
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
-            <span>Student Onboarding & Sign Up</span>
+            <span>{t('auth.signUpTab')}</span>
             <span className="px-1.5 py-0.5 rounded-md text-[9px] font-normal bg-[#00A896]/20 text-[#00A896] dark:bg-[#00A896]/30 dark:text-teal-300">
-              7-Day Free Trial
+              {t('auth.freeTrialBadge')}
             </span>
           </button>
         </div>
@@ -302,10 +302,10 @@ export const UnifiedLogin: React.FC = () => {
         <div className="w-full mb-6">
           <div className="text-center mb-4">
             <h1 className="text-xl sm:text-2xl font-light text-slate-900 dark:text-white tracking-tight">
-              {authMode === 'signin' ? 'Sign In to Your Workspace' : 'Begin Your Personalized Learning Journey'}
+              {authMode === 'signin' ? t('auth.signInTitle') : t('auth.signUpTitle')}
             </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-light">
-              Select your educational role to enter your dedicated AI-assisted environment.
+              {t('auth.selectRoleSubtitle')}
             </p>
           </div>
 
@@ -332,9 +332,9 @@ export const UnifiedLogin: React.FC = () => {
                   <span className="w-2 h-2 rounded-full bg-[#00A896] animate-pulse" />
                 )}
               </div>
-              <h3 className="text-xs font-normal text-slate-900 dark:text-white">Student Portal</h3>
+              <h3 className="text-xs font-normal text-slate-900 dark:text-white">{t('auth.studentRoleTitle')}</h3>
               <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1 font-light">
-                Socratic AI, Doubts & Agile Study
+                {t('auth.studentRoleDesc')}
               </p>
             </button>
 
@@ -360,9 +360,9 @@ export const UnifiedLogin: React.FC = () => {
                   <span className="w-2 h-2 rounded-full bg-[#00A896] animate-pulse" />
                 )}
               </div>
-              <h3 className="text-xs font-normal text-slate-900 dark:text-white">Teacher's Desktop</h3>
+              <h3 className="text-xs font-normal text-slate-900 dark:text-white">{t('auth.teacherRoleTitle')}</h3>
               <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1 font-light">
-                Curriculum, Live Meet & Grading
+                {t('auth.teacherRoleDesc')}
               </p>
             </button>
 
@@ -388,9 +388,9 @@ export const UnifiedLogin: React.FC = () => {
                   <span className="w-2 h-2 rounded-full bg-[#00A896] animate-pulse" />
                 )}
               </div>
-              <h3 className="text-xs font-normal text-slate-900 dark:text-white">Admin Hub</h3>
+              <h3 className="text-xs font-normal text-slate-900 dark:text-white">{t('auth.adminRoleTitle')}</h3>
               <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1 font-light">
-                Multi-Panel Switch & Institutional Control
+                {t('auth.adminRoleDesc')}
               </p>
             </button>
           </div>
@@ -400,7 +400,7 @@ export const UnifiedLogin: React.FC = () => {
         <div className="w-full bg-white dark:bg-[#12234e] rounded-3xl p-6 sm:p-8 border border-slate-200/80 dark:border-slate-800 shadow-xl mb-4">
           <div className="mb-5">
             <span className="text-[11px] font-normal uppercase tracking-wider text-slate-400 block mb-2 text-center">
-              One-Click Social & Enterprise Authentication
+              {t('auth.ssoHeading')}
             </span>
             <div className="grid grid-cols-3 gap-2.5">
               <button
@@ -444,7 +444,7 @@ export const UnifiedLogin: React.FC = () => {
             <div className="relative flex py-4 items-center">
               <div className="flex-grow border-t border-slate-200 dark:border-slate-800"></div>
               <span className="flex-shrink mx-4 text-[10px] font-normal uppercase tracking-wider text-slate-400">
-                Or Continue With Credentials
+                {t('auth.orContinueWith')}
               </span>
               <div className="flex-grow border-t border-slate-200 dark:border-slate-800"></div>
             </div>
@@ -455,7 +455,7 @@ export const UnifiedLogin: React.FC = () => {
             <form onSubmit={handleSignIn} className="space-y-4">
               <div>
                 <label className="block text-xs font-normal text-slate-700 dark:text-slate-300 mb-1">
-                  Registered Email Address
+                  {t('auth.emailLabel')}
                 </label>
                 <div className="relative">
                   <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -473,14 +473,14 @@ export const UnifiedLogin: React.FC = () => {
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="block text-xs font-normal text-slate-700 dark:text-slate-300">
-                    Password
+                    {t('auth.passwordLabel')}
                   </label>
                   <button
                     type="button"
                     onClick={() => setShowForgotModal(true)}
                     className="text-[11px] font-normal text-[#00A896] hover:underline cursor-pointer"
                   >
-                    Forgot password?
+                    {t('auth.forgotPassword')}
                   </button>
                 </div>
                 <div className="relative">
@@ -511,10 +511,10 @@ export const UnifiedLogin: React.FC = () => {
                     onChange={(e) => setRememberMe(e.target.checked)}
                     className="rounded border-slate-300 dark:border-slate-700 text-[#00A896] focus:ring-[#00A896]"
                   />
-                  <span>Remember me on this device</span>
+                  <span>{t('auth.rememberMe')}</span>
                 </label>
                 <span className="text-[11px] text-slate-400 flex items-center gap-1 font-normal">
-                  <CheckCircle2 className="w-3 h-3 text-[#00A896]" /> 256-bit Secure
+                  <CheckCircle2 className="w-3 h-3 text-[#00A896]" /> {t('auth.secureBadge')}
                 </span>
               </div>
 
@@ -528,12 +528,12 @@ export const UnifiedLogin: React.FC = () => {
                 ) : (
                   <>
                     <span>
-                      Sign In to{' '}
+                      {t('auth.signInTo')}{' '}
                       {selectedRole === 'student'
-                        ? 'Student Portal'
+                        ? t('auth.studentRoleTitle')
                         : selectedRole === 'teacher'
-                        ? "Teacher's Desktop"
-                        : 'Admin Console'}
+                        ? t('auth.teacherRoleTitle')
+                        : t('auth.adminConsole')}
                     </span>
                     <ArrowRight className="w-4 h-4" />
                   </>
@@ -547,12 +547,12 @@ export const UnifiedLogin: React.FC = () => {
               <div className="space-y-3">
                 <span className="text-xs font-normal uppercase tracking-wider text-[#00A896] flex items-center gap-1.5">
                   <User className="w-4 h-4" />
-                  <span>1. Student Identity & Contact</span>
+                  <span>{t('auth.sectionIdentity')}</span>
                 </span>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[11px] font-normal text-slate-600 dark:text-slate-300 mb-1">
-                      Full Student Name
+                      {t('auth.fullName')}
                     </label>
                     <input
                       type="text"
@@ -565,7 +565,7 @@ export const UnifiedLogin: React.FC = () => {
                   </div>
                   <div>
                     <label className="block text-[11px] font-normal text-slate-600 dark:text-slate-300 mb-1">
-                      Student Email Address
+                      {t('auth.studentEmail')}
                     </label>
                     <input
                       type="email"
@@ -578,7 +578,7 @@ export const UnifiedLogin: React.FC = () => {
                   </div>
                   <div>
                     <label className="block text-[11px] font-normal text-slate-600 dark:text-slate-300 mb-1">
-                      Mobile Number (For SMS & Live Alerts)
+                      {t('auth.mobileNumber')}
                     </label>
                     <div className="relative">
                       <Phone className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -593,7 +593,7 @@ export const UnifiedLogin: React.FC = () => {
                   </div>
                   <div>
                     <label className="block text-[11px] font-normal text-slate-600 dark:text-slate-300 mb-1">
-                      Create Password
+                      {t('auth.createPassword')}
                     </label>
                     <div className="relative">
                       <Lock className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -614,12 +614,12 @@ export const UnifiedLogin: React.FC = () => {
                 <div className="space-y-3 pt-3 border-t border-slate-100 dark:border-slate-800">
                   <span className="text-xs font-normal uppercase tracking-wider text-[#00A896] flex items-center gap-1.5">
                     <Users className="w-4 h-4" />
-                    <span>2. Guardian / Parents Contact</span>
+                    <span>{t('auth.sectionGuardian')}</span>
                   </span>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
                       <label className="block text-[11px] font-normal text-slate-600 dark:text-slate-300 mb-1">
-                        Parent / Guardian Name
+                        {t('auth.parentName')}
                       </label>
                       <input
                         type="text"
@@ -632,7 +632,7 @@ export const UnifiedLogin: React.FC = () => {
                     </div>
                     <div>
                       <label className="block text-[11px] font-normal text-slate-600 dark:text-slate-300 mb-1">
-                        Parent Contact Number
+                        {t('auth.parentPhone')}
                       </label>
                       <input
                         type="tel"
@@ -645,7 +645,7 @@ export const UnifiedLogin: React.FC = () => {
                     </div>
                     <div>
                       <label className="block text-[11px] font-normal text-slate-600 dark:text-slate-300 mb-1">
-                        Emergency Parent Email
+                        {t('auth.parentEmail')}
                       </label>
                       <input
                         type="email"
@@ -665,14 +665,14 @@ export const UnifiedLogin: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-normal uppercase tracking-wider text-[#00A896] flex items-center gap-1.5">
                     <MapPin className="w-4 h-4" />
-                    <span>3. Smart School & Location Mapping (Google Maps)</span>
+                    <span>{t('auth.sectionSchool')}</span>
                   </span>
                   <span className="text-[10px] bg-[#00A896]/15 text-[#00A896] px-2 py-0.5 rounded-full font-normal">
-                    Auto Geocoded
+                    {t('auth.autoGeocoded')}
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 font-light">
-                  Search your school name. Powered by Google Places API, new entries are automatically registered in the central institutional database.
+                  {t('auth.schoolHelp')}
                 </p>
 
                 <SchoolAutocomplete
@@ -702,14 +702,14 @@ export const UnifiedLogin: React.FC = () => {
               <div className="space-y-3 pt-3 border-t border-slate-100 dark:border-slate-800">
                 <span className="text-xs font-normal uppercase tracking-wider text-[#00A896] flex items-center gap-1.5">
                   <BookOpen className="w-4 h-4" />
-                  <span>4. Academic Curriculum & Board Profiling</span>
+                  <span>{t('auth.sectionAcademic')}</span>
                 </span>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {/* Grade Dropdown (Grades 6-12) */}
                   <div>
                     <label className="block text-[11px] font-normal text-slate-600 dark:text-slate-300 mb-1">
-                      Current Grade / Class
+                      {t('auth.currentGrade')}
                     </label>
                     <select
                       value={gradeNumber}
@@ -730,7 +730,7 @@ export const UnifiedLogin: React.FC = () => {
                   {(gradeNumber === 11 || gradeNumber === 12) && (
                     <div className="animate-fadeIn">
                       <label className="block text-[11px] font-normal text-slate-600 dark:text-slate-300 mb-1">
-                        Academic Stream (Grades 11 & 12 Only)
+                        {t('auth.academicStream')}
                       </label>
                       <select
                         value={stream}
@@ -747,7 +747,7 @@ export const UnifiedLogin: React.FC = () => {
                   {/* Education Board Dropdown */}
                   <div>
                     <label className="block text-[11px] font-normal text-slate-600 dark:text-slate-300 mb-1">
-                      Educational Board / Syllabus
+                      {t('auth.educationBoard')}
                     </label>
                     <select
                       value={educationBoard}
@@ -765,16 +765,20 @@ export const UnifiedLogin: React.FC = () => {
                   {/* Language Medium Dropdown */}
                   <div>
                     <label className="block text-[11px] font-normal text-slate-600 dark:text-slate-300 mb-1">
-                      Preferred Language Medium
+                      {t('auth.preferredLanguage')}
                     </label>
                     <select
                       value={preferredLanguage}
-                      onChange={(e) => setPreferredLanguage(e.target.value as LanguageMedium)}
+                      onChange={(e) => {
+                        const next = e.target.value as LanguageMedium;
+                        setPreferredLanguage(next);
+                        void changePlatformLanguage(next, { silent: true });
+                      }}
                       className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#0D1B3E] text-xs font-normal text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#00A896] cursor-pointer"
                     >
-                      {SUPPORTED_LANGUAGES.map((l) => (
-                        <option key={l.value} value={l.value}>
-                          {l.label} ({l.native})
+                      {SUPPORTED_LOCALES.map((l) => (
+                        <option key={l.code} value={l.code}>
+                          {l.code === 'en' ? l.nativeName : `${l.nativeName} (${l.englishName})`}
                         </option>
                       ))}
                     </select>
@@ -783,22 +787,22 @@ export const UnifiedLogin: React.FC = () => {
               </div>
 
               {/* 7-Day Free Trial Callout */}
-              <div className="p-3.5 rounded-2xl bg-[#00A896]/10 border border-[#00A896]/30 text-xs flex items-center justify-between">
+              <div className="p-3.5 rounded-2xl bg-[#00A896]/10 border border-[#00A896]/30 text-xs flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-[#00A896] text-white flex items-center justify-center font-normal">
+                  <div className="w-8 h-8 rounded-xl bg-[#00A896] text-white flex items-center justify-center font-normal shrink-0">
                     ✓
                   </div>
                   <div>
                     <h4 className="font-normal text-slate-900 dark:text-white">
-                      7-Day Full Access Free Trial Included
+                      {t('auth.trialCalloutTitle')}
                     </h4>
                     <p className="text-[11px] text-slate-500 dark:text-slate-400 font-light">
-                      Unrestricted AI Tutoring, Quick Doubts 24/7, and Agile Study Roadmap generation.
+                      {t('auth.trialCalloutDesc')}
                     </p>
                   </div>
                 </div>
-                <span className="text-[10px] font-normal px-2.5 py-1 rounded-full bg-[#00A896] text-white whitespace-nowrap">
-                  No Charge Today
+                <span className="text-[10px] font-normal px-2.5 py-1 rounded-full bg-[#00A896] text-white whitespace-nowrap shrink-0">
+                  {t('auth.noChargeToday')}
                 </span>
               </div>
 
@@ -811,7 +815,7 @@ export const UnifiedLogin: React.FC = () => {
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 ) : (
                   <>
-                    <span>Complete Onboarding & Start 7-Day Trial</span>
+                    <span>{t('auth.completeOnboardingBtn')}</span>
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}
@@ -822,7 +826,7 @@ export const UnifiedLogin: React.FC = () => {
           {/* Quick Demo 1-Click Login Row for Fast Testing */}
           <div className="mt-6 pt-5 border-t border-slate-100 dark:border-slate-800 text-center">
             <p className="text-[11px] font-normal text-slate-500 dark:text-slate-400 mb-2.5">
-              ⚡ Quick One-Click Demo Logins:
+              ⚡ {t('auth.quickDemoTitle')}
             </p>
             <div className="grid grid-cols-3 gap-2">
               <button
@@ -830,21 +834,21 @@ export const UnifiedLogin: React.FC = () => {
                 onClick={() => handleQuickDemoLogin('student')}
                 className="py-1.5 px-2 rounded-lg text-[11px] font-normal bg-[#00A896]/10 hover:bg-[#00A896]/20 text-[#00A896] dark:text-teal-300 border border-[#00A896]/30 transition-colors cursor-pointer"
               >
-                🎓 Sarah (Student)
+                🎓 {t('auth.demoSarah')}
               </button>
               <button
                 type="button"
                 onClick={() => handleQuickDemoLogin('teacher')}
                 className="py-1.5 px-2 rounded-lg text-[11px] font-normal bg-slate-100 hover:bg-slate-200 dark:bg-[#0D1B3E] dark:hover:bg-[#162a5c] text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer"
               >
-                💼 Ms. Elena (Teacher)
+                💼 {t('auth.demoElena')}
               </button>
               <button
                 type="button"
                 onClick={() => handleQuickDemoLogin('admin')}
                 className="py-1.5 px-2 rounded-lg text-[11px] font-normal bg-slate-100 hover:bg-slate-200 dark:bg-[#0D1B3E] dark:hover:bg-[#162a5c] text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer"
               >
-                🛡️ Dr. Marcus (Admin)
+                🛡️ {t('auth.demoMarcus')}
               </button>
             </div>
           </div>
@@ -852,7 +856,7 @@ export const UnifiedLogin: React.FC = () => {
 
         {/* Access Rule Footnote */}
         <p className="text-xs text-slate-500 dark:text-slate-400 text-center max-w-lg font-light">
-          🔒 Access Rule Enforcement: Student and Educator logins are strictly confined to their dedicated workspaces. Only Administrators possess permissions to switch across all three panels.
+          🔒 {t('auth.accessRuleNote')}
         </p>
       </main>
 
@@ -863,7 +867,7 @@ export const UnifiedLogin: React.FC = () => {
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <KeyRound className="w-5 h-5 text-[#00A896]" />
-                <h3 className="font-normal text-slate-900 dark:text-white text-base">Reset Password</h3>
+                <h3 className="font-normal text-slate-900 dark:text-white text-base">{t('auth.resetPasswordTitle')}</h3>
               </div>
               <button
                 onClick={() => {
@@ -881,9 +885,9 @@ export const UnifiedLogin: React.FC = () => {
                 <div className="w-12 h-12 rounded-full bg-[#00A896]/15 text-[#00A896] mx-auto flex items-center justify-center">
                   <Check className="w-6 h-6" />
                 </div>
-                <h4 className="font-normal text-slate-900 dark:text-white text-sm">Reset Link Sent</h4>
+                <h4 className="font-normal text-slate-900 dark:text-white text-sm">{t('auth.resetLinkSentTitle')}</h4>
                 <p className="text-xs text-slate-500 dark:text-slate-400 font-light">
-                  We sent a recovery link to <strong>{forgotEmail || email}</strong>. Please check your inbox to reset your password.
+                  {t('auth.resetLinkSentDesc', { email: forgotEmail || email })}
                 </p>
                 <button
                   onClick={() => {
@@ -892,7 +896,7 @@ export const UnifiedLogin: React.FC = () => {
                   }}
                   className="w-full py-2 bg-[#00A896] text-white rounded-xl text-xs font-normal cursor-pointer"
                 >
-                  Return to Login
+                  {t('auth.returnToLogin')}
                 </button>
               </div>
             ) : (
@@ -904,11 +908,11 @@ export const UnifiedLogin: React.FC = () => {
                 className="space-y-4"
               >
                 <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-light">
-                  Enter your registered institutional email. We will dispatch a secure one-time password verification link.
+                  {t('auth.resetDesc')}
                 </p>
                 <div>
                   <label className="block text-xs font-normal text-slate-700 dark:text-slate-300 mb-1">
-                    Email Address
+                    {t('auth.emailLabel')}
                   </label>
                   <input
                     type="email"
@@ -922,7 +926,7 @@ export const UnifiedLogin: React.FC = () => {
                   type="submit"
                   className="w-full py-2.5 rounded-xl bg-[#00A896] hover:bg-[#009282] text-white font-normal text-xs shadow-md transition-colors cursor-pointer"
                 >
-                  Send Reset Link
+                  {t('auth.sendResetLink')}
                 </button>
               </form>
             )}

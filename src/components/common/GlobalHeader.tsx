@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useApp } from '../../context/AppContext';
 import { useTheme } from '../../context/ThemeContext';
 import { PivotIQLogo } from './PivotIQLogo';
+import { LanguageSwitcher } from './LanguageSwitcher';
 import {
   GraduationCap,
   Briefcase,
@@ -26,6 +28,7 @@ import {
 } from 'lucide-react';
 
 export const GlobalHeader: React.FC = () => {
+  const { t } = useTranslation('common');
   const { theme, toggleTheme } = useTheme();
   const {
     currentRole,
@@ -80,15 +83,15 @@ export const GlobalHeader: React.FC = () => {
             <div className="hidden sm:block">
               <div className="flex items-center gap-2">
                 <span className="font-extrabold text-[#1F1F24] dark:text-[#F1F1F6] text-base tracking-tight">
-                  PivotIQ
+                  {t('appName')}
                 </span>
-                <span className="hidden md:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#98BDFF]/20 text-[#4B49AC] dark:text-[#98BDFF] border border-[#98BDFF]/40">
+                <span className="hidden md:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#98BDFF]/20 text-[#4B49AC] dark:text-[#98BDFF] border border-[#98BDFF]/40 whitespace-nowrap">
                   <Radio className="w-2.5 h-2.5 animate-pulse text-[#4B49AC] dark:text-[#7DA0FA]" />
-                  Live Sync
+                  {t('header.liveSync')}
                 </span>
               </div>
               <p className="text-[11px] text-[#6C7383] dark:text-[#9CA3AF] leading-none">
-                Autonomous Educational Ecosystem
+                {t('header.ecosystemTagline')}
               </p>
             </div>
           </div>
@@ -100,7 +103,7 @@ export const GlobalHeader: React.FC = () => {
               type="text"
               value={globalSearch}
               onChange={(e) => setGlobalSearch(e.target.value)}
-              placeholder="Search subjects, users, quizzes..."
+              placeholder={t('header.searchPlaceholder')}
               className="w-full pl-9 pr-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-[#F5F7FF] dark:bg-[#12131C] text-xs text-[#1F1F24] dark:text-[#F1F1F6] placeholder-[#6C7383] dark:placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#4B49AC] transition-all"
             />
             {globalSearch && (
@@ -115,7 +118,7 @@ export const GlobalHeader: React.FC = () => {
         </div>
 
         {/* Center: Admin Panel Switcher or Role Badge */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 min-w-0">
           {isStudentPanel ? (
             /* Student Panel Header - Clean Student Badge (No Admin Switcher) */
             <div className="flex items-center gap-2">
@@ -127,67 +130,67 @@ export const GlobalHeader: React.FC = () => {
                     <GraduationCap className="w-3 h-3 text-[#4B49AC] dark:text-[#7DA0FA]" />
                   )}
                 </div>
-                <span>
-                  Student Portal &bull; {currentUser?.name || 'Sarah Connor'}
+                <span className="truncate">
+                  {t('nav.studentPortal')} &bull; {currentUser?.name || 'Sarah Connor'}
                 </span>
               </div>
               {isAdminUser && (
                 <button
                   onClick={() => setCurrentRole('admin')}
-                  className="text-[11px] font-bold text-[#4B49AC] dark:text-[#98BDFF] bg-[#98BDFF]/15 hover:bg-[#98BDFF]/25 px-2.5 py-1 rounded-lg border border-[#98BDFF]/40 transition-colors cursor-pointer"
-                  title="Return to Admin Dashboard"
+                  className="text-[11px] font-bold text-[#4B49AC] dark:text-[#98BDFF] bg-[#98BDFF]/15 hover:bg-[#98BDFF]/25 px-2.5 py-1 rounded-lg border border-[#98BDFF]/40 transition-colors cursor-pointer whitespace-nowrap"
+                  title={t('header.exitToAdmin')}
                 >
-                  &larr; Exit to Admin
+                  &larr; {t('header.exitToAdmin')}
                 </button>
               )}
             </div>
           ) : isAdminUser ? (
             <div className="flex items-center bg-[#F5F7FF] dark:bg-[#12131C] p-1 rounded-xl border border-slate-200 dark:border-slate-800 shadow-inner">
-              <span className="hidden xl:inline-block px-2 text-[10px] font-extrabold uppercase text-[#4B49AC] dark:text-[#98BDFF] tracking-wider">
-                Admin Switcher:
+              <span className="hidden xl:inline-block px-2 text-[10px] font-extrabold uppercase text-[#4B49AC] dark:text-[#98BDFF] tracking-wider whitespace-nowrap">
+                {t('header.adminSwitcher')}
               </span>
 
               <button
                 onClick={() => setCurrentRole('student')}
-                title="Switch to Student Portal"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer text-[#6C7383] dark:text-slate-300 hover:text-[#4B49AC] dark:hover:text-white"
+                title={t('nav.studentPortal')}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer text-[#6C7383] dark:text-slate-300 hover:text-[#4B49AC] dark:hover:text-white whitespace-nowrap"
               >
                 <GraduationCap className="w-3.5 h-3.5" />
-                <span>Student</span>
+                <span>{t('header.studentRoleShort')}</span>
               </button>
 
               <button
                 onClick={() => setCurrentRole('teacher')}
-                title="Switch to Teacher Panel"
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                title={t('nav.teachersDesktop')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                   currentRole === 'teacher'
                     ? 'bg-[#4B49AC] text-white shadow-sm'
                     : 'text-[#6C7383] dark:text-slate-300 hover:text-[#4B49AC] dark:hover:text-white'
                 }`}
               >
                 <Briefcase className="w-3.5 h-3.5" />
-                <span>Teacher</span>
+                <span>{t('header.teacherRoleShort')}</span>
               </button>
 
               <button
                 onClick={() => setCurrentRole('admin')}
-                title="Switch to Admin Dashboard"
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                title={t('nav.adminHub')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                   currentRole === 'admin'
                     ? 'bg-[#4B49AC] text-white shadow-sm'
                     : 'text-[#6C7383] dark:text-slate-300 hover:text-[#4B49AC] dark:hover:text-white'
                 }`}
               >
                 <ShieldCheck className="w-3.5 h-3.5" />
-                <span>Admin</span>
+                <span>{t('header.adminRoleShort')}</span>
               </button>
             </div>
           ) : (
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#F5F7FF] dark:bg-[#12131C] border border-[#98BDFF]/40 text-[#4B49AC] dark:text-[#98BDFF] text-xs font-bold shadow-xs">
                 <Briefcase className="w-4 h-4 text-[#4B49AC] dark:text-[#7DA0FA]" />
-                <span>
-                  Teacher's Desktop &bull;{' '}
+                <span className="truncate">
+                  {t('nav.teachersDesktop')} &bull;{' '}
                   {currentUser?.name || 'Educator'}
                 </span>
               </div>
@@ -207,11 +210,11 @@ export const GlobalHeader: React.FC = () => {
           {!isStudentPanel && (
             <button
               onClick={() => setIsCurriculumModalOpen(true)}
-              title="Browse Complete Grades 6-12 Curriculum Database"
-              className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold bg-[#F5F7FF] dark:bg-[#12131C] text-[#4B49AC] dark:text-[#98BDFF] border border-slate-200 dark:border-slate-800 hover:bg-[#98BDFF]/15 transition-colors cursor-pointer"
+              title={t('header.browseCurriculum')}
+              className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold bg-[#F5F7FF] dark:bg-[#12131C] text-[#4B49AC] dark:text-[#98BDFF] border border-slate-200 dark:border-slate-800 hover:bg-[#98BDFF]/15 transition-colors cursor-pointer whitespace-nowrap"
             >
               <BookOpen className="w-3.5 h-3.5 text-[#4B49AC] dark:text-[#7DA0FA]" />
-              <span>Grades 6-12</span>
+              <span>{t('header.gradesPill')}</span>
             </button>
           )}
 
@@ -219,35 +222,35 @@ export const GlobalHeader: React.FC = () => {
           {!isStudentPanel && (
             <button
               onClick={() => setEcosystemOverviewMode(!ecosystemOverviewMode)}
-              title="Toggle Unified Ecosystem 3-Panel Overview"
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+              title={t('nav.ecosystemOverview')}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer whitespace-nowrap ${
                 ecosystemOverviewMode
                   ? 'bg-[#4B49AC] text-white border-[#4B49AC] shadow-sm'
                   : 'bg-[#F5F7FF] dark:bg-[#12131C] hover:bg-slate-200 dark:hover:bg-slate-800 text-[#1F1F24] dark:text-slate-200 border-slate-200 dark:border-slate-800'
               }`}
             >
               <Layers className="w-3.5 h-3.5 text-[#7DA0FA]" />
-              <span className="hidden sm:inline">Ecosystem</span>
+              <span className="hidden sm:inline">{t('header.ecosystemBtn')}</span>
             </button>
           )}
 
-          {/* ISSUE 2 FIX: Robust Dark / Light Theme Toggle Button */}
+          {/* Robust Dark / Light Theme Toggle Button */}
           <button
             onClick={toggleTheme}
             id="theme-toggle-button"
-            title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-            aria-label={`Toggle theme: currently ${theme} mode`}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-[#F5F7FF] hover:bg-slate-200 dark:bg-[#12131C] dark:hover:bg-slate-800 text-[#1F1F24] dark:text-[#F1F1F6] border border-slate-200 dark:border-slate-700 transition-all cursor-pointer shadow-xs active:scale-95"
+            title={theme === 'dark' ? t('header.lightMode') : t('header.darkMode')}
+            aria-label={t('header.toggleTheme')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-[#F5F7FF] hover:bg-slate-200 dark:bg-[#12131C] dark:hover:bg-slate-800 text-[#1F1F24] dark:text-[#F1F1F6] border border-slate-200 dark:border-slate-700 transition-all cursor-pointer shadow-xs active:scale-95 whitespace-nowrap"
           >
             {theme === 'dark' ? (
               <>
                 <Sun className="w-4 h-4 text-amber-400 fill-amber-400 animate-spin-slow" />
-                <span className="hidden sm:inline font-bold">Light</span>
+                <span className="hidden sm:inline font-bold">{t('header.lightShort')}</span>
               </>
             ) : (
               <>
                 <Moon className="w-4 h-4 text-[#4B49AC] fill-[#4B49AC]" />
-                <span className="hidden sm:inline font-bold">Dark</span>
+                <span className="hidden sm:inline font-bold">{t('header.darkShort')}</span>
               </>
             )}
           </button>
@@ -257,11 +260,11 @@ export const GlobalHeader: React.FC = () => {
             <div className="relative">
               <button
                 onClick={() => setShowSimulations(!showSimulations)}
-                title="Test Real-Time Event Bus"
-                className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold bg-[#F5F7FF] dark:bg-[#12131C] text-[#4B49AC] dark:text-[#98BDFF] border border-slate-200 dark:border-slate-800 hover:bg-[#98BDFF]/15 transition-colors cursor-pointer"
+                title={t('header.simulateBtn')}
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold bg-[#F5F7FF] dark:bg-[#12131C] text-[#4B49AC] dark:text-[#98BDFF] border border-slate-200 dark:border-slate-800 hover:bg-[#98BDFF]/15 transition-colors cursor-pointer whitespace-nowrap"
               >
                 <Zap className="w-3.5 h-3.5 text-[#7978E9] fill-[#7978E9]" />
-                <span className="hidden md:inline">Simulate</span>
+                <span className="hidden md:inline">{t('header.simulateBtn')}</span>
               </button>
 
               {showSimulations && (
@@ -320,10 +323,15 @@ export const GlobalHeader: React.FC = () => {
             </div>
           )}
 
+          {/* Persistent Global Language Switcher */}
+          <LanguageSwitcher variant="global" />
+
           {/* Notifications Center with Soft Coral (#F3797E) Alert dot */}
           <div className="relative">
             <button
               onClick={() => setShowNotifications(!showNotifications)}
+              aria-label={t('header.notifications')}
+              title={t('header.notifications')}
               className="relative p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-[#F5F7FF] dark:hover:bg-[#12131C] transition-colors cursor-pointer"
             >
               <Bell className="w-4 h-4" />
@@ -338,10 +346,12 @@ export const GlobalHeader: React.FC = () => {
                   <div className="flex items-center gap-2">
                     <Sparkles className="w-4 h-4 text-[#4B49AC]" />
                     <span className="text-xs font-extrabold text-[#1F1F24] dark:text-white">
-                      Unified Event Stream
+                      {t('header.eventStream')}
                     </span>
                   </div>
-                  <span className="text-[11px] text-[#6C7383]">{notifications.length} updates</span>
+                  <span className="text-[11px] text-[#6C7383]">
+                    {t('header.updatesCount', { count: notifications.length })}
+                  </span>
                 </div>
                 <div className="max-h-72 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800 mt-2 space-y-1">
                   {notifications.map((notif) => (
@@ -399,7 +409,7 @@ export const GlobalHeader: React.FC = () => {
                   {currentUser?.name || 'User Profile'}
                 </div>
                 <div className="text-[10px] text-[#6C7383] dark:text-[#9CA3AF] font-medium">
-                  {currentUser?.role ? currentUser.role.toUpperCase() : 'USER'} &bull; Settings
+                  {currentUser?.role ? currentUser.role.toUpperCase() : 'USER'} &bull; {t('header.settings')}
                 </div>
               </div>
             </button>
@@ -407,7 +417,8 @@ export const GlobalHeader: React.FC = () => {
             {/* Logout button */}
             <button
               onClick={logout}
-              title="Log Out to Unified Login Gateway"
+              title={t('header.signOutTooltip')}
+              aria-label={t('nav.signOut')}
               className="p-2 rounded-xl text-slate-500 hover:text-[#F3797E] dark:text-slate-400 dark:hover:text-[#F3797E] hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
             >
               <LogOut className="w-4 h-4" />

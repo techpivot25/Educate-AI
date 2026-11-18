@@ -1975,6 +1975,80 @@ app.post('/api/study-planner/generate', (req: Request, res: Response) => {
   });
 });
 
+// ==================== USER LANGUAGE PREFERENCE API ====================
+const VALID_ISO_LOCALES = new Set(['en', 'hi', 'pa', 'mr', 'bn', 'ta', 'te', 'gu', 'kn', 'ml']);
+
+interface DBUserPreference {
+  userId: string;
+  preferred_language: string;
+  updated_at: string;
+}
+
+const userPreferencesDB: Record<string, DBUserPreference> = {
+  'user-stu-1': { userId: 'user-stu-1', preferred_language: 'en', updated_at: '2026-01-01T00:00:00.000Z' },
+  'user-stu-2': { userId: 'user-stu-2', preferred_language: 'en', updated_at: '2026-01-01T00:00:00.000Z' },
+  'user-tch-1': { userId: 'user-tch-1', preferred_language: 'en', updated_at: '2026-01-01T00:00:00.000Z' },
+  'user-adm-1': { userId: 'user-adm-1', preferred_language: 'en', updated_at: '2026-01-01T00:00:00.000Z' },
+};
+
+function parseLocaleCookie(cookieHeader?: string): string | null {
+  if (!cookieHeader) return null;
+  const parts = cookieHeader.split(';');
+  for (const part of parts) {
+    const [rawKey, ...rest] = part.trim().split('=');
+    if (rawKey === 'pivot_iq_locale') {
+      const val = decodeURIComponent(rest.join('=')).trim().toLowerCase();
+      if (VALID_ISO_LOCALES.has(val)) return val;
+    }
+  }
+  return null;
+}
+
+app.get('/api/users/:id/preferences', (req: Request, res: Response) => {
+  const userId = String(req.params.id || '').trim();
+  if (!userId) {
+    return res.status(400).json({ error: 'User ID is required' });
+  }
+  const existing = userPreferencesDB[userId];
+  const cookieLocale = parseLocaleCookie(req.headers.cookie);
+  const preferred_language = existing?.preferred_language || cookieLocale || 'en';
+  res.json({
+    success: true,
+    userId,
+    preferred_language,
+    updated_at: existing?.updated_at || new Date().toISOString(),
+  });
+});
+
+app.put('/api/users/:id/preferences', (req: Request, res: Response) => {
+  const userId = String(req.params.id || '').trim();
+  const requested = String(req.body?.preferred_language || '').trim().toLowerCase();
+  if (!userId) {
+    return res.status(400).json({ error: 'User ID is required' });
+  }
+  if (!VALID_ISO_LOCALES.has(requested)) {
+    return res.status(400).json({
+      error: 'Invalid preferred_language ISO 639-1 code',
+      supported: Array.from(VALID_ISO_LOCALES),
+    });
+  }
+  const updated: DBUserPreference = {
+    userId,
+    preferred_language: requested,
+    updated_at: new Date().toISOString(),
+  };
+  userPreferencesDB[userId] = updated;
+  res.cookie('pivot_iq_locale', requested, {
+    maxAge: 365 * 24 * 60 * 60 * 1000,
+    path: '/',
+    sameSite: 'lax',
+  });
+  res.json({
+    success: true,
+    ...updated,
+  });
+});
+
 // Setup Vite middleware in dev or static files in production
 const isProduction = process.env.NODE_ENV === 'production';
 const PORT = 3000;
